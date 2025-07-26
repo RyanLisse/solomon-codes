@@ -1,13 +1,15 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createStagehandSession } from "@/app/actions/stagehand";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { createStagehandSession } from "@/app/actions/stagehand";
 
 const CreateSessionSchema = z.object({
 	headless: z.boolean().default(true),
-	viewport: z.object({
-		width: z.number().default(1280),
-		height: z.number().default(720),
-	}).optional(),
+	viewport: z
+		.object({
+			width: z.number().default(1280),
+			height: z.number().default(720),
+		})
+		.optional(),
 	logger: z.boolean().default(false),
 });
 
@@ -21,7 +23,7 @@ export async function POST(request: NextRequest) {
 		if (!result.success) {
 			return NextResponse.json(
 				{ error: result.error || "Failed to create session" },
-				{ status: 500 }
+				{ status: 500 },
 			);
 		}
 
@@ -31,17 +33,17 @@ export async function POST(request: NextRequest) {
 		});
 	} catch (error) {
 		console.error("Session creation API error:", error);
-		
+
 		if (error instanceof z.ZodError) {
 			return NextResponse.json(
 				{ error: "Invalid request parameters", details: error.errors },
-				{ status: 400 }
+				{ status: 400 },
 			);
 		}
 
 		return NextResponse.json(
 			{ error: "Internal server error" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }

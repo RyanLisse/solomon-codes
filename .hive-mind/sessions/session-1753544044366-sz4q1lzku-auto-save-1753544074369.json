@@ -1,0 +1,81 @@
+{
+	"sessionId": "session-1753544044366-sz4q1lzku",
+	"checkpointId": "checkpoint-1753544074370-kjsm3wzgf",
+	"checkpointName": "auto-save-1753544074369",
+	"timestamp": "2025-07-26T15:34:34.370Z",
+	"data": {
+		"timestamp": "2025-07-26T15:34:34.369Z",
+		"changeCount": 5,
+		"changesByType": {
+			"swarm_created": [
+				{
+					"type": "swarm_created",
+					"data": {
+						"swarmId": "swarm-1753544044366-quztqyklc",
+						"swarmName": "hive-1753544044361",
+						"objective": "add vitest , for our tdd workflow for the web app",
+						"workerCount": 8
+					},
+					"timestamp": "2025-07-26T15:34:04.368Z"
+				}
+			],
+			"agent_activity": [
+				{
+					"type": "agent_activity",
+					"data": {
+						"agentId": "worker-swarm-1753544044366-quztqyklc-0",
+						"activity": "spawned",
+						"data": {
+							"type": "researcher",
+							"name": "Researcher Worker 1"
+						}
+					},
+					"timestamp": "2025-07-26T15:34:04.368Z"
+				},
+				{
+					"type": "agent_activity",
+					"data": {
+						"agentId": "worker-swarm-1753544044366-quztqyklc-1",
+						"activity": "spawned",
+						"data": {
+							"type": "coder",
+							"name": "Coder Worker 2"
+						}
+					},
+					"timestamp": "2025-07-26T15:34:04.368Z"
+				},
+				{
+					"type": "agent_activity",
+					"data": {
+						"agentId": "worker-swarm-1753544044366-quztqyklc-2",
+						"activity": "spawned",
+						"data": {
+							"type": "analyst",
+							"name": "Analyst Worker 3"
+						}
+					},
+					"timestamp": "2025-07-26T15:34:04.368Z"
+				},
+				{
+					"type": "agent_activity",
+					"data": {
+						"agentId": "worker-swarm-1753544044366-quztqyklc-3",
+						"activity": "spawned",
+						"data": {
+							"type": "tester",
+							"name": "Tester Worker 4"
+						}
+					},
+					"timestamp": "2025-07-26T15:34:04.368Z"
+				}
+			]
+		},
+		"statistics": {
+			"tasksProcessed": 0,
+			"tasksCompleted": 0,
+			"memoryUpdates": 0,
+			"agentActivities": 4,
+			"consensusDecisions": 0
+		}
+	}
+}

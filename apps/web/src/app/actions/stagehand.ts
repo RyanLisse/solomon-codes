@@ -11,10 +11,12 @@ const AutomationTaskSchema = z.object({
 
 const SessionConfigSchema = z.object({
 	headless: z.boolean().default(true),
-	viewport: z.object({
-		width: z.number().default(1280),
-		height: z.number().default(720),
-	}).optional(),
+	viewport: z
+		.object({
+			width: z.number().default(1280),
+			height: z.number().default(720),
+		})
+		.optional(),
 	logger: z.boolean().default(false),
 });
 
@@ -30,7 +32,7 @@ export interface AutomationResult {
 }
 
 export const createStagehandSession = async (
-	config: SessionConfig = {}
+	config: SessionConfig = {},
 ): Promise<{ sessionId: string; success: boolean; error?: string }> => {
 	try {
 		const stagehand = new Stagehand({
@@ -43,7 +45,7 @@ export const createStagehandSession = async (
 		});
 
 		await stagehand.init();
-		
+
 		return {
 			sessionId: stagehand.browserbaseSessionId || "unknown",
 			success: true,
@@ -60,7 +62,7 @@ export const createStagehandSession = async (
 
 export const runAutomationTask = async (
 	task: AutomationTask,
-	sessionConfig: SessionConfig = {}
+	sessionConfig: SessionConfig = {},
 ): Promise<AutomationResult> => {
 	const validatedTask = AutomationTaskSchema.parse(task);
 	const validatedConfig = SessionConfigSchema.parse(sessionConfig);
@@ -70,7 +72,7 @@ export const runAutomationTask = async (
 
 	try {
 		logs.push("Initializing Stagehand session...");
-		
+
 		stagehand = new Stagehand({
 			env: "BROWSERBASE",
 			apiKey: process.env.BROWSERBASE_API_KEY!,
@@ -109,11 +111,12 @@ export const runAutomationTask = async (
 			logs,
 		};
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Unknown error";
+		const errorMessage =
+			error instanceof Error ? error.message : "Unknown error";
 		logs.push(`Error: ${errorMessage}`);
-		
+
 		console.error("Automation task failed:", error);
-		
+
 		return {
 			success: false,
 			error: errorMessage,
@@ -135,7 +138,7 @@ export const runAutomationTask = async (
 export const observePageElements = async (
 	url: string,
 	instruction: string,
-	sessionConfig: SessionConfig = {}
+	sessionConfig: SessionConfig = {},
 ): Promise<AutomationResult> => {
 	const validatedConfig = SessionConfigSchema.parse(sessionConfig);
 	let stagehand: Stagehand | null = null;
@@ -143,7 +146,7 @@ export const observePageElements = async (
 
 	try {
 		logs.push("Initializing observation session...");
-		
+
 		stagehand = new Stagehand({
 			env: "BROWSERBASE",
 			apiKey: process.env.BROWSERBASE_API_KEY!,
@@ -173,11 +176,12 @@ export const observePageElements = async (
 			logs,
 		};
 	} catch (error) {
-		const errorMessage = error instanceof Error ? error.message : "Unknown error";
+		const errorMessage =
+			error instanceof Error ? error.message : "Unknown error";
 		logs.push(`Error: ${errorMessage}`);
-		
+
 		console.error("Page observation failed:", error);
-		
+
 		return {
 			success: false,
 			error: errorMessage,

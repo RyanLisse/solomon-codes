@@ -1,18 +1,14 @@
 "use client";
 
-import { Globe, Play, Eye, Settings } from "lucide-react";
-import { useRef, useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, Globe, Play, Settings } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import type { AutomationTask, SessionConfig } from "@/app/actions/stagehand";
 import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
+	observePageElements,
+	runAutomationTask,
+} from "@/app/actions/stagehand";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Dialog,
 	DialogContent,
@@ -20,8 +16,15 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
-import { runAutomationTask, observePageElements } from "@/app/actions/stagehand";
-import type { AutomationTask, SessionConfig } from "@/app/actions/stagehand";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 
 interface AutomationResult {
 	success: boolean;
@@ -38,7 +41,7 @@ export default function StagehandForm() {
 	const [mode, setMode] = useState<"action" | "observe">("action");
 	const [isLoading, setIsLoading] = useState(false);
 	const [result, setResult] = useState<AutomationResult | null>(null);
-	
+
 	// Session configuration
 	const [sessionConfig, setSessionConfig] = useState<SessionConfig>({
 		headless: true,
@@ -54,7 +57,7 @@ export default function StagehandForm() {
 		const textarea = textareaRef.current;
 		if (textarea) {
 			textarea.style.height = "100px";
-			textarea.style.height = Math.max(100, textarea.scrollHeight) + "px";
+			textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
 		}
 	};
 
@@ -69,7 +72,7 @@ export default function StagehandForm() {
 			if (extractSchema) {
 				try {
 					parsedSchema = JSON.parse(extractSchema);
-				} catch (error) {
+				} catch (_error) {
 					setResult({
 						success: false,
 						error: "Invalid JSON schema format",
@@ -88,7 +91,11 @@ export default function StagehandForm() {
 				const response = await runAutomationTask(task, sessionConfig);
 				setResult(response);
 			} else {
-				const response = await observePageElements(url, instructions, sessionConfig);
+				const response = await observePageElements(
+					url,
+					instructions,
+					sessionConfig,
+				);
 				setResult(response);
 			}
 		} catch (error) {
@@ -103,7 +110,7 @@ export default function StagehandForm() {
 
 	useEffect(() => {
 		adjustHeight();
-	}, [instructions]);
+	}, [adjustHeight]);
 
 	const isValidUrl = (url: string) => {
 		try {
@@ -115,21 +122,21 @@ export default function StagehandForm() {
 	};
 
 	return (
-		<div className="max-w-4xl mx-auto w-full flex flex-col gap-y-6 mt-8">
+		<div className="mx-auto mt-8 flex w-full max-w-4xl flex-col gap-y-6">
 			<div className="text-center">
-				<h1 className="text-4xl font-bold mb-2">Browser Automation</h1>
+				<h1 className="mb-2 font-bold text-4xl">Browser Automation</h1>
 				<p className="text-muted-foreground">
 					Automate web interactions with AI-powered browser control
 				</p>
 			</div>
 
-			<div className="p-0.5 rounded-lg bg-muted">
-				<div className="flex flex-col gap-y-4 border bg-background rounded-lg p-6">
+			<div className="rounded-lg bg-muted p-0.5">
+				<div className="flex flex-col gap-y-4 rounded-lg border bg-background p-6">
 					{/* URL Input */}
 					<div className="space-y-2">
 						<Label htmlFor="url">Website URL</Label>
 						<div className="relative">
-							<Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+							<Globe className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
 							<Input
 								id="url"
 								value={url}
@@ -140,14 +147,19 @@ export default function StagehandForm() {
 							/>
 						</div>
 						{url && !isValidUrl(url) && (
-							<p className="text-sm text-destructive">Please enter a valid URL</p>
+							<p className="text-destructive text-sm">
+								Please enter a valid URL
+							</p>
 						)}
 					</div>
 
 					{/* Mode Selection */}
 					<div className="space-y-2">
 						<Label>Automation Mode</Label>
-						<Select value={mode} onValueChange={(value: "action" | "observe") => setMode(value)}>
+						<Select
+							value={mode}
+							onValueChange={(value: "action" | "observe") => setMode(value)}
+						>
 							<SelectTrigger>
 								<SelectValue />
 							</SelectTrigger>
@@ -183,7 +195,7 @@ export default function StagehandForm() {
 									? "Click the login button and fill in the form with test data..."
 									: "Find all clickable buttons and their text content..."
 							}
-							className="w-full min-h-[100px] resize-none border rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-ring overflow-hidden"
+							className="min-h-[100px] w-full resize-none overflow-hidden rounded-md border p-3 focus:outline-none focus:ring-2 focus:ring-ring"
 						/>
 					</div>
 
@@ -191,7 +203,7 @@ export default function StagehandForm() {
 					<Dialog open={showAdvanced} onOpenChange={setShowAdvanced}>
 						<DialogTrigger asChild>
 							<Button variant="outline" className="self-start">
-								<Settings className="h-4 w-4 mr-2" />
+								<Settings className="mr-2 h-4 w-4" />
 								Advanced Settings
 							</Button>
 						</DialogTrigger>
@@ -208,7 +220,10 @@ export default function StagehandForm() {
 											id="headless"
 											checked={sessionConfig.headless}
 											onCheckedChange={(checked) =>
-												setSessionConfig(prev => ({ ...prev, headless: !!checked }))
+												setSessionConfig((prev) => ({
+													...prev,
+													headless: !!checked,
+												}))
 											}
 										/>
 										<Label htmlFor="headless">Headless mode</Label>
@@ -218,7 +233,10 @@ export default function StagehandForm() {
 											id="logger"
 											checked={sessionConfig.logger}
 											onCheckedChange={(checked) =>
-												setSessionConfig(prev => ({ ...prev, logger: !!checked }))
+												setSessionConfig((prev) => ({
+													...prev,
+													logger: !!checked,
+												}))
 											}
 										/>
 										<Label htmlFor="logger">Enable logging</Label>
@@ -236,13 +254,13 @@ export default function StagehandForm() {
 												type="number"
 												value={sessionConfig.viewport?.width || 1280}
 												onChange={(e) =>
-													setSessionConfig(prev => ({
+													setSessionConfig((prev) => ({
 														...prev,
 														viewport: {
 															...prev.viewport,
-															width: parseInt(e.target.value) || 1280,
+															width: Number.parseInt(e.target.value) || 1280,
 															height: prev.viewport?.height || 720,
-														}
+														},
 													}))
 												}
 											/>
@@ -254,13 +272,13 @@ export default function StagehandForm() {
 												type="number"
 												value={sessionConfig.viewport?.height || 720}
 												onChange={(e) =>
-													setSessionConfig(prev => ({
+													setSessionConfig((prev) => ({
 														...prev,
 														viewport: {
 															...prev.viewport,
 															width: prev.viewport?.width || 1280,
-															height: parseInt(e.target.value) || 720,
-														}
+															height: Number.parseInt(e.target.value) || 720,
+														},
 													}))
 												}
 											/>
@@ -271,13 +289,15 @@ export default function StagehandForm() {
 								{/* Extract Schema */}
 								{mode === "action" && (
 									<div className="space-y-2">
-										<Label htmlFor="schema">Data Extraction Schema (JSON)</Label>
+										<Label htmlFor="schema">
+											Data Extraction Schema (JSON)
+										</Label>
 										<textarea
 											id="schema"
 											value={extractSchema}
 											onChange={(e) => setExtractSchema(e.target.value)}
 											placeholder='{"title": "string", "price": "number"}'
-											className="w-full h-24 resize-none border rounded-md p-2 font-mono text-sm"
+											className="h-24 w-full resize-none rounded-md border p-2 font-mono text-sm"
 										/>
 									</div>
 								)}
@@ -292,10 +312,14 @@ export default function StagehandForm() {
 						className="w-full"
 					>
 						{isLoading ? (
-							<>Loading...</>
+							"Loading..."
 						) : (
 							<>
-								{mode === "action" ? <Play className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+								{mode === "action" ? (
+									<Play className="mr-2 h-4 w-4" />
+								) : (
+									<Eye className="mr-2 h-4 w-4" />
+								)}
 								{mode === "action" ? "Run Automation" : "Observe Page"}
 							</>
 						)}
@@ -305,38 +329,41 @@ export default function StagehandForm() {
 
 			{/* Results */}
 			{result && (
-				<div className="p-0.5 rounded-lg bg-muted">
-					<div className="border bg-background rounded-lg p-6">
-						<h3 className="font-semibold mb-4">
+				<div className="rounded-lg bg-muted p-0.5">
+					<div className="rounded-lg border bg-background p-6">
+						<h3 className="mb-4 font-semibold">
 							{result.success ? "✅ Success" : "❌ Error"}
 						</h3>
-						
+
 						{result.success ? (
 							<div className="space-y-4">
 								{result.sessionId && (
 									<div>
-										<h4 className="font-medium mb-2">Session ID</h4>
-										<code className="block p-2 bg-muted rounded text-sm">
+										<h4 className="mb-2 font-medium">Session ID</h4>
+										<code className="block rounded bg-muted p-2 text-sm">
 											{result.sessionId}
 										</code>
 									</div>
 								)}
-								
+
 								{result.data && (
 									<div>
-										<h4 className="font-medium mb-2">Extracted Data</h4>
-										<pre className="block p-3 bg-muted rounded text-sm overflow-x-auto">
+										<h4 className="mb-2 font-medium">Extracted Data</h4>
+										<pre className="block overflow-x-auto rounded bg-muted p-3 text-sm">
 											{JSON.stringify(result.data, null, 2)}
 										</pre>
 									</div>
 								)}
-								
+
 								{result.logs && result.logs.length > 0 && (
 									<div>
-										<h4 className="font-medium mb-2">Execution Logs</h4>
+										<h4 className="mb-2 font-medium">Execution Logs</h4>
 										<div className="space-y-1">
 											{result.logs.map((log, index) => (
-												<div key={index} className="text-sm text-muted-foreground">
+												<div
+													key={index}
+													className="text-muted-foreground text-sm"
+												>
 													{log}
 												</div>
 											))}
@@ -347,16 +374,21 @@ export default function StagehandForm() {
 						) : (
 							<div className="space-y-4">
 								<div>
-									<h4 className="font-medium mb-2 text-destructive">Error Message</h4>
-									<p className="text-sm text-destructive">{result.error}</p>
+									<h4 className="mb-2 font-medium text-destructive">
+										Error Message
+									</h4>
+									<p className="text-destructive text-sm">{result.error}</p>
 								</div>
-								
+
 								{result.logs && result.logs.length > 0 && (
 									<div>
-										<h4 className="font-medium mb-2">Debug Logs</h4>
+										<h4 className="mb-2 font-medium">Debug Logs</h4>
 										<div className="space-y-1">
 											{result.logs.map((log, index) => (
-												<div key={index} className="text-sm text-muted-foreground">
+												<div
+													key={index}
+													className="text-muted-foreground text-sm"
+												>
 													{log}
 												</div>
 											))}

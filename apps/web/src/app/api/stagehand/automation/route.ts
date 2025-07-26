@@ -1,20 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { runAutomationTask, observePageElements } from "@/app/actions/stagehand";
+import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import {
+	observePageElements,
+	runAutomationTask,
+} from "@/app/actions/stagehand";
 
 const AutomationRequestSchema = z.object({
 	type: z.enum(["action", "observe"]),
 	url: z.string().url(),
 	instructions: z.string().min(1),
 	extractSchema: z.record(z.any()).optional(),
-	sessionConfig: z.object({
-		headless: z.boolean().default(true),
-		viewport: z.object({
-			width: z.number().default(1280),
-			height: z.number().default(720),
-		}).optional(),
-		logger: z.boolean().default(false),
-	}).optional(),
+	sessionConfig: z
+		.object({
+			headless: z.boolean().default(true),
+			viewport: z
+				.object({
+					width: z.number().default(1280),
+					height: z.number().default(720),
+				})
+				.optional(),
+			logger: z.boolean().default(false),
+		})
+		.optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -31,24 +38,24 @@ export async function POST(request: NextRequest) {
 					instructions: validatedRequest.instructions,
 					extractSchema: validatedRequest.extractSchema,
 				},
-				validatedRequest.sessionConfig
+				validatedRequest.sessionConfig,
 			);
 		} else {
 			result = await observePageElements(
 				validatedRequest.url,
 				validatedRequest.instructions,
-				validatedRequest.sessionConfig
+				validatedRequest.sessionConfig,
 			);
 		}
 
 		if (!result.success) {
 			return NextResponse.json(
-				{ 
+				{
 					error: result.error || "Automation failed",
 					logs: result.logs,
 					sessionId: result.sessionId,
 				},
-				{ status: 500 }
+				{ status: 500 },
 			);
 		}
 
@@ -60,17 +67,17 @@ export async function POST(request: NextRequest) {
 		});
 	} catch (error) {
 		console.error("Automation API error:", error);
-		
+
 		if (error instanceof z.ZodError) {
 			return NextResponse.json(
 				{ error: "Invalid request parameters", details: error.errors },
-				{ status: 400 }
+				{ status: 400 },
 			);
 		}
 
 		return NextResponse.json(
 			{ error: "Internal server error" },
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }
