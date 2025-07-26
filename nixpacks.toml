@@ -1,9 +1,11 @@
 [phases.setup]
-aptPkgs = []
 nixPkgs = ["nodejs_18"]
 
+[phases.install]
+cmds = ["npm ci"]
+
 [phases.build]
-cmds = ["npm ci", "npx turbo run build --filter=web"]
+cmds = ["npx turbo run build --filter=web"]
 
 [start]
 cmd = "cd apps/web && npm start"
