@@ -1,0 +1,13 @@
+[phases.setup]
+aptPkgs = []
+nixPkgs = ["nodejs_18"]
+
+[phases.build]
+cmds = ["npm ci", "npx turbo run build --filter=web"]
+
+[start]
+cmd = "cd apps/web && npm start"
+
+[variables]
+NODE_ENV = "production"
+PORT = "3000"
