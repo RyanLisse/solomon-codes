@@ -13,8 +13,8 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useTask, useTaskCacheUpdater } from "@/hooks/use-tasks";
 import { cn } from "@/lib/utils";
-import { useTaskStore } from "@/stores/tasks";
 import MessageInput from "./_components/message-input";
 import TaskNavbar from "./_components/navbar";
 
@@ -105,8 +105,8 @@ function isValidIncomingMessage(message: unknown): message is IncomingMessage {
 }
 
 export default function TaskClientPage({ id }: Props) {
-	const { getTaskById, updateTask } = useTaskStore();
-	const task = getTaskById(id);
+	const { data: task, isLoading, error } = useTask(id);
+	const { updateTaskInCache } = useTaskCacheUpdater();
 	const scrollAreaRef = useRef<HTMLDivElement>(null);
 	const chatScrollAreaRef = useRef<HTMLDivElement>(null);
 	const [subscriptionEnabled, setSubscriptionEnabled] = useState(true);
@@ -167,10 +167,10 @@ export default function TaskClientPage({ id }: Props) {
 					const streamId = message.data.streamId;
 					const streamingMessage = streamingMessages.get(streamId);
 
-					if (streamingMessage) {
-						updateTask(id, {
+					if (streamingMessage && task) {
+						updateTaskInCache(id, {
 							messages: [
-								...(task?.messages || []),
+								...task.messages,
 								{
 									...streamingMessage,
 									data: {
@@ -190,13 +190,15 @@ export default function TaskClientPage({ id }: Props) {
 					}
 				} else {
 					// Regular non-streaming message
-					updateTask(id, {
-						messages: [...(task?.messages || []), message],
-					});
+					if (task) {
+						updateTaskInCache(id, {
+							messages: [...task.messages, message],
+						});
+					}
 				}
 			}
 		}
-	}, [latestData, id, task?.messages, streamingMessages, updateTask]);
+	}, [latestData, id, task, streamingMessages, updateTaskInCache]);
 
 	// Auto-scroll to bottom when messages change or streaming messages update
 	useEffect(() => {
@@ -214,12 +216,12 @@ export default function TaskClientPage({ id }: Props) {
 	}, []);
 
 	useEffect(() => {
-		if (task) {
-			updateTask(task.id, {
+		if (task && task.hasChanges) {
+			updateTaskInCache(task.id, {
 				hasChanges: false,
 			});
 		}
-	}, [task, updateTask]);
+	}, [task?.hasChanges, task?.id, updateTaskInCache]);
 
 	// Cleanup subscription on unmount to prevent stream cancellation errors
 	useEffect(() => {
@@ -227,6 +229,41 @@ export default function TaskClientPage({ id }: Props) {
 			setSubscriptionEnabled(false);
 		};
 	}, []);
+
+	// Handle loading state
+	if (isLoading) {
+		return (
+			<div className="flex h-screen flex-col">
+				<TaskNavbar id={id} />
+				<div className="flex flex-1 items-center justify-center">
+					<div className="text-center">
+						<Loader className="mx-auto h-8 w-8 animate-spin text-muted-foreground" />
+						<h2 className="mt-4 font-semibold text-lg">Loading task...</h2>
+						<p className="text-muted-foreground">
+							Please wait while we fetch your task.
+						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// Handle error state
+	if (error) {
+		return (
+			<div className="flex h-screen flex-col">
+				<TaskNavbar id={id} />
+				<div className="flex flex-1 items-center justify-center">
+					<div className="text-center">
+						<h2 className="font-semibold text-lg">Error loading task</h2>
+						<p className="text-muted-foreground">
+							There was an error loading the task. Please try again.
+						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
 
 	// Handle case when task is not found
 	if (!task) {

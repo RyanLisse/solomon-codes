@@ -57,4 +57,3 @@ export async function GET(request: NextRequest) {
 		return NextResponse.redirect(new URL("/?error=oauth_failed", request.url));
 	}
 }
-export const runtime = "edge";

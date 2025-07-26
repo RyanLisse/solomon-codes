@@ -2,7 +2,6 @@
 import { HardDrive, Split } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createTaskAction } from "@/app/actions/inngest";
 import { Button } from "@/components/ui/button";
 import {
 	Select,
@@ -12,12 +11,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { useGitHubAuth } from "@/hooks/use-github-auth";
+import { useCreateTask } from "@/hooks/use-tasks";
 import { useEnvironmentStore } from "@/stores/environments";
-import { useTaskStore } from "@/stores/tasks";
 
 export default function TaskForm() {
 	const { environments } = useEnvironmentStore();
-	const { addTask } = useTaskStore();
+	const createTask = useCreateTask();
 	const { branches, fetchBranches } = useGitHubAuth();
 	const [selectedBranch, setSelectedBranch] = useState<string>(
 		branches.find((branch) => branch.isDefault)?.name || "",
@@ -38,21 +37,27 @@ export default function TaskForm() {
 
 	const handleAddTask = async (mode: "code" | "ask") => {
 		if (value) {
-			const task = addTask({
-				title: value,
-				hasChanges: false,
-				description: "",
-				messages: [],
-				status: "IN_PROGRESS",
-				branch: selectedBranch,
-				sessionId: "",
-				repository:
-					environments.find((env) => env.id === selectedEnvironment)
-						?.githubRepository || "",
-				mode,
-			});
-			await createTaskAction({ task });
-			setValue("");
+			try {
+				await createTask.mutateAsync({
+					task: {
+						title: value,
+						hasChanges: false,
+						description: "",
+						messages: [],
+						status: "IN_PROGRESS",
+						branch: selectedBranch,
+						sessionId: "",
+						repository:
+							environments.find((env) => env.id === selectedEnvironment)
+								?.githubRepository || "",
+						mode,
+					},
+				});
+				setValue("");
+			} catch (error) {
+				console.error("Failed to create task:", error);
+				// Error handling could be improved with toast notifications
+			}
 		}
 	};
 

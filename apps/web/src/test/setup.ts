@@ -12,8 +12,8 @@ beforeAll(() => {
 	if (typeof window !== "undefined" && !window.location) {
 		Object.defineProperty(window, "location", {
 			value: {
-				href: "http://localhost:3000",
-				origin: "http://localhost:3000",
+				href: "http://localhost:3001",
+				origin: "http://localhost:3001",
 			},
 			writable: true,
 		});

@@ -54,7 +54,7 @@ export class GitHubAuth {
 		this.redirectUri =
 			process.env.NODE_ENV === "production"
 				? "https://clonedex.vercel.app/api/auth/github/callback"
-				: "http://localhost:3000/api/auth/github/callback";
+				: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/auth/github/callback`;
 	}
 
 	// Generate GitHub OAuth URL

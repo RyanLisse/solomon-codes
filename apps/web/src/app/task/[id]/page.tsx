@@ -1,7 +1,5 @@
 import TaskClientPage from "./client-page";
 
-export const runtime = "edge";
-
 interface Props {
 	params: Promise<{ id: string }>;
 }

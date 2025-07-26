@@ -1,19 +1,23 @@
 "use client";
 import { formatDistanceToNow } from "date-fns";
-import { Archive, Check, Dot, Trash2 } from "lucide-react";
+import { Archive, Check, Dot, Loader, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TextShimmer } from "@/components/ui/text-shimmer";
-import { useTaskStore } from "@/stores/tasks";
+import { useArchiveTask, useDeleteTask, useTasks } from "@/hooks/use-tasks";
 
 export default function TaskList() {
 	const [isHydrated, setIsHydrated] = useState(false);
-	const { getActiveTasks, getArchivedTasks, archiveTask, removeTask } =
-		useTaskStore();
-	const activeTasks = getActiveTasks();
-	const archivedTasks = getArchivedTasks();
+	const { data: activeTasks = [], isLoading: activeLoading } = useTasks({
+		archived: false,
+	});
+	const { data: archivedTasks = [], isLoading: archivedLoading } = useTasks({
+		archived: true,
+	});
+	const archiveTaskMutation = useArchiveTask();
+	const deleteTaskMutation = useDeleteTask();
 
 	useEffect(() => {
 		setIsHydrated(true);
@@ -34,8 +38,11 @@ export default function TaskList() {
 				</TabsList>
 				<TabsContent value="active">
 					<div className="flex flex-col gap-1">
-						{!isHydrated ? (
-							<p className="p-2 text-muted-foreground">Loading tasks...</p>
+						{!isHydrated || activeLoading ? (
+							<div className="flex items-center gap-2 p-2 text-muted-foreground">
+								<Loader className="h-4 w-4 animate-spin" />
+								Loading tasks...
+							</div>
 						) : activeTasks.length === 0 ? (
 							<p className="p-2 text-muted-foreground">No active tasks yet.</p>
 						) : (
@@ -81,9 +88,14 @@ export default function TaskList() {
 										<Button
 											variant="outline"
 											size="icon"
-											onClick={() => archiveTask(task.id)}
+											onClick={() => archiveTaskMutation.mutate(task.id)}
+											disabled={archiveTaskMutation.isPending}
 										>
-											<Archive />
+											{archiveTaskMutation.isPending ? (
+												<Loader className="h-4 w-4 animate-spin" />
+											) : (
+												<Archive />
+											)}
 										</Button>
 									)}
 								</div>
@@ -93,8 +105,11 @@ export default function TaskList() {
 				</TabsContent>
 				<TabsContent value="archived">
 					<div className="flex flex-col gap-1">
-						{!isHydrated ? (
-							<p className="p-2 text-muted-foreground">Loading tasks...</p>
+						{!isHydrated || archivedLoading ? (
+							<div className="flex items-center gap-2 p-2 text-muted-foreground">
+								<Loader className="h-4 w-4 animate-spin" />
+								Loading archived tasks...
+							</div>
 						) : archivedTasks.length === 0 ? (
 							<p className="p-2 text-muted-foreground">
 								No archived tasks yet.
@@ -118,10 +133,15 @@ export default function TaskList() {
 										size="icon"
 										onClick={(e) => {
 											e.stopPropagation();
-											removeTask(task.id);
+											deleteTaskMutation.mutate(task.id);
 										}}
+										disabled={deleteTaskMutation.isPending}
 									>
-										<Trash2 />
+										{deleteTaskMutation.isPending ? (
+											<Loader className="h-4 w-4 animate-spin" />
+										) : (
+											<Trash2 />
+										)}
 									</Button>
 								</div>
 							))

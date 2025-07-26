@@ -4,6 +4,7 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import "./streaming.css";
 
+import { QueryProvider } from "@/components/providers/query-provider";
 import Container from "./container";
 
 const geistSans = Geist({
@@ -32,14 +33,16 @@ export default function RootLayout({
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="system"
-					enableSystem
-					disableTransitionOnChange
-				>
-					<Container>{children}</Container>
-				</ThemeProvider>
+				<QueryProvider>
+					<ThemeProvider
+						attribute="class"
+						defaultTheme="system"
+						enableSystem
+						disableTransitionOnChange
+					>
+						<Container>{children}</Container>
+					</ThemeProvider>
+				</QueryProvider>
 			</body>
 		</html>
 	);
