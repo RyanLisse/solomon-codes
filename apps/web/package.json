@@ -12,7 +12,12 @@
 		"test:ui": "vitest --ui",
 		"test:run": "vitest run",
 		"test:coverage": "vitest run --coverage",
-		"test:bun": "bun test"
+		"test:bun": "bun test",
+		"pages:build": "npx @cloudflare/next-on-pages",
+		"pages:dev": "npx @cloudflare/next-on-pages --dev",
+		"deploy": "npm run pages:build && wrangler pages deploy",
+		"cf:dev": "npm run pages:dev",
+		"cf:preview": "npm run pages:build && wrangler pages dev"
 	},
 	"dependencies": {
 		"@ai-sdk/openai": "^1.3.22",

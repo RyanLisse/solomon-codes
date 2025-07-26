@@ -12,6 +12,7 @@
 		"prepare": "husky",
 		"dev": "turbo dev",
 		"build": "turbo build",
+		"start": "cd apps/web && npm start",
 		"check-types": "turbo check-types",
 		"dev:native": "turbo -F native dev",
 		"dev:web": "turbo -F web dev",
@@ -19,6 +20,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.0.0",
+		"@cloudflare/next-on-pages": "^1.13.13",
 		"@testing-library/jest-dom": "^6.6.3",
 		"@types/react-syntax-highlighter": "^15.5.13",
 		"@vitejs/plugin-react": "^4.7.0",

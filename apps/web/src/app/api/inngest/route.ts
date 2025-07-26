@@ -7,3 +7,4 @@ export const { GET, POST, PUT } = serve({
 	client: inngest,
 	functions: [createTask],
 });
+export const runtime = "nodejs";

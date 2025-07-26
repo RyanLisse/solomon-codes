@@ -1,0 +1,12 @@
+{
+	"$schema": "https://railway.com/railway.schema.json",
+	"build": {
+		"command": "npx turbo run build"
+	},
+	"deploy": {
+		"startCommand": "cd apps/web && npm start",
+		"healthcheckPath": "/",
+		"healthcheckTimeout": 100,
+		"restartPolicyType": "on_failure"
+	}
+}

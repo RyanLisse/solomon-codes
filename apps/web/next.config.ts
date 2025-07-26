@@ -14,23 +14,8 @@ const nextConfig: NextConfig = {
 		unoptimized: false,
 	},
 
-	// Configure for better performance on Cloudflare Pages
-	experimental: {
-		// Disable CSS optimization to avoid critters dependency issue
-		optimizeCss: false,
-	},
-
-	// Webpack configuration for better compatibility
-	webpack: (config) => {
-		// Handle potential module resolution issues
-		config.resolve.fallback = {
-			...config.resolve.fallback,
-			fs: false,
-			net: false,
-			tls: false,
-		};
-		return config;
-	},
+	// External packages for server components
+	serverExternalPackages: [],
 };
 
 export default nextConfig;

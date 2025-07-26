@@ -1,0 +1,8 @@
+# Cloudflare Pages configuration for Next.js app
+name = "solomon-codes"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "apps/web/.vercel/output/static"
+
+# Build configuration
+[build]
+command = "cd apps/web && npx @cloudflare/next-on-pages"
