@@ -1,0 +1,8 @@
+[test]
+# Use bun test with DOM environment
+preload = ["./src/test/setup.ts"]
+# Coverage options
+coverage = true
+
+[test.env]
+NODE_ENV = "test"

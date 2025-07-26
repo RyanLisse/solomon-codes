@@ -1,2 +1,20 @@
 node_modules
 .turbo
+
+# Memory and coordination directories
+.swarm/
+.hive-mind/
+.kiro/
+coordination/
+memory/
+memories.json
+reflections.json
+
+# Logs
+logs/
+
+# Claude Flow runtime data
+claude-flow-data.json
+
+# Astro generated files
+apps/docs/.astro/
