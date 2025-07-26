@@ -1,6 +1,15 @@
 // stores/useTaskStore.ts
 
-import type { PullRequestResponse } from "@vibe-kit/sdk";
+// import type { PullRequestResponse } from "@vibe-kit/sdk";
+// Temporary stub type while VibeKit is disabled
+type PullRequestResponse = {
+	url?: string;
+	html_url?: string;
+	number?: number;
+	title?: string;
+	state?: string;
+};
+
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 

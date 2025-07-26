@@ -1,6 +1,6 @@
 "use client";
 import { Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createTaskAction } from "@/app/actions/inngest";
 import { Button } from "@/components/ui/button";
 import { type Task, useTaskStore } from "@/stores/tasks";
@@ -10,13 +10,13 @@ export default function MessageInput({ task }: { task: Task }) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [messageValue, setMessageValue] = useState("");
 
-	const adjustHeight = () => {
+	const adjustHeight = useCallback(() => {
 		const textarea = textareaRef.current;
 		if (textarea) {
 			textarea.style.height = "60px"; // Reset to min height
 			textarea.style.height = `${Math.max(60, textarea.scrollHeight)}px`;
 		}
-	};
+	}, []);
 
 	const handleSendMessage = async () => {
 		if (messageValue.trim()) {

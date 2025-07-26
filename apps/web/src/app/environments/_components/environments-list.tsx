@@ -32,8 +32,8 @@ export default function EnvironmentsList() {
 					<Skeleton className="h-9 w-22" />
 				</div>
 				<div className="flex flex-col gap-y-4">
-					{Array.from({ length: 5 }).map((_, index) => (
-						<Skeleton className="h-20 w-full" key={index} />
+					{Array.from({ length: 5 }, (_, index) => index).map((id) => (
+						<Skeleton className="h-20 w-full" key={`skeleton-loading-${id}`} />
 					))}
 				</div>
 			</div>

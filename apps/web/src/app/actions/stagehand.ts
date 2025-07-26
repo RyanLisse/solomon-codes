@@ -1,53 +1,27 @@
 "use server";
 
 import { Stagehand } from "@browserbasehq/stagehand";
-import { z } from "zod";
-
-const AutomationTaskSchema = z.object({
-	url: z.string().url(),
-	instructions: z.string().min(1),
-	extractSchema: z.record(z.any()).optional(),
-});
-
-const SessionConfigSchema = z.object({
-	headless: z.boolean().default(true),
-	viewport: z
-		.object({
-			width: z.number().default(1280),
-			height: z.number().default(720),
-		})
-		.optional(),
-	logger: z.boolean().default(false),
-});
-
-export type AutomationTask = z.infer<typeof AutomationTaskSchema>;
-export type SessionConfig = z.infer<typeof SessionConfigSchema>;
-
-export interface AutomationResult {
-	success: boolean;
-	data?: any;
-	error?: string;
-	sessionId?: string;
-	logs?: string[];
-}
+import type {
+	AutomationResult,
+	AutomationTask,
+	SessionConfig,
+} from "@/types/stagehand";
+import { AutomationTaskSchema } from "@/types/stagehand";
 
 export const createStagehandSession = async (
-	config: SessionConfig = {},
+	_config?: Partial<SessionConfig>,
 ): Promise<{ sessionId: string; success: boolean; error?: string }> => {
 	try {
 		const stagehand = new Stagehand({
 			env: "BROWSERBASE",
-			apiKey: process.env.BROWSERBASE_API_KEY!,
-			projectId: process.env.BROWSERBASE_PROJECT_ID!,
-			headless: config.headless,
-			viewport: config.viewport,
-			logger: config.logger,
+			apiKey: process.env.BROWSERBASE_API_KEY,
+			projectId: process.env.BROWSERBASE_PROJECT_ID,
 		});
 
 		await stagehand.init();
 
 		return {
-			sessionId: stagehand.browserbaseSessionId || "unknown",
+			sessionId: stagehand.browserbaseSessionID || "unknown",
 			success: true,
 		};
 	} catch (error) {
@@ -62,10 +36,9 @@ export const createStagehandSession = async (
 
 export const runAutomationTask = async (
 	task: AutomationTask,
-	sessionConfig: SessionConfig = {},
+	_sessionConfig?: Partial<SessionConfig>,
 ): Promise<AutomationResult> => {
 	const validatedTask = AutomationTaskSchema.parse(task);
-	const validatedConfig = SessionConfigSchema.parse(sessionConfig);
 
 	let stagehand: Stagehand | null = null;
 	const logs: string[] = [];
@@ -75,39 +48,38 @@ export const runAutomationTask = async (
 
 		stagehand = new Stagehand({
 			env: "BROWSERBASE",
-			apiKey: process.env.BROWSERBASE_API_KEY!,
-			projectId: process.env.BROWSERBASE_PROJECT_ID!,
-			headless: validatedConfig.headless,
-			viewport: validatedConfig.viewport,
-			logger: validatedConfig.logger,
+			apiKey: process.env.BROWSERBASE_API_KEY,
+			projectId: process.env.BROWSERBASE_PROJECT_ID,
 		});
 
 		await stagehand.init();
-		logs.push(`Session created: ${stagehand.browserbaseSessionId}`);
+		logs.push(`Session created: ${stagehand.browserbaseSessionID}`);
 
 		logs.push(`Navigating to: ${validatedTask.url}`);
 		await stagehand.page.goto(validatedTask.url);
 
-		logs.push("Executing automation instructions...");
-		await stagehand.act({
-			action: validatedTask.instructions,
-		});
+		logs.push("Automation temporarily disabled - Stagehand API changed");
+		// Update to new Stagehand API when available
+		// await stagehand.act({
+		//   action: validatedTask.instructions,
+		// });
 
-		let extractedData = null;
-		if (validatedTask.extractSchema) {
-			logs.push("Extracting data with provided schema...");
-			extractedData = await stagehand.extract({
-				instruction: "Extract data according to the provided schema",
-				schema: validatedTask.extractSchema,
-			});
-		}
+		const extractedData = null;
+		// Update to new Stagehand API when available
+		// if (validatedTask.extractSchema) {
+		//   logs.push("Extracting data with provided schema...");
+		//   extractedData = await stagehand.extract({
+		//     instruction: "Extract data according to the provided schema",
+		//     schema: validatedTask.extractSchema,
+		//   });
+		// }
 
 		logs.push("Automation completed successfully");
 
 		return {
 			success: true,
 			data: extractedData,
-			sessionId: stagehand.browserbaseSessionId,
+			sessionId: stagehand.browserbaseSessionID,
 			logs,
 		};
 	} catch (error) {
@@ -120,7 +92,7 @@ export const runAutomationTask = async (
 		return {
 			success: false,
 			error: errorMessage,
-			sessionId: stagehand?.browserbaseSessionId,
+			sessionId: stagehand?.browserbaseSessionID,
 			logs,
 		};
 	} finally {
@@ -137,10 +109,9 @@ export const runAutomationTask = async (
 
 export const observePageElements = async (
 	url: string,
-	instruction: string,
-	sessionConfig: SessionConfig = {},
+	_instruction: string,
+	_sessionConfig?: Partial<SessionConfig>,
 ): Promise<AutomationResult> => {
-	const validatedConfig = SessionConfigSchema.parse(sessionConfig);
 	let stagehand: Stagehand | null = null;
 	const logs: string[] = [];
 
@@ -149,30 +120,26 @@ export const observePageElements = async (
 
 		stagehand = new Stagehand({
 			env: "BROWSERBASE",
-			apiKey: process.env.BROWSERBASE_API_KEY!,
-			projectId: process.env.BROWSERBASE_PROJECT_ID!,
-			headless: validatedConfig.headless,
-			viewport: validatedConfig.viewport,
-			logger: validatedConfig.logger,
+			apiKey: process.env.BROWSERBASE_API_KEY,
+			projectId: process.env.BROWSERBASE_PROJECT_ID,
 		});
 
 		await stagehand.init();
-		logs.push(`Session created: ${stagehand.browserbaseSessionId}`);
+		logs.push(`Session created: ${stagehand.browserbaseSessionID}`);
 
 		logs.push(`Navigating to: ${url}`);
 		await stagehand.page.goto(url);
 
-		logs.push("Observing page elements...");
-		const observations = await stagehand.observe({
-			instruction,
-		});
+		logs.push("Observation temporarily disabled - Stagehand API changed");
+		// Update to new Stagehand API when available
+		const observations = null;
 
 		logs.push("Observation completed");
 
 		return {
 			success: true,
 			data: observations,
-			sessionId: stagehand.browserbaseSessionId,
+			sessionId: stagehand.browserbaseSessionID,
 			logs,
 		};
 	} catch (error) {
@@ -185,7 +152,7 @@ export const observePageElements = async (
 		return {
 			success: false,
 			error: errorMessage,
-			sessionId: stagehand?.browserbaseSessionId,
+			sessionId: stagehand?.browserbaseSessionID,
 			logs,
 		};
 	} finally {

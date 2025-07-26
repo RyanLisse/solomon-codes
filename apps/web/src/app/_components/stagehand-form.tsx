@@ -1,8 +1,7 @@
 "use client";
 
 import { Eye, Globe, Play, Settings } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { AutomationTask, SessionConfig } from "@/app/actions/stagehand";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	observePageElements,
 	runAutomationTask,
@@ -25,10 +24,16 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import type {
+	AutomationTask,
+	ExtractedData,
+	ObservationData,
+	SessionConfig,
+} from "@/types/stagehand";
 
 interface AutomationResult {
 	success: boolean;
-	data?: any;
+	data?: ExtractedData | ObservationData;
 	error?: string;
 	sessionId?: string;
 	logs?: string[];
@@ -53,13 +58,13 @@ export default function StagehandForm() {
 	const [extractSchema, setExtractSchema] = useState<string>("");
 	const [showAdvanced, setShowAdvanced] = useState(false);
 
-	const adjustHeight = () => {
+	const adjustHeight = useCallback(() => {
 		const textarea = textareaRef.current;
 		if (textarea) {
 			textarea.style.height = "100px";
 			textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
 		}
-	};
+	}, []);
 
 	const handleSubmit = async () => {
 		if (!url || !instructions) return;
@@ -68,11 +73,13 @@ export default function StagehandForm() {
 		setResult(null);
 
 		try {
-			let parsedSchema;
+			let parsedSchema:
+				| Record<string, "string" | "number" | "boolean" | "array" | "object">
+				| undefined;
 			if (extractSchema) {
 				try {
 					parsedSchema = JSON.parse(extractSchema);
-				} catch (_error) {
+				} catch {
 					setResult({
 						success: false,
 						error: "Invalid JSON schema format",
@@ -361,7 +368,7 @@ export default function StagehandForm() {
 										<div className="space-y-1">
 											{result.logs.map((log, index) => (
 												<div
-													key={index}
+													key={`log-${index}-${log.slice(0, 20)}`}
 													className="text-muted-foreground text-sm"
 												>
 													{log}
@@ -386,7 +393,7 @@ export default function StagehandForm() {
 										<div className="space-y-1">
 											{result.logs.map((log, index) => (
 												<div
-													key={index}
+													key={`log-${index}-${log.slice(0, 20)}`}
 													className="text-muted-foreground text-sm"
 												>
 													{log}

@@ -7,9 +7,24 @@ import {
 
 const AutomationRequestSchema = z.object({
 	type: z.enum(["action", "observe"]),
-	url: z.string().url(),
+	url: z.string().refine(
+		(url) => {
+			try {
+				new URL(url);
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		{ message: "Invalid URL format" },
+	),
 	instructions: z.string().min(1),
-	extractSchema: z.record(z.any()).optional(),
+	extractSchema: z
+		.record(
+			z.string(),
+			z.enum(["string", "number", "boolean", "array", "object"]),
+		)
+		.optional(),
 	sessionConfig: z
 		.object({
 			headless: z.boolean().default(true),
@@ -29,7 +44,13 @@ export async function POST(request: NextRequest) {
 		const body = await request.json();
 		const validatedRequest = AutomationRequestSchema.parse(body);
 
-		let result;
+		let result: {
+			success: boolean;
+			data?: unknown;
+			error?: string;
+			sessionId?: string;
+			logs?: string[];
+		};
 
 		if (validatedRequest.type === "action") {
 			result = await runAutomationTask(
@@ -70,7 +91,7 @@ export async function POST(request: NextRequest) {
 
 		if (error instanceof z.ZodError) {
 			return NextResponse.json(
-				{ error: "Invalid request parameters", details: error.errors },
+				{ error: "Invalid request parameters", details: error.issues },
 				{ status: 400 },
 			);
 		}

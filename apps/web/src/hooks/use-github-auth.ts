@@ -1,7 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { GitHubBranch, GitHubRepository, GitHubUser } from "@/lib/github";
+
+// Extend Window interface to include cookieStore
+interface WindowWithCookieStore extends Window {
+	cookieStore?: {
+		delete: (name: string) => Promise<void>;
+	};
+}
+
+// Helper function to safely delete cookies
+const deleteCookie = (name: string): void => {
+	// Check if Cookie Store API is available
+	if (typeof window !== "undefined" && "cookieStore" in window) {
+		// Use Cookie Store API for modern browsers
+		const windowWithCookieStore = window as WindowWithCookieStore;
+		windowWithCookieStore.cookieStore?.delete(name).catch(() => {
+			// Fallback to document.cookie if Cookie Store API fails
+			// biome-ignore lint/suspicious/noDocumentCookie: Necessary fallback for browsers without Cookie Store API
+			document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+		});
+	} else {
+		// Fallback to document.cookie for older browsers
+		// biome-ignore lint/suspicious/noDocumentCookie: Necessary fallback for older browsers
+		document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+	}
+};
 
 interface UseGitHubAuthReturn {
 	isAuthenticated: boolean;
@@ -50,10 +75,8 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 						setIsAuthenticated(true);
 					} else {
 						// Token is invalid, clear cookies and auth state
-						document.cookie =
-							"github_access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-						document.cookie =
-							"github_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+						deleteCookie("github_access_token");
+						deleteCookie("github_user");
 						setIsAuthenticated(false);
 						setUser(null);
 					}
@@ -83,39 +106,41 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 		};
 	}, []);
 
+	// Helper function to handle auth success
+	const handleAuthSuccess = useCallback(() => {
+		const userCookie = document.cookie
+			.split("; ")
+			.find((row) => row.startsWith("github_user="));
+
+		if (!userCookie) {
+			return;
+		}
+
+		try {
+			const userData = JSON.parse(decodeURIComponent(userCookie.split("=")[1]));
+			setUser(userData);
+			setIsAuthenticated(true);
+			setIsLoading(false);
+		} catch (error) {
+			console.error("Error parsing user data:", error);
+			setIsAuthenticated(false);
+			setUser(null);
+			setIsLoading(false);
+		}
+	}, []);
+
 	// Listen for auth success from popup
 	useEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
 			if (event.data.type === "GITHUB_AUTH_SUCCESS") {
 				// Wait a bit for cookies to be set, then check auth status
-				setTimeout(() => {
-					// Instead of reloading the page, just check auth status again
-					const userCookie = document.cookie
-						.split("; ")
-						.find((row) => row.startsWith("github_user="));
-
-					if (userCookie) {
-						try {
-							const userData = JSON.parse(
-								decodeURIComponent(userCookie.split("=")[1]),
-							);
-							setUser(userData);
-							setIsAuthenticated(true);
-							setIsLoading(false);
-						} catch (error) {
-							console.error("Error parsing user data:", error);
-							setIsAuthenticated(false);
-							setUser(null);
-							setIsLoading(false);
-						}
-					}
-				}, 1000);
+				setTimeout(handleAuthSuccess, 1000);
 			}
 		};
 
 		window.addEventListener("message", handleMessage);
 		return () => window.removeEventListener("message", handleMessage);
-	}, []);
+	}, [handleAuthSuccess]);
 
 	const login = async (): Promise<void> => {
 		try {
@@ -160,10 +185,8 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 
 	const logout = (): void => {
 		// Clear cookies
-		document.cookie =
-			"github_access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-		document.cookie =
-			"github_user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+		deleteCookie("github_access_token");
+		deleteCookie("github_user");
 
 		setIsAuthenticated(false);
 		setUser(null);

@@ -1,7 +1,7 @@
 "use client";
 import { HardDrive, Split } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createTaskAction } from "@/app/actions/inngest";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,13 +28,13 @@ export default function TaskForm() {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [value, setValue] = useState("");
 
-	const adjustHeight = () => {
+	const adjustHeight = useCallback(() => {
 		const textarea = textareaRef.current;
 		if (textarea) {
 			textarea.style.height = "100px"; // Reset to min height
 			textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
 		}
-	};
+	}, []);
 
 	const handleAddTask = async (mode: "code" | "ask") => {
 		if (value) {
@@ -77,7 +77,7 @@ export default function TaskForm() {
 				fetchBranches(environment.githubRepository);
 			}
 		}
-	}, [selectedEnvironment, environments.find, fetchBranches]);
+	}, [selectedEnvironment, environments, fetchBranches]);
 
 	useEffect(() => {
 		if (branches.length > 0) {

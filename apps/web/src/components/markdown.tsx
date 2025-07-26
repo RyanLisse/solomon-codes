@@ -1,4 +1,5 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import type React from "react";
@@ -242,15 +243,22 @@ const components: Partial<Components> = {
 			{children}
 		</h6>
 	),
-	img: ({ alt, src, title, ...props }) => (
-		<img
-			className="my-2 h-auto max-w-full rounded"
-			alt={alt}
-			src={src}
-			title={title}
-			{...props}
-		/>
-	),
+	img: ({ alt, src, title, ...props }) => {
+		// Extract width and height from props if they exist, but ensure they're numbers
+		const { width, height, ...imageProps } = props;
+		return (
+			<Image
+				className="my-2 h-auto max-w-full rounded"
+				alt={alt || ""}
+				src={typeof src === "string" ? src : ""}
+				title={title}
+				width={typeof width === "number" ? width : 800}
+				height={typeof height === "number" ? height : 600}
+				style={{ width: "auto", height: "auto" }}
+				{...imageProps}
+			/>
+		);
+	},
 	blockquote: ({ children, ...props }) => (
 		<blockquote
 			className="my-4 border-gray-300 border-l-4 pl-4 italic dark:border-gray-700"

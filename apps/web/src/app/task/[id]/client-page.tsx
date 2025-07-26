@@ -228,6 +228,23 @@ export default function TaskClientPage({ id }: Props) {
 		};
 	}, []);
 
+	// Handle case when task is not found
+	if (!task) {
+		return (
+			<div className="flex h-screen flex-col">
+				<TaskNavbar id={id} />
+				<div className="flex flex-1 items-center justify-center">
+					<div className="text-center">
+						<h2 className="font-semibold text-lg">Task not found</h2>
+						<p className="text-muted-foreground">
+							The task with ID {id} could not be found.
+						</p>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
 	return (
 		<div className="flex h-screen flex-col">
 			<TaskNavbar id={id} />
@@ -427,7 +444,7 @@ export default function TaskClientPage({ id }: Props) {
 
 					{/* Message input component - fixed at bottom */}
 					<div className="flex-shrink-0">
-						<MessageInput task={task!} />
+						<MessageInput task={task} />
 					</div>
 				</div>
 

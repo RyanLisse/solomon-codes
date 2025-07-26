@@ -89,7 +89,7 @@ export default function TaskNavbar({ id }: Props) {
 						Archive
 					</Button>
 				)}
-				{task?.pullRequest ? (
+				{task?.pullRequest?.html_url ? (
 					<Link href={task.pullRequest.html_url} target="_blank">
 						<Button className="rounded-full">
 							<GithubIcon />

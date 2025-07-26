@@ -33,13 +33,24 @@ export interface GitHubUser {
 }
 
 export class GitHubAuth {
-	private clientId: string;
-	private clientSecret: string;
-	private redirectUri: string;
+	private readonly clientId: string;
+	private readonly clientSecret: string;
+	private readonly redirectUri: string;
 
 	constructor() {
-		this.clientId = process.env.GITHUB_CLIENT_ID!;
-		this.clientSecret = process.env.GITHUB_CLIENT_SECRET!;
+		const clientId = process.env.GITHUB_CLIENT_ID;
+		const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+		if (!clientId) {
+			throw new Error("GITHUB_CLIENT_ID environment variable is required");
+		}
+
+		if (!clientSecret) {
+			throw new Error("GITHUB_CLIENT_SECRET environment variable is required");
+		}
+
+		this.clientId = clientId;
+		this.clientSecret = clientSecret;
 		this.redirectUri =
 			process.env.NODE_ENV === "production"
 				? "https://clonedex.vercel.app/api/auth/github/callback"
