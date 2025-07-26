@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "../index.css";
-import Providers from "@/components/providers";
-import Header from "@/components/header";
+import { ThemeProvider } from "next-themes";
+import "./globals.css";
+import "./streaming.css";
+
+import Container from "./container";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,8 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "solomon_codes",
-  description: "solomon_codes",
+  title: "VibeX | An open-source OpenAI Codex clone",
+  description:
+    "Codex UI is a modern, open-source, and fully customizable UI for OpenAI Codex.",
 };
 
 export default function RootLayout({
@@ -29,12 +32,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Providers>
-          <div className="grid grid-rows-[auto_1fr] h-svh">
-            <Header />
-            {children}
-          </div>
-        </Providers>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <Container>{children}</Container>
+        </ThemeProvider>
       </body>
     </html>
   );
