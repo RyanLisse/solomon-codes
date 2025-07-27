@@ -1,118 +1,152 @@
 "use server";
 
-// TEMPORARY FIX: Commenting out @vibe-kit/sdk to resolve @dagger.io/dagger dependency conflict
-// import { VibeKit, type VibeKitConfig } from "@vibe-kit/sdk";
+import { VibeKit } from "@vibe-kit/sdk";
+import { createE2BProvider } from "@vibe-kit/e2b";
 import { cookies } from "next/headers";
 import type { Task } from "@/stores/tasks";
+import { secureConfig } from "@/lib/config/secure";
+import { createContextLogger } from "@/lib/logging/factory";
+
+const logger = createContextLogger("vibekit-actions");
 
 // Import the stub type from tasks store
 type PullRequestResponse = {
-	url?: string;
-	html_url?: string;
-	number?: number;
-	title?: string;
-	state?: string;
+  url?: string;
+  html_url?: string;
+  number?: number;
+  title?: string;
+  state?: string;
 };
 
-// Temporary stub types to maintain functionality
-type VibeKitConfig = {
-	agent?: {
-		type: string;
-		model?: {
-			apiKey?: string;
-		};
-	};
-	environment?: {
-		e2b?: {
-			apiKey?: string;
-		};
-	};
-	github?: {
-		token?: string;
-		repository?: string;
-	};
-	sessionId?: string;
-	telemetry?: {
-		isEnabled?: boolean;
-		endpoint?: string;
-		serviceName?: string;
-		serviceVersion?: string;
-		headers?: Record<string, unknown>;
-		timeout?: number;
-		samplingRatio?: number;
-		resourceAttributes?: Record<string, string>;
-	};
-};
-
-class VibeKit {
-	constructor(_config: VibeKitConfig) {
-		console.warn("VibeKit temporarily disabled due to dependency conflict");
-	}
-
-	async createPullRequest() {
-		throw new Error(
-			"VibeKit temporarily disabled due to @dagger.io/dagger dependency conflict with @opentelemetry/core",
-		);
-	}
+/**
+ * Create appropriate sandbox provider based on preferences
+ */
+async function createSandboxProvider(config: any, githubToken: string, useLocal: boolean = false) {
+  const isDevelopment = config.app.environment === "development";
+  const hasDockerAccess = process.env.DOCKER_HOST || process.platform !== "win32";
+  
+  // Use Dagger for local development when requested and possible
+  if (useLocal && isDevelopment && hasDockerAccess) {
+    logger.info("Using Dagger local sandbox for VibeKit execution");
+    try {
+      // Dynamic import to avoid build-time dependency issues
+      const { createLocalProvider } = await import("@vibe-kit/dagger");
+      return createLocalProvider({
+        githubToken,
+        preferRegistryImages: true,
+      });
+    } catch (error) {
+      logger.warn("Failed to load Dagger provider, falling back to E2B", { error: error.message });
+      // Fall through to E2B
+    }
+  }
+  
+  // Use E2B for cloud execution
+  logger.info("Using E2B cloud sandbox for VibeKit execution");
+  return createE2BProvider({
+    apiKey: config.e2b.apiKey,
+    templateId: "vibekit-codex",
+  });
 }
 
-export const createPullRequestAction = async ({
-	task,
+/**
+ * Create VibeKit instance with hybrid sandbox integration
+ */
+async function createVibeKitInstance(githubToken: string, task: Task, useLocal: boolean = false): Promise<VibeKit> {
+  // Get secure configuration
+  const config = secureConfig.getConfig();
+  
+  // Create appropriate sandbox provider
+  const sandboxProvider = await createSandboxProvider(config, githubToken, useLocal);
+
+  // Configure VibeKit with chosen provider
+  const vibekit = new VibeKit()
+    .withAgent({
+      type: "codex",
+      provider: "openai",
+      apiKey: config.openai.apiKey,
+      model: "gpt-4",
+    })
+    .withSandbox(sandboxProvider);
+
+  return vibekit;
+}
+
+/**
+ * Generate code using VibeKit with hybrid sandbox
+ */
+export const generateCodeAction = async ({
+  task,
+  prompt,
+  useLocal = false,
 }: {
-	task: Task;
+  task: Task;
+  prompt?: string;
+  useLocal?: boolean;
+}): Promise<{ result: any; sessionId: string }> => {
+  const cookieStore = await cookies();
+  const githubToken = cookieStore.get("github_access_token")?.value;
+
+  if (!githubToken) {
+    throw new Error("No GitHub token found. Please authenticate first.");
+  }
+
+  try {
+    const vibekit = await createVibeKitInstance(githubToken, task, useLocal);
+
+    // Set session if exists
+    if (task.sessionId) {
+      await vibekit.setSession(task.sessionId);
+    }
+
+    // Generate code with VibeKit
+    const result = await vibekit.generateCode({
+      prompt: prompt || task.title,
+      mode: task.mode,
+    });
+
+    // Pause session for reuse
+    await vibekit.pause();
+
+    return {
+      result,
+      sessionId: result.sandboxId || task.sessionId,
+    };
+  } catch (error) {
+    logger.error("VibeKit code generation failed", { error: error.message, taskId: task.id });
+    throw new Error("Failed to generate code with VibeKit");
+  }
+};
+
+/**
+ * Create pull request using VibeKit
+ */
+export const createPullRequestAction = async ({
+  task,
+  useLocal = false,
+}: {
+  task: Task;
+  useLocal?: boolean;
 }): Promise<PullRequestResponse | undefined> => {
-	const cookieStore = await cookies();
-	const githubToken = cookieStore.get("github_access_token")?.value;
+  const cookieStore = await cookies();
+  const githubToken = cookieStore.get("github_access_token")?.value;
 
-	if (!githubToken) {
-		throw new Error("No GitHub token found. Please authenticate first.");
-	}
+  if (!githubToken) {
+    throw new Error("No GitHub token found. Please authenticate first.");
+  }
 
-	const config: VibeKitConfig = {
-		agent: {
-			type: "codex",
-			model: {
-				apiKey: process.env.OPENAI_API_KEY,
-			},
-		},
-		environment: {
-			e2b: {
-				apiKey: process.env.E2B_API_KEY,
-			},
-		},
-		github: {
-			token: githubToken,
-			repository: task.repository,
-		},
-		sessionId: task.sessionId,
-		telemetry: {
-			isEnabled: process.env.NODE_ENV === "production",
-			endpoint:
-				process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-				"http://localhost:4318/v1/traces",
-			serviceName: "solomon-codes-web",
-			serviceVersion: "1.0.0",
-			headers: process.env.OTEL_EXPORTER_OTLP_HEADERS
-				? JSON.parse(process.env.OTEL_EXPORTER_OTLP_HEADERS)
-				: {},
-			timeout: 5000,
-			samplingRatio: Number.parseFloat(
-				process.env.OTEL_SAMPLING_RATIO || "1.0",
-			),
-			resourceAttributes: {
-				environment: process.env.NODE_ENV || "development",
-				"service.instance.id": process.env.HOSTNAME || "unknown",
-			},
-		},
-	};
+  try {
+    const vibekit = await createVibeKitInstance(githubToken, task, useLocal);
 
-	const vibekit = new VibeKit(config);
+    // Set session if exists
+    if (task.sessionId) {
+      await vibekit.setSession(task.sessionId);
+    }
 
-	try {
-		const pr = await vibekit.createPullRequest();
-		return pr as unknown as PullRequestResponse;
-	} catch (error) {
-		console.warn("VibeKit disabled, returning undefined for PR:", error);
-		return undefined;
-	}
+    const pr = await vibekit.createPullRequest();
+    return pr as unknown as PullRequestResponse;
+  } catch (error) {
+    logger.error("VibeKit PR creation failed", { error: error.message, taskId: task.id });
+    throw new Error("Failed to create pull request with VibeKit");
+  }
 };

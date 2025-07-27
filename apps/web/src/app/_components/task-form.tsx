@@ -13,11 +13,13 @@ import {
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useCreateTask } from "@/hooks/use-tasks";
 import { useEnvironmentStore } from "@/stores/environments";
+import { SandboxSelector, useSandboxPreference } from "@/components/sandbox-selector";
 
 export default function TaskForm() {
 	const { environments } = useEnvironmentStore();
 	const createTask = useCreateTask();
 	const { branches, fetchBranches } = useGitHubAuth();
+	const { useLocal } = useSandboxPreference();
 	const [selectedBranch, setSelectedBranch] = useState<string>(
 		branches.find((branch) => branch.isDefault)?.name || "",
 	);
@@ -51,6 +53,7 @@ export default function TaskForm() {
 							environments.find((env) => env.id === selectedEnvironment)
 								?.githubRepository || "",
 						mode,
+						useLocalSandbox: useLocal,
 					},
 				});
 				setValue("");
@@ -108,6 +111,7 @@ export default function TaskForm() {
 					/>
 					<div className="flex items-center justify-between">
 						<div className="flex items-center gap-x-2">
+							<SandboxSelector className="mr-2" />
 							{environments.length > 0 ? (
 								<Select
 									onValueChange={(value) => setSelectedEnvironment(value)}

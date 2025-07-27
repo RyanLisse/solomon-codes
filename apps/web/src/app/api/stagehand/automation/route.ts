@@ -4,6 +4,7 @@ import {
 	observePageElements,
 	runAutomationTask,
 } from "@/app/actions/stagehand";
+import { createApiLogger } from "@/lib/logging/factory";
 
 const AutomationRequestSchema = z.object({
 	type: z.enum(["action", "observe"]),
@@ -25,6 +26,7 @@ const AutomationRequestSchema = z.object({
 			z.enum(["string", "number", "boolean", "array", "object"]),
 		)
 		.optional(),
+	sessionId: z.string().optional(),
 	sessionConfig: z
 		.object({
 			headless: z.boolean().default(true),
@@ -40,9 +42,19 @@ const AutomationRequestSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+	const logger = createApiLogger("stagehand/automation");
+	
 	try {
 		const body = await request.json();
 		const validatedRequest = AutomationRequestSchema.parse(body);
+
+		logger.info("Stagehand automation request", {
+			type: validatedRequest.type,
+			url: validatedRequest.url,
+			hasInstructions: Boolean(validatedRequest.instructions),
+			hasExtractSchema: Boolean(validatedRequest.extractSchema),
+			sessionId: validatedRequest.sessionId,
+		});
 
 		let result: {
 			success: boolean;
@@ -59,45 +71,73 @@ export async function POST(request: NextRequest) {
 					instructions: validatedRequest.instructions,
 					extractSchema: validatedRequest.extractSchema,
 				},
-				validatedRequest.sessionConfig,
+				validatedRequest.sessionId,
 			);
 		} else {
 			result = await observePageElements(
 				validatedRequest.url,
 				validatedRequest.instructions,
-				validatedRequest.sessionConfig,
+				validatedRequest.sessionId,
 			);
 		}
 
 		if (!result.success) {
+			logger.error("Stagehand automation failed", {
+				type: validatedRequest.type,
+				error: result.error,
+				sessionId: result.sessionId,
+			});
+
 			return NextResponse.json(
 				{
+					success: false,
 					error: result.error || "Automation failed",
 					logs: result.logs,
 					sessionId: result.sessionId,
+					timestamp: new Date().toISOString(),
 				},
 				{ status: 500 },
 			);
 		}
+
+		logger.info("Stagehand automation completed", {
+			type: validatedRequest.type,
+			success: result.success,
+			hasData: Boolean(result.data),
+			sessionId: result.sessionId,
+		});
 
 		return NextResponse.json({
 			success: true,
 			data: result.data,
 			sessionId: result.sessionId,
 			logs: result.logs,
+			timestamp: new Date().toISOString(),
 		});
 	} catch (error) {
-		console.error("Automation API error:", error);
+		logger.error("Stagehand automation API error", {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
 
 		if (error instanceof z.ZodError) {
 			return NextResponse.json(
-				{ error: "Invalid request parameters", details: error.issues },
+				{ 
+					success: false,
+					error: "Invalid request parameters", 
+					details: error.issues,
+					timestamp: new Date().toISOString(),
+				},
 				{ status: 400 },
 			);
 		}
 
 		return NextResponse.json(
-			{ error: "Internal server error" },
+			{ 
+				success: false,
+				error: "Internal server error",
+				timestamp: new Date().toISOString(),
+			},
 			{ status: 500 },
 		);
 	}

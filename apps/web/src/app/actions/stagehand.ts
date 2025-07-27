@@ -1,6 +1,7 @@
 "use server";
 
-import { Stagehand } from "@browserbasehq/stagehand";
+import { getStagehandClient } from "@/lib/stagehand/client";
+import { createServiceLogger } from "@/lib/logging/factory";
 import type {
 	AutomationResult,
 	AutomationTask,
@@ -9,23 +10,48 @@ import type {
 import { AutomationTaskSchema } from "@/types/stagehand";
 
 export const createStagehandSession = async (
-	_config?: Partial<SessionConfig>,
+	config?: Partial<SessionConfig>,
 ): Promise<{ sessionId: string; success: boolean; error?: string }> => {
+	const logger = createServiceLogger("stagehand-action");
+	
 	try {
-		const stagehand = new Stagehand({
-			env: "BROWSERBASE",
-			apiKey: process.env.BROWSERBASE_API_KEY,
-			projectId: process.env.BROWSERBASE_PROJECT_ID,
+		const client = getStagehandClient();
+		
+		// Check if Stagehand is configured
+		if (!client.isConfigured()) {
+			logger.warn("Stagehand not configured - missing API key or project ID");
+			return {
+				sessionId: "",
+				success: false,
+				error: "Stagehand not configured - missing API key or project ID",
+			};
+		}
+
+		// Perform health check
+		const healthCheck = await client.healthCheck();
+		if (!healthCheck.healthy) {
+			logger.error("Stagehand health check failed", { details: healthCheck.details });
+			return {
+				sessionId: "",
+				success: false,
+				error: healthCheck.message,
+			};
+		}
+
+		// Create session
+		const result = await client.createSession(config || {});
+		
+		logger.info("Stagehand session created via action", {
+			sessionId: result.sessionId,
+			success: result.success,
 		});
 
-		await stagehand.init();
-
-		return {
-			sessionId: stagehand.browserbaseSessionID || "unknown",
-			success: true,
-		};
+		return result;
 	} catch (error) {
-		console.error("Failed to create Stagehand session:", error);
+		logger.error("Failed to create Stagehand session", {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
 		return {
 			sessionId: "",
 			success: false,
@@ -36,133 +62,197 @@ export const createStagehandSession = async (
 
 export const runAutomationTask = async (
 	task: AutomationTask,
-	_sessionConfig?: Partial<SessionConfig>,
+	sessionId?: string,
 ): Promise<AutomationResult> => {
-	const validatedTask = AutomationTaskSchema.parse(task);
-
-	let stagehand: Stagehand | null = null;
-	const logs: string[] = [];
-
+	const logger = createServiceLogger("stagehand-automation");
+	
 	try {
-		logs.push("Initializing Stagehand session...");
+		const validatedTask = AutomationTaskSchema.parse(task);
+		const client = getStagehandClient();
 
-		stagehand = new Stagehand({
-			env: "BROWSERBASE",
-			apiKey: process.env.BROWSERBASE_API_KEY,
-			projectId: process.env.BROWSERBASE_PROJECT_ID,
+		logger.info("Running automation task", {
+			url: validatedTask.url,
+			hasInstructions: Boolean(validatedTask.instructions),
+			hasExtractSchema: Boolean(validatedTask.extractSchema),
+			sessionId,
 		});
 
-		await stagehand.init();
-		logs.push(`Session created: ${stagehand.browserbaseSessionID}`);
+		// Check if Stagehand is configured
+		if (!client.isConfigured()) {
+			logger.warn("Stagehand not configured for automation task");
+			return {
+				success: false,
+				error: "Stagehand not configured - missing API key or project ID",
+				logs: ["Stagehand not configured"],
+			};
+		}
 
-		logs.push(`Navigating to: ${validatedTask.url}`);
-		await stagehand.page.goto(validatedTask.url);
+		// Run the automation task
+		const result = await client.runAutomationTask(validatedTask, sessionId);
+		
+		logger.info("Automation task completed", {
+			success: result.success,
+			hasData: Boolean(result.data),
+			sessionId: result.sessionId,
+		});
 
-		logs.push("Automation temporarily disabled - Stagehand API changed");
-		// Update to new Stagehand API when available
-		// await stagehand.act({
-		//   action: validatedTask.instructions,
-		// });
-
-		const extractedData = null;
-		// Update to new Stagehand API when available
-		// if (validatedTask.extractSchema) {
-		//   logs.push("Extracting data with provided schema...");
-		//   extractedData = await stagehand.extract({
-		//     instruction: "Extract data according to the provided schema",
-		//     schema: validatedTask.extractSchema,
-		//   });
-		// }
-
-		logs.push("Automation completed successfully");
-
-		return {
-			success: true,
-			data: extractedData,
-			sessionId: stagehand.browserbaseSessionID,
-			logs,
-		};
+		return result;
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
-		logs.push(`Error: ${errorMessage}`);
-
-		console.error("Automation task failed:", error);
+		logger.error("Automation task failed", {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+			task,
+		});
 
 		return {
 			success: false,
-			error: errorMessage,
-			sessionId: stagehand?.browserbaseSessionID,
-			logs,
+			error: error instanceof Error ? error.message : "Unknown error",
+			logs: [`Error: ${error instanceof Error ? error.message : "Unknown error"}`],
 		};
-	} finally {
-		if (stagehand) {
-			try {
-				await stagehand.close();
-				logs.push("Session closed");
-			} catch (closeError) {
-				logs.push(`Warning: Failed to close session: ${closeError}`);
-			}
-		}
 	}
 };
 
 export const observePageElements = async (
 	url: string,
-	_instruction: string,
-	_sessionConfig?: Partial<SessionConfig>,
+	instruction: string,
+	sessionId?: string,
 ): Promise<AutomationResult> => {
-	let stagehand: Stagehand | null = null;
-	const logs: string[] = [];
-
+	const logger = createServiceLogger("stagehand-observation");
+	
 	try {
-		logs.push("Initializing observation session...");
+		const client = getStagehandClient();
 
-		stagehand = new Stagehand({
-			env: "BROWSERBASE",
-			apiKey: process.env.BROWSERBASE_API_KEY,
-			projectId: process.env.BROWSERBASE_PROJECT_ID,
+		logger.info("Observing page elements", {
+			url,
+			instruction,
+			sessionId,
 		});
 
-		await stagehand.init();
-		logs.push(`Session created: ${stagehand.browserbaseSessionID}`);
+		// Check if Stagehand is configured
+		if (!client.isConfigured()) {
+			logger.warn("Stagehand not configured for page observation");
+			return {
+				success: false,
+				error: "Stagehand not configured - missing API key or project ID",
+				logs: ["Stagehand not configured"],
+			};
+		}
 
-		logs.push(`Navigating to: ${url}`);
-		await stagehand.page.goto(url);
+		// Observe page elements
+		const result = await client.observePageElements(url, instruction, sessionId);
+		
+		logger.info("Page observation completed", {
+			success: result.success,
+			hasData: Boolean(result.data),
+			sessionId: result.sessionId,
+		});
 
-		logs.push("Observation temporarily disabled - Stagehand API changed");
-		// Update to new Stagehand API when available
-		const observations = null;
-
-		logs.push("Observation completed");
-
-		return {
-			success: true,
-			data: observations,
-			sessionId: stagehand.browserbaseSessionID,
-			logs,
-		};
+		return result;
 	} catch (error) {
-		const errorMessage =
-			error instanceof Error ? error.message : "Unknown error";
-		logs.push(`Error: ${errorMessage}`);
-
-		console.error("Page observation failed:", error);
+		logger.error("Page observation failed", {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+			url,
+			instruction,
+		});
 
 		return {
 			success: false,
-			error: errorMessage,
-			sessionId: stagehand?.browserbaseSessionID,
-			logs,
+			error: error instanceof Error ? error.message : "Unknown error",
+			logs: [`Error: ${error instanceof Error ? error.message : "Unknown error"}`],
 		};
-	} finally {
-		if (stagehand) {
-			try {
-				await stagehand.close();
-				logs.push("Session closed");
-			} catch (closeError) {
-				logs.push(`Warning: Failed to close session: ${closeError}`);
-			}
-		}
+	}
+};
+
+/**
+ * Get Stagehand health status
+ */
+export const getStagehandHealth = async (): Promise<{
+	healthy: boolean;
+	message: string;
+	details?: Record<string, unknown>;
+}> => {
+	const logger = createServiceLogger("stagehand-health");
+	
+	try {
+		const client = getStagehandClient();
+		const health = await client.healthCheck();
+		
+		logger.info("Stagehand health check completed", {
+			healthy: health.healthy,
+			message: health.message,
+		});
+
+		return health;
+	} catch (error) {
+		logger.error("Stagehand health check failed", {
+			error: error instanceof Error ? error.message : String(error),
+		});
+
+		return {
+			healthy: false,
+			message: "Health check failed",
+			details: {
+				error: error instanceof Error ? error.message : String(error),
+			},
+		};
+	}
+};
+
+/**
+ * Close a Stagehand session
+ */
+export const closeStagehandSession = async (sessionId: string): Promise<{
+	success: boolean;
+	error?: string;
+}> => {
+	const logger = createServiceLogger("stagehand-session-close");
+	
+	try {
+		const client = getStagehandClient();
+		await client.closeSession(sessionId);
+		
+		logger.info("Stagehand session closed", { sessionId });
+
+		return { success: true };
+	} catch (error) {
+		logger.error("Failed to close Stagehand session", {
+			sessionId,
+			error: error instanceof Error ? error.message : String(error),
+		});
+
+		return {
+			success: false,
+			error: error instanceof Error ? error.message : "Unknown error",
+		};
+	}
+};
+
+/**
+ * Get active Stagehand sessions
+ */
+export const getActiveStagehandSessions = async (): Promise<Array<{
+	id: string;
+	createdAt: Date;
+	lastUsed: Date;
+	isActive: boolean;
+}>> => {
+	const logger = createServiceLogger("stagehand-sessions");
+	
+	try {
+		const client = getStagehandClient();
+		const sessions = client.getActiveSessions();
+		
+		logger.info("Retrieved active Stagehand sessions", {
+			count: sessions.length,
+		});
+
+		return sessions;
+	} catch (error) {
+		logger.error("Failed to get active Stagehand sessions", {
+			error: error instanceof Error ? error.message : String(error),
+		});
+
+		return [];
 	}
 };

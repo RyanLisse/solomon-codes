@@ -35,6 +35,7 @@ export interface Task {
 	mode: "code" | "ask";
 	hasChanges: boolean;
 	pullRequest?: PullRequestResponse;
+	useLocalSandbox?: boolean;
 }
 
 interface TaskStore {

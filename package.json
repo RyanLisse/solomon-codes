@@ -35,5 +35,12 @@
 			"biome check --write ."
 		]
 	},
-	"packageManager": "bun@1.2.19"
+	"packageManager": "bun@1.2.19",
+	"dependencies": {
+		"@e2b/code-interpreter": "^1.5.1",
+		"@openauthjs/openauth": "^0.4.3",
+		"@vibe-kit/e2b": "^0.0.2",
+		"e2b": "^1.9.0",
+		"pkce-challenge": "^5.0.0"
+	}
 }

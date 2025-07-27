@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getEnvironment, getLogLevel } from "./config";
+import { getEnvironment, getLogLevel, getServiceVersion } from "./config";
 import {
 	createLogger,
 	getDefaultConfig,
@@ -47,6 +47,31 @@ describe("Winston Logger Configuration", () => {
 			const level = getLogLevel();
 			expect(level).toBe("warn");
 		});
+
+		it("should return unknown as default service version when no environment variable set", () => {
+			const version = getServiceVersion();
+			expect(version).toBe("unknown");
+		});
+
+		it("should return SERVICE_VERSION environment variable when set", () => {
+			process.env.SERVICE_VERSION = "2.1.0";
+			const version = getServiceVersion();
+			expect(version).toBe("2.1.0");
+		});
+
+		it("should fall back to unknown when ConfigurationService throws", () => {
+			// Mock the ConfigurationService to throw an error
+			const originalGetConfigurationService = require("../config/service").getConfigurationService;
+			require("../config/service").getConfigurationService = () => {
+				throw new Error("Configuration service error");
+			};
+
+			const version = getServiceVersion();
+			expect(version).toBe("unknown");
+
+			// Restore the original function
+			require("../config/service").getConfigurationService = originalGetConfigurationService;
+		});
 	});
 
 	describe("Logger Creation", () => {
@@ -89,7 +114,7 @@ describe("Winston Logger Configuration", () => {
 
 			expect(config).toBeDefined();
 			expect(config.serviceName).toBe("solomon-codes-web");
-			expect(config.serviceVersion).toBe("1.0.0");
+			expect(config.serviceVersion).toBe("unknown");
 			expect(config.enableConsole).toBe(true);
 		});
 

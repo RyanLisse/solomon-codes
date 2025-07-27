@@ -3,15 +3,76 @@
 	"ui": "tui",
 	"tasks": {
 		"build": {
-			"dependsOn": ["^build"],
+			"dependsOn": ["^build", "validate-env", "check-types", "lint"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", ".next/**", "out/**"]
+			"outputs": ["dist/**", ".next/**", "out/**", "bundle-stats.json", "bundle-analyzer-report.html"],
+			"env": ["NODE_ENV", "ANALYZE", "NEXT_PUBLIC_*"]
+		},
+		"build:production": {
+			"dependsOn": ["validate-env", "audit", "check-types", "lint", "test:ci"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**", ".next/**", "out/**", "bundle-stats.json", "bundle-analyzer-report.html"],
+			"env": ["NODE_ENV", "ANALYZE", "NEXT_PUBLIC_*", "CI"],
+			"cache": false
+		},
+		"build:analyze": {
+			"dependsOn": ["validate-env", "check-types"],
+			"inputs": ["$TURBO_DEFAULT$", ".env*"],
+			"outputs": ["dist/**", ".next/**", "out/**", "bundle-stats.json", "bundle-analyzer-report.html"],
+			"env": ["NODE_ENV", "ANALYZE=true", "NEXT_PUBLIC_*"]
+		},
+		"validate-env": {
+			"inputs": [".env*", "scripts/validate-build-env.js"],
+			"outputs": [],
+			"cache": false
+		},
+		"verify-deployment": {
+			"dependsOn": ["build"],
+			"inputs": ["scripts/verify-deployment.js", ".next/**"],
+			"outputs": [],
+			"cache": false
+		},
+		"verify-deployment:post": {
+			"inputs": ["scripts/verify-deployment.js"],
+			"outputs": [],
+			"cache": false
+		},
+		"audit": {
+			"inputs": ["package.json", "package-lock.json"],
+			"outputs": [],
+			"cache": false
 		},
 		"lint": {
-			"dependsOn": ["^lint"]
+			"dependsOn": ["^lint"],
+			"inputs": [
+				"src/**/*.{ts,tsx,js,jsx}",
+				"**/*.{ts,tsx,js,jsx}",
+				".eslintrc*",
+				"eslint.config.*",
+				"tsconfig.json"
+			],
+			"outputs": []
+		},
+		"lint:fix": {
+			"inputs": [
+				"src/**/*.{ts,tsx,js,jsx}",
+				"**/*.{ts,tsx,js,jsx}",
+				".eslintrc*",
+				"eslint.config.*",
+				"tsconfig.json"
+			],
+			"outputs": [],
+			"cache": false
 		},
 		"check-types": {
-			"dependsOn": ["^check-types"]
+			"dependsOn": ["^check-types"],
+			"inputs": [
+				"src/**/*.{ts,tsx}",
+				"**/*.{ts,tsx}",
+				"tsconfig.json",
+				"next-env.d.ts"
+			],
+			"outputs": []
 		},
 		"test": {
 			"dependsOn": ["^test"],
@@ -19,16 +80,112 @@
 				"src/**/*.{ts,tsx,js,jsx}",
 				"test/**/*",
 				"tests/**/*",
+				"scripts/**/*.test.*",
 				"**/*.test.*",
 				"**/*.spec.*",
 				"vitest.config.*",
 				"jest.config.*",
 				"package.json"
-			]
+			],
+			"outputs": ["coverage/**"]
+		},
+		"test:ci": {
+			"dependsOn": ["^test"],
+			"inputs": [
+				"src/**/*.{ts,tsx,js,jsx}",
+				"test/**/*",
+				"tests/**/*",
+				"scripts/**/*.test.*",
+				"**/*.test.*",
+				"**/*.spec.*",
+				"vitest.config.*",
+				"jest.config.*",
+				"package.json"
+			],
+			"outputs": ["coverage/**"],
+			"cache": false
+		},
+		"test:coverage": {
+			"dependsOn": ["^test"],
+			"inputs": [
+				"src/**/*.{ts,tsx,js,jsx}",
+				"test/**/*",
+				"tests/**/*",
+				"scripts/**/*.test.*",
+				"**/*.test.*",
+				"**/*.spec.*",
+				"vitest.config.*",
+				"jest.config.*",
+				"package.json"
+			],
+			"outputs": ["coverage/**"]
+		},
+		"perf": {
+			"dependsOn": ["build:analyze"],
+			"inputs": ["bundle-stats.json", "bundle-analyzer-report.html"],
+			"outputs": [],
+			"cache": false
+		},
+		"deploy:pre": {
+			"dependsOn": ["build:production", "verify-deployment"],
+			"inputs": [],
+			"outputs": [],
+			"cache": false
+		},
+		"deploy:post": {
+			"dependsOn": [],
+			"inputs": ["scripts/verify-deployment.js"],
+			"outputs": [],
+			"cache": false
+		},
+		"deploy:cloudflare": {
+			"dependsOn": ["deploy:pre"],
+			"inputs": [".next/**", "wrangler.toml"],
+			"outputs": [],
+			"cache": false
+		},
+		"deploy:railway": {
+			"dependsOn": ["deploy:pre"],
+			"inputs": [".next/**", "railway.toml", "Dockerfile"],
+			"outputs": [],
+			"cache": false
+		},
+		"deploy:vercel": {
+			"dependsOn": ["deploy:pre"],
+			"inputs": [".next/**", "vercel.json"],
+			"outputs": [],
+			"cache": false
+		},
+		"clean": {
+			"inputs": [],
+			"outputs": [],
+			"cache": false
 		},
 		"dev": {
 			"cache": false,
-			"persistent": true
+			"persistent": true,
+			"env": ["NODE_ENV=development", "NEXT_PUBLIC_*"]
+		},
+		"start": {
+			"dependsOn": ["build"],
+			"cache": false,
+			"persistent": true,
+			"env": ["NODE_ENV=production", "NEXT_PUBLIC_*"]
 		}
-	}
+	},
+	"globalEnv": [
+		"NODE_ENV",
+		"CI",
+		"VERCEL",
+		"CF_PAGES",
+		"RAILWAY_ENVIRONMENT"
+	],
+	"globalPassThroughEnv": [
+		"NODE_ENV",
+		"CI",
+		"GITHUB_*",
+		"VERCEL_*",
+		"CF_*",
+		"RAILWAY_*"
+	]
 }

@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createStagehandSession } from "@/app/actions/stagehand";
+import { createApiLogger } from "@/lib/logging/factory";
 
 const CreateSessionSchema = z.object({
 	headless: z.boolean().default(true),
@@ -14,6 +15,8 @@ const CreateSessionSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+	const logger = createApiLogger("stagehand/session");
+	
 	try {
 		const body = await request.json();
 		const config = CreateSessionSchema.parse(body);
@@ -32,7 +35,10 @@ export async function POST(request: NextRequest) {
 			success: true,
 		});
 	} catch (error) {
-		console.error("Session creation API error:", error);
+		logger.error("Session creation API error", {
+			error: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined,
+		});
 
 		if (error instanceof z.ZodError) {
 			return NextResponse.json(

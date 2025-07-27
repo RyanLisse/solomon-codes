@@ -1,0 +1,559 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { configSchema, ENV_VAR_MAP, type AppConfig } from "./schema";
+
+/**
+ * Configuration validation error with detailed information
+ */
+export class ConfigurationError extends Error {
+	constructor(
+		message: string,
+		public readonly details: {
+			variable?: string;
+			expected?: string;
+			received?: string;
+			suggestion?: string;
+		} = {},
+	) {
+		super(message);
+		this.name = "ConfigurationError";
+	}
+}
+
+/**
+ * Error severity levels for categorization and alerting
+ */
+export enum ErrorSeverity {
+	LOW = "low",
+	MEDIUM = "medium",
+	HIGH = "high",
+	CRITICAL = "critical",
+}
+
+/**
+ * Error categories for classification and routing
+ */
+export enum ErrorCategory {
+	USER = "user",
+	SYSTEM = "system",
+	EXTERNAL = "external",
+	SECURITY = "security",
+	PERFORMANCE = "performance",
+	CONFIGURATION = "configuration",
+	VALIDATION = "validation",
+	NETWORK = "network",
+	DATABASE = "database",
+}
+
+/**
+ * Base interface for all application errors
+ */
+export interface BaseErrorContext {
+	correlationId?: string;
+	userId?: string;
+	sessionId?: string;
+	requestId?: string;
+	component?: string;
+	action?: string;
+	metadata?: Record<string, unknown>;
+	timestamp?: Date;
+	stackTrace?: string;
+	fingerprint?: string;
+}
+
+/**
+ * Base class for all application errors with enhanced context
+ */
+export abstract class BaseApplicationError extends Error {
+	public readonly severity: ErrorSeverity;
+	public readonly category: ErrorCategory;
+	public readonly context: BaseErrorContext;
+	public readonly code: string;
+	public readonly recoverable: boolean;
+	public readonly retryable: boolean;
+
+	constructor(
+		message: string,
+		code: string,
+		severity: ErrorSeverity,
+		category: ErrorCategory,
+		context: BaseErrorContext = {},
+		options: {
+			recoverable?: boolean;
+			retryable?: boolean;
+		} = {},
+	) {
+		super(message);
+		this.name = this.constructor.name;
+		this.code = code;
+		this.severity = severity;
+		this.category = category;
+		this.recoverable = options.recoverable ?? false;
+		this.retryable = options.retryable ?? false;
+		this.context = {
+			...context,
+			timestamp: context.timestamp ?? new Date(),
+			stackTrace: context.stackTrace ?? this.stack,
+		};
+
+		// Ensure proper prototype chain for instanceof checks
+		Object.setPrototypeOf(this, new.target.prototype);
+	}
+
+	/**
+	 * Get error fingerprint for deduplication
+	 */
+	getFingerprint(): string {
+		if (this.context.fingerprint) {
+			return this.context.fingerprint;
+		}
+		
+		// Generate fingerprint from error code, message, and component
+		const components = [
+			this.code,
+			this.message.replace(/\d+/g, "N"), // Replace numbers for deduplication
+			this.context.component,
+		].filter(Boolean);
+		
+		return btoa(components.join(":")).slice(0, 16);
+	}
+
+	/**
+	 * Convert error to structured format for logging/reporting
+	 */
+	toStructuredError() {
+		return {
+			name: this.name,
+			message: this.message,
+			code: this.code,
+			severity: this.severity,
+			category: this.category,
+			recoverable: this.recoverable,
+			retryable: this.retryable,
+			fingerprint: this.getFingerprint(),
+			context: this.context,
+			stack: this.stack,
+		};
+	}
+}
+
+/**
+ * User-related errors (authentication, authorization, validation)
+ */
+export class UserError extends BaseApplicationError {
+	constructor(
+		message: string,
+		code: string,
+		context: BaseErrorContext = {},
+		severity: ErrorSeverity = ErrorSeverity.LOW,
+	) {
+		super(message, code, severity, ErrorCategory.USER, context, {
+			recoverable: true,
+			retryable: false,
+		});
+	}
+}
+
+/**
+ * System-related errors (internal failures, bugs)
+ */
+export class SystemError extends BaseApplicationError {
+	constructor(
+		message: string,
+		code: string,
+		context: BaseErrorContext = {},
+		severity: ErrorSeverity = ErrorSeverity.HIGH,
+	) {
+		super(message, code, severity, ErrorCategory.SYSTEM, context, {
+			recoverable: false,
+			retryable: true,
+		});
+	}
+}
+
+/**
+ * External service errors (API failures, third-party issues)
+ */
+export class ExternalServiceError extends BaseApplicationError {
+	constructor(
+		message: string,
+		code: string,
+		context: BaseErrorContext = {},
+		severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+	) {
+		super(message, code, severity, ErrorCategory.EXTERNAL, context, {
+			recoverable: true,
+			retryable: true,
+		});
+	}
+}
+
+/**
+ * Network-related errors (timeouts, connectivity issues)
+ */
+export class NetworkError extends BaseApplicationError {
+	constructor(
+		message: string,
+		code: string,
+		context: BaseErrorContext = {},
+		severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+	) {
+		super(message, code, severity, ErrorCategory.NETWORK, context, {
+			recoverable: true,
+			retryable: true,
+		});
+	}
+}
+
+/**
+ * Database-related errors
+ */
+export class DatabaseError extends BaseApplicationError {
+	constructor(
+		message: string,
+		code: string,
+		context: BaseErrorContext = {},
+		severity: ErrorSeverity = ErrorSeverity.HIGH,
+	) {
+		super(message, code, severity, ErrorCategory.DATABASE, context, {
+			recoverable: false,
+			retryable: true,
+		});
+	}
+}
+
+/**
+ * Performance-related errors (timeouts, resource exhaustion)
+ */
+export class PerformanceError extends BaseApplicationError {
+	constructor(
+		message: string,
+		code: string,
+		context: BaseErrorContext = {},
+		severity: ErrorSeverity = ErrorSeverity.MEDIUM,
+	) {
+		super(message, code, severity, ErrorCategory.PERFORMANCE, context, {
+			recoverable: true,
+			retryable: true,
+		});
+	}
+}
+
+/**
+ * Security-related errors
+ */
+export class SecurityError extends BaseApplicationError {
+	constructor(
+		message: string,
+		code: string,
+		context: BaseErrorContext = {},
+		severity: ErrorSeverity = ErrorSeverity.CRITICAL,
+	) {
+		super(message, code, severity, ErrorCategory.SECURITY, context, {
+			recoverable: false,
+			retryable: false,
+		});
+	}
+}
+
+/**
+ * Validation errors
+ */
+export class ValidationError extends UserError {
+	constructor(
+		message: string,
+		code: string,
+		public readonly validationErrors: Record<string, string[]>,
+		context: BaseErrorContext = {},
+	) {
+		super(message, code, {
+			...context,
+			metadata: {
+				...context.metadata,
+				validationErrors,
+			},
+		});
+	}
+}
+
+/**
+ * Enhanced ConfigurationError that extends the base error system
+ */
+export class EnhancedConfigurationError extends BaseApplicationError {
+	constructor(
+		message: string,
+		public readonly details: {
+			variable?: string;
+			expected?: string;
+			received?: string;
+			suggestion?: string;
+		} = {},
+		context: BaseErrorContext = {},
+	) {
+		super(
+			message,
+			"CONFIG_ERROR",
+			ErrorSeverity.HIGH,
+			ErrorCategory.CONFIGURATION,
+			{
+				...context,
+				metadata: {
+					...context.metadata,
+					configDetails: details,
+				},
+			},
+			{
+				recoverable: false,
+				retryable: false,
+			},
+		);
+	}
+}
+
+/**
+ * Error codes for common application errors
+ */
+export const ErrorCodes = {
+	// User errors
+	UNAUTHORIZED: "USER_UNAUTHORIZED",
+	FORBIDDEN: "USER_FORBIDDEN",
+	INVALID_INPUT: "USER_INVALID_INPUT",
+	VALIDATION_FAILED: "USER_VALIDATION_FAILED",
+	NOT_FOUND: "USER_NOT_FOUND",
+	
+	// System errors
+	INTERNAL_ERROR: "SYSTEM_INTERNAL_ERROR",
+	SERVICE_UNAVAILABLE: "SYSTEM_SERVICE_UNAVAILABLE",
+	TIMEOUT: "SYSTEM_TIMEOUT",
+	RESOURCE_EXHAUSTED: "SYSTEM_RESOURCE_EXHAUSTED",
+	
+	// External service errors
+	EXTERNAL_API_ERROR: "EXTERNAL_API_ERROR",
+	EXTERNAL_TIMEOUT: "EXTERNAL_TIMEOUT",
+	EXTERNAL_RATE_LIMITED: "EXTERNAL_RATE_LIMITED",
+	
+	// Network errors
+	NETWORK_TIMEOUT: "NETWORK_TIMEOUT",
+	NETWORK_UNAVAILABLE: "NETWORK_UNAVAILABLE",
+	NETWORK_DNS_ERROR: "NETWORK_DNS_ERROR",
+	
+	// Database errors
+	DATABASE_CONNECTION_ERROR: "DATABASE_CONNECTION_ERROR",
+	DATABASE_QUERY_ERROR: "DATABASE_QUERY_ERROR",
+	DATABASE_CONSTRAINT_ERROR: "DATABASE_CONSTRAINT_ERROR",
+	
+	// Performance errors
+	PERFORMANCE_TIMEOUT: "PERFORMANCE_TIMEOUT",
+	PERFORMANCE_MEMORY_ERROR: "PERFORMANCE_MEMORY_ERROR",
+	
+	// Security errors
+	SECURITY_BREACH: "SECURITY_BREACH",
+	SECURITY_SUSPICIOUS_ACTIVITY: "SECURITY_SUSPICIOUS_ACTIVITY",
+	
+	// Configuration errors
+	CONFIG_ERROR: "CONFIG_ERROR",
+	CONFIG_MISSING: "CONFIG_MISSING",
+	CONFIG_INVALID: "CONFIG_INVALID",
+} as const;
+
+/**
+ * Helper function to create structured error from any error
+ */
+export function createStructuredError(
+	error: unknown,
+	context: BaseErrorContext = {},
+): BaseApplicationError {
+	if (error instanceof BaseApplicationError) {
+		return error;
+	}
+	
+	if (error instanceof Error) {
+		// Convert standard Error to SystemError
+		return new SystemError(
+			error.message,
+			ErrorCodes.INTERNAL_ERROR,
+			{
+				...context,
+				stackTrace: error.stack,
+			},
+		);
+	}
+	
+	// Handle non-Error types (strings, objects, etc.)
+	const message = typeof error === "string" ? error : "Unknown error occurred";
+	return new SystemError(
+		message,
+		ErrorCodes.INTERNAL_ERROR,
+		{
+			...context,
+			metadata: {
+				...context.metadata,
+				originalError: error,
+			},
+		},
+	);
+}
+
+/**
+ * Helper function to determine if an error is retryable
+ */
+export function isRetryableError(error: unknown): boolean {
+	if (error instanceof BaseApplicationError) {
+		return error.retryable;
+	}
+	
+	// Default retry logic for non-application errors
+	if (error instanceof Error) {
+		const message = error.message.toLowerCase();
+		return (
+			message.includes("timeout") ||
+			message.includes("network") ||
+			message.includes("connection") ||
+			message.includes("rate limit")
+		);
+	}
+	
+	return false;
+}
+
+/**
+ * Helper function to determine error severity from HTTP status codes
+ */
+export function getErrorSeverityFromStatus(status: number): ErrorSeverity {
+	if (status >= 500) return ErrorSeverity.HIGH;
+	if (status >= 400) return ErrorSeverity.MEDIUM;
+	return ErrorSeverity.LOW;
+}
+
+/**
+ * Load application version from package.json
+ */
+function loadAppVersion(): string {
+	try {
+		const packageJsonPath = join(process.cwd(), "package.json");
+		const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+		return packageJson.version || "unknown";
+	} catch {
+		return "unknown";
+	}
+}
+
+/**
+ * Extract environment variables based on the mapping
+ */
+function extractEnvironmentVariables(): Record<string, string | undefined> {
+	const envVars: Record<string, string | undefined> = {};
+	
+	for (const [configKey, envKey] of Object.entries(ENV_VAR_MAP)) {
+		envVars[configKey] = process.env[envKey];
+	}
+	
+	// Special handling for app version - load from package.json if not set
+	if (!envVars.appVersion) {
+		envVars.appVersion = loadAppVersion();
+	}
+	
+	return envVars;
+}
+
+/**
+ * Format validation errors into user-friendly messages
+ */
+function formatValidationErrors(errors: any[]): ConfigurationError[] {
+	return errors.map((error) => {
+		const path = error.path.join(".");
+		const envVar = Object.entries(ENV_VAR_MAP).find(
+			([key]) => key === error.path[0],
+		)?.[1];
+		
+		let suggestion = "";
+		if (envVar) {
+			suggestion = `Set the ${envVar} environment variable`;
+			if (error.expected) {
+				suggestion += ` to ${error.expected}`;
+			}
+		}
+		
+		return new ConfigurationError(
+			`Configuration validation failed for '${path}': ${error.message}`,
+			{
+				variable: envVar,
+				expected: error.expected,
+				received: error.received,
+				suggestion,
+			},
+		);
+	});
+}
+
+/**
+ * Validate and parse configuration from environment variables
+ * Implements fail-fast validation with clear error messages
+ */
+export function validateConfig(): AppConfig {
+	try {
+		const envVars = extractEnvironmentVariables();
+		const result = configSchema.safeParse(envVars);
+		
+		if (!result.success) {
+			const errors = formatValidationErrors(result.error.errors);
+			
+			// Log all configuration errors - keep console for critical startup errors
+			console.error("❌ Configuration validation failed:");
+			for (const error of errors) {
+				console.error(`  • ${error.message}`);
+				if (error.details.suggestion) {
+					console.error(`    💡 ${error.details.suggestion}`);
+				}
+			}
+			
+			// Throw the first error to fail fast
+			throw errors[0];
+		}
+		
+		return result.data;
+	} catch (error) {
+		if (error instanceof ConfigurationError) {
+			throw error;
+		}
+		
+		throw new ConfigurationError(
+			`Failed to load configuration: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
+/**
+ * Global configuration instance
+ * Loaded once at application startup
+ */
+let _config: AppConfig | null = null;
+
+/**
+ * Get the validated application configuration
+ * Loads configuration on first access
+ */
+export function getConfig(): AppConfig {
+	if (!_config) {
+		_config = validateConfig();
+	}
+	return _config;
+}
+
+/**
+ * Reset configuration (primarily for testing)
+ */
+export function resetConfig(): void {
+	_config = null;
+}
+
+/**
+ * Check if configuration is loaded
+ */
+export function isConfigLoaded(): boolean {
+	return _config !== null;
+}
+
+// Export types and schema for external use
+export type { AppConfig } from "./schema";
+export { configSchema, ENV_VAR_MAP } from "./schema";

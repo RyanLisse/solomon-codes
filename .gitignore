@@ -4,7 +4,7 @@ node_modules
 # Memory and coordination directories
 .swarm/
 .hive-mind/
-.kiro/
+
 coordination/
 memory/
 memories.json
