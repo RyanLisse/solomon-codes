@@ -8,6 +8,7 @@
 	"scripts": {
 		"check": "biome check --write .",
 		"lint": "turbo lint",
+		"test": "turbo test",
 		"typecheck": "turbo check-types",
 		"prepare": "husky",
 		"dev": "turbo dev",

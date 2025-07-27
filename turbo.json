@@ -13,6 +13,19 @@
 		"check-types": {
 			"dependsOn": ["^check-types"]
 		},
+		"test": {
+			"dependsOn": ["^test"],
+			"inputs": [
+				"src/**/*.{ts,tsx,js,jsx}",
+				"test/**/*",
+				"tests/**/*",
+				"**/*.test.*",
+				"**/*.spec.*",
+				"vitest.config.*",
+				"jest.config.*",
+				"package.json"
+			]
+		},
 		"dev": {
 			"cache": false,
 			"persistent": true

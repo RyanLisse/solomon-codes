@@ -34,6 +34,7 @@ interface TaskFilters {
 	status?: Task["status"];
 	archived?: boolean;
 	sessionId?: string;
+	[key: string]: unknown;
 }
 
 // Local storage functions (transitional)
@@ -132,7 +133,7 @@ export function useCreateTask() {
 			// Optimistically add to all relevant queries
 			queryClient.setQueryData(TASK_KEYS.detail(newTask.id), newTask);
 		},
-		onError: (error, variables) => {
+		onError: (_error, variables) => {
 			// Rollback optimistic update
 			const currentTasks = getTasksFromStorage();
 			const rollbackTasks = currentTasks.filter(

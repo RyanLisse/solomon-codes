@@ -216,12 +216,12 @@ export default function TaskClientPage({ id }: Props) {
 	}, []);
 
 	useEffect(() => {
-		if (task && task.hasChanges) {
+		if (task?.hasChanges) {
 			updateTaskInCache(task.id, {
 				hasChanges: false,
 			});
 		}
-	}, [task?.hasChanges, task?.id, updateTaskInCache]);
+	}, [task, updateTaskInCache]);
 
 	// Cleanup subscription on unmount to prevent stream cancellation errors
 	useEffect(() => {

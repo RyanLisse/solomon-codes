@@ -106,7 +106,7 @@ function createChunkPublisher(
 		[key: string]: unknown;
 	},
 	messageId: string,
-	publish: (event: any) => void,
+	publish: (event: unknown) => void,
 	accumulatedTextRef: { value: string },
 ) {
 	return (chunk: string, index: number, totalChunks: number) => {

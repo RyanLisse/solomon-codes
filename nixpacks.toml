@@ -1,15 +1,16 @@
 [phases.setup]
-nixPkgs = ["nodejs_18"]
+nixPkgs = ["nodejs_22", "bun"]
+aptPkgs = ["python3"]
 
 [phases.install]
-cmds = ["npm ci"]
+cmds = ["bun install --frozen-lockfile"]
 
 [phases.build]
-cmds = ["npx turbo run build --filter=web"]
+cmds = ["bun run build --filter=web"]
 
 [start]
-cmd = "cd apps/web && npm start"
+cmd = "cd apps/web && bun start"
 
 [variables]
 NODE_ENV = "production"
-PORT = "3000"
+PORT = "3001"

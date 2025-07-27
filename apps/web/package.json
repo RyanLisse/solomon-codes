@@ -7,6 +7,8 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
+		"check": "tsc --noEmit",
+		"typecheck": "tsc --noEmit",
 		"test": "vitest",
 		"test:watch": "vitest --watch",
 		"test:ui": "vitest --ui",
@@ -30,6 +32,12 @@
 		"@electric-sql/pglite-sync": "latest",
 		"@inngest/realtime": "^0.3.1",
 		"@neondatabase/serverless": "^1.0.1",
+		"@opentelemetry/api": "^1.9.0",
+		"@opentelemetry/exporter-trace-otlp-http": "^0.203.0",
+		"@opentelemetry/instrumentation-express": "^0.52.0",
+		"@opentelemetry/instrumentation-http": "^0.203.0",
+		"@opentelemetry/instrumentation-winston": "^0.48.0",
+		"@opentelemetry/sdk-node": "^0.203.0",
 		"@radix-ui/react-dialog": "^1.1.14",
 		"@radix-ui/react-label": "^2.1.7",
 		"@radix-ui/react-scroll-area": "^1.2.9",
@@ -65,8 +73,13 @@
 		"sonner": "^2.0.5",
 		"tailwind-merge": "^3.3.1",
 		"tw-animate-css": "^1.3.4",
+		"winston": "^3.17.0",
 		"zod": "^4.0.2",
 		"zustand": "^5.0.5"
+	},
+	"engines": {
+		"node": ">=20.18.1",
+		"npm": ">=10.0.0"
 	},
 	"devDependencies": {
 		"@eslint/eslintrc": "^3",
@@ -80,6 +93,7 @@
 		"@types/node": "^24",
 		"@types/react": "^19",
 		"@types/react-dom": "^19",
+		"@types/winston": "^2.4.4",
 		"@vitejs/plugin-react": "^4.7.0",
 		"@vitest/ui": "^3.2.4",
 		"eslint": "^9",
