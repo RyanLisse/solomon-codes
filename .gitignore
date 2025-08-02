@@ -18,3 +18,17 @@ claude-flow-data.json
 
 # Astro generated files
 apps/docs/.astro/
+
+# Supabase temporary files
+apps/web/supabase/.temp/
+
+# Submodules and nested repositories
+vibekit/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.backup
