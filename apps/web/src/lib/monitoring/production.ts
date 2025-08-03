@@ -156,7 +156,7 @@ export class ProductionMonitoringService {
 				), // 5 seconds
 			},
 			logging: {
-				level: (process.env.LOG_LEVEL as any) || "info",
+				level: (process.env.LOG_LEVEL as "error" | "warn" | "info" | "debug") || "info",
 				structured: isProduction,
 				enableConsole: true,
 				enableFile: isProduction,

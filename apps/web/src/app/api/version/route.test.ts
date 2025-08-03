@@ -84,7 +84,7 @@ describe("GET /api/version - London School TDD", () => {
 		mockedNextResponse.json.mockReturnValue({
 			status: 200,
 			json: vi.fn(),
-		} as any);
+		} as NextResponse);
 	});
 
 	afterEach(() => {
@@ -475,10 +475,10 @@ describe("GET /api/version - London School TDD", () => {
 			const { getConfigurationService } = vi.mocked(configService);
 			const mockConfigService = getConfigurationService();
 			mockConfigService.getConfiguration.mockReturnValue(
-				edgeCaseConfig as AppConfig,
+				edgeCaseConfig as any,
 			);
 			mockConfigService.getEnvironmentInfo.mockReturnValue(
-				edgeCaseEnvInfo as EnvironmentInfo,
+				edgeCaseEnvInfo as any,
 			);
 
 			// Act

@@ -28,11 +28,11 @@ import { getTelemetryService, initializeTelemetry } from "../telemetry";
 
 describe("StartupValidationService", () => {
 	const originalEnv = process.env;
-	const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+	const consoleSpy = vi.spyOn(console, "log").mockImplementation((): void => {});
 	const consoleErrorSpy = vi
 		.spyOn(console, "error")
-		.mockImplementation(() => {});
-	const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+		.mockImplementation((): void => {});
+	const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation((): void => {});
 
 	beforeEach(() => {
 		process.env = { ...originalEnv };
