@@ -1,6 +1,6 @@
 "use client";
 
-import { pkceChallenge } from "pkce-challenge";
+import { generateChallenge } from "pkce-challenge";
 
 /**
  * Claude OAuth 2.0 configuration constants
@@ -94,7 +94,7 @@ export interface AuthorizationParams {
  * Generate PKCE challenge for OAuth flow
  */
 export function generatePKCEChallenge(): PKCEChallenge {
-	const challenge = pkceChallenge();
+	const challenge = generateChallenge();
 	const state = generateRandomString(32);
 
 	return {

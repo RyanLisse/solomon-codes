@@ -1,8 +1,31 @@
 [test]
-# Use bun test with DOM environment
-preload = ["./src/test/setup.ts"]
-# Coverage options
+# Logic tests only - exclude React components, E2E, and integration tests
+include = [
+  "lib/**/*.test.{js,ts}",
+  "src/lib/**/*.test.{js,ts}",
+  "src/schemas/**/*.test.{js,ts}",
+  "stores/**/*.test.{js,ts}",
+  "src/hooks/useZodForm/**/*.test.{js,ts}",
+  "scripts/**/*.test.{js,ts}"
+]
+exclude = [
+  "**/node_modules/**",
+  "**/*.test.{jsx,tsx}",
+  "components/**",
+  "app/**",
+  "src/app/**",
+  "src/components/**",
+  "src/test/e2e/**",
+  "**/*.spec.*",
+  "**/*.integration.test.*",
+  "**/integration/**",
+  "hooks/**/*.test.{jsx,tsx}"
+]
+# Use happy-dom for lightweight DOM utilities
+dom = "happy-dom"
+preload = ["./test-setup/bun-setup.ts"]
 coverage = true
+timeout = 10000
 
 [test.env]
 NODE_ENV = "test"

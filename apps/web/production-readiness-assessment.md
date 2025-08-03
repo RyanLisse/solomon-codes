@@ -1,6 +1,6 @@
 # Production Readiness Assessment
 
-Generated: 2025-07-27T20:45:39.041Z
+Generated: 2025-08-03T09:58:45.102Z
 
 ## Executive Summary
 
@@ -8,15 +8,18 @@ Generated: 2025-07-27T20:45:39.041Z
 
 ## Audit Statistics
 
-- **Total Issues Found:** 120
-- **Files Scanned:** 134
+- **Total Issues Found:** 231
+- **Files Scanned:** 217
 - **Critical Blockers:** 0
 
 ### Issues by Type
-- **ERROR:** 21
-- **LOG:** 54
+- **ERROR:** 59
+- **LOG:** 117
 - **INFO:** 1
-- **WARN:** 13
+- **WARN:** 16
+- **NOTE:** 4
+- **DEBUG:** 2
+- **-NEXT-LINE:** 1
 - **TEMPORARY:** 15
 - **DEPRECATED:** 5
 - **DEV-ONLY:** 1
@@ -25,7 +28,7 @@ Generated: 2025-07-27T20:45:39.041Z
 - **LEGACY:** 1
 
 ### Issues by Priority
-- 🟢 **LOW:** 115
+- 🟢 **LOW:** 226
 - 🟠 **MEDIUM:** 5
 
 ## Recommendations

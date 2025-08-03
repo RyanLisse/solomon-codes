@@ -2,8 +2,20 @@
 // Only import if we're in a Node.js environment
 const isNodeEnvironment =
 	typeof process !== "undefined" && process.versions?.node;
-const fs = isNodeEnvironment ? require("node:fs") : null;
-const path = isNodeEnvironment ? require("node:path") : null;
+
+// Dynamic imports for Node.js modules
+let fs: typeof import("node:fs") | null = null;
+let path: typeof import("node:path") | null = null;
+
+if (isNodeEnvironment) {
+	// Use dynamic imports for Node.js modules
+	import("node:fs").then((mod) => {
+		fs = mod;
+	});
+	import("node:path").then((mod) => {
+		path = mod;
+	});
+}
 
 import { type AppConfig, configSchema, ENV_VAR_MAP } from "./schema";
 

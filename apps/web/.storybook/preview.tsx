@@ -1,5 +1,5 @@
-import type { Preview } from '@storybook/react';
-import '../src/app/globals.css';
+import type { Preview } from "@storybook/react";
+import "../src/app/globals.css";
 
 const preview: Preview = {
   parameters: {
@@ -16,7 +16,7 @@ const preview: Preview = {
       config: {
         rules: [
           {
-            id: 'color-contrast',
+            id: "color-contrast",
             enabled: true,
           },
         ],
@@ -25,20 +25,20 @@ const preview: Preview = {
   },
   globalTypes: {
     theme: {
-      description: 'Global theme for components',
-      defaultValue: 'light',
+      description: "Global theme for components",
+      defaultValue: "light",
       toolbar: {
-        title: 'Theme',
-        icon: 'paintbrush',
-        items: ['light', 'dark'],
+        title: "Theme",
+        icon: "paintbrush",
+        items: ["light", "dark"],
         dynamicTitle: true,
       },
     },
   },
   decorators: [
     (Story, context) => {
-      const theme = context.globals.theme || 'light';
-      
+      const theme = context.globals.theme || "light";
+
       return (
         <div className={`${theme} min-h-screen bg-background text-foreground`}>
           <div className="p-4">

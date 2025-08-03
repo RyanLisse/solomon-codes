@@ -20,6 +20,16 @@ const BUNDLE_SIZE_LIMITS = {
 };
 
 const nextConfig: NextConfig = {
+	// Module import optimizations
+	modularizeImports: {
+		"@radix-ui/react-icons": {
+			transform: "@radix-ui/react-icons/dist/{{member}}.js",
+		},
+		"lucide-react": {
+			transform: "lucide-react/dist/esm/icons/{{kebabCase member}}",
+		},
+	},
+
 	// Performance optimizations
 	experimental: {
 		optimizeCss: true,
@@ -34,15 +44,6 @@ const nextConfig: NextConfig = {
 			webpackBuildWorker: true,
 			optimizeServerReact: true,
 			gzipSize: true,
-			// Enable advanced tree shaking
-			modularizeImports: {
-				"@radix-ui/react-icons": {
-					transform: "@radix-ui/react-icons/dist/{{member}}.js",
-				},
-				"lucide-react": {
-					transform: "lucide-react/dist/esm/icons/{{kebabCase member}}",
-				},
-			},
 		}),
 	},
 
