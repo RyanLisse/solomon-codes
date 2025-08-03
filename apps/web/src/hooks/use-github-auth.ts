@@ -96,7 +96,7 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 					return;
 				}
 				logger.error("Error checking GitHub auth status", {
-					error: error.message,
+					error: error instanceof Error ? error.message : String(error),
 				});
 				setIsAuthenticated(false);
 				setUser(null);
@@ -130,7 +130,9 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 			setIsAuthenticated(true);
 			setIsLoading(false);
 		} catch (error) {
-			logger.error("Error parsing GitHub user data", { error: error.message });
+			logger.error("Error parsing GitHub user data", {
+				error: error instanceof Error ? error.message : String(error),
+			});
 			setIsAuthenticated(false);
 			setUser(null);
 			setIsLoading(false);

@@ -6,10 +6,10 @@
  * Supports multiple deployment targets and rollback detection
  */
 
-const fs = require("fs");
-const path = require("path");
-const { spawn, exec } = require("child_process");
-const { promisify } = require("util");
+const fs = require("node:fs");
+const path = require("node:path");
+const { exec } = require("node:child_process");
+const { promisify } = require("node:util");
 
 const execAsync = promisify(exec);
 
@@ -75,29 +75,36 @@ const VERIFICATION_CONFIG = {
 };
 
 /**
- * Logger utility with colored output
+ * Logger utility functions with colored output
  */
-class Logger {
-	static info(message) {
-		console.log(`\x1b[36m[INFO]\x1b[0m ${message}`);
-	}
-
-	static success(message) {
-		console.log(`\x1b[32m[SUCCESS]\x1b[0m ${message}`);
-	}
-
-	static warn(message) {
-		console.log(`\x1b[33m[WARN]\x1b[0m ${message}`);
-	}
-
-	static error(message) {
-		console.log(`\x1b[31m[ERROR]\x1b[0m ${message}`);
-	}
-
-	static step(message) {
-		console.log(`\x1b[35m[STEP]\x1b[0m ${message}`);
-	}
+function logInfo(message) {
+	console.log(`\x1b[36m[INFO]\x1b[0m ${message}`);
 }
+
+function logSuccess(message) {
+	console.log(`\x1b[32m[SUCCESS]\x1b[0m ${message}`);
+}
+
+function logWarn(message) {
+	console.log(`\x1b[33m[WARN]\x1b[0m ${message}`);
+}
+
+function logError(message) {
+	console.log(`\x1b[31m[ERROR]\x1b[0m ${message}`);
+}
+
+function logStep(message) {
+	console.log(`\x1b[35m[STEP]\x1b[0m ${message}`);
+}
+
+// Logger object for backward compatibility
+const Logger = {
+	info: logInfo,
+	success: logSuccess,
+	warn: logWarn,
+	error: logError,
+	step: logStep,
+};
 
 /**
  * Get deployment target from environment
@@ -228,7 +235,7 @@ async function runDependencyAudit() {
 	Logger.step("Running dependency security audit...");
 
 	try {
-		const { stdout, stderr } = await execAsync(
+		const { stdout } = await execAsync(
 			"npm audit --audit-level=moderate --json",
 		);
 		const auditResult = JSON.parse(stdout);
@@ -263,7 +270,7 @@ async function runDependencyAudit() {
 					);
 					return false;
 				}
-			} catch (parseError) {
+			} catch (_parseError) {
 				Logger.warn("Could not parse audit results, continuing...");
 			}
 		}
@@ -296,8 +303,8 @@ async function runTypeCheck() {
  */
 function makeRequest(url, options = {}) {
 	return new Promise((resolve, reject) => {
-		const https = require("https");
-		const http = require("http");
+		const https = require("node:https");
+		const http = require("node:http");
 
 		const client = url.startsWith("https:") ? https : http;
 		const timeout = options.timeout || 10000;
@@ -313,7 +320,9 @@ function makeRequest(url, options = {}) {
 			},
 			(res) => {
 				let data = "";
-				res.on("data", (chunk) => (data += chunk));
+				res.on("data", (chunk) => {
+					data += chunk;
+				});
 				res.on("end", () => {
 					resolve({
 						statusCode: res.statusCode,
@@ -334,6 +343,40 @@ function makeRequest(url, options = {}) {
 }
 
 /**
+ * Validate health endpoint response format
+ */
+function validateHealthResponse(endpoint, response) {
+	if (endpoint !== "/api/health") {
+		return;
+	}
+
+	try {
+		const healthData = JSON.parse(response.body);
+		if (!healthData.status || !healthData.timestamp) {
+			Logger.warn(`Health endpoint ${endpoint} missing required fields`);
+		}
+	} catch (_parseError) {
+		Logger.warn(`Health endpoint ${endpoint} returned invalid JSON`);
+	}
+}
+
+/**
+ * Check a single health endpoint
+ */
+async function checkSingleEndpoint(baseUrl, endpoint) {
+	const url = `${baseUrl}${endpoint}`;
+	const response = await makeRequest(url, { timeout: 10000 });
+
+	if (response.statusCode >= 200 && response.statusCode < 300) {
+		Logger.success(`✓ ${endpoint}: ${response.statusCode}`);
+		validateHealthResponse(endpoint, response);
+		return null; // No error
+	}
+
+	return `${endpoint}: HTTP ${response.statusCode}`;
+}
+
+/**
  * Check health endpoints
  */
 async function checkHealthEndpoints(baseUrl) {
@@ -344,27 +387,9 @@ async function checkHealthEndpoints(baseUrl) {
 
 	for (const endpoint of healthEndpoints) {
 		try {
-			const url = `${baseUrl}${endpoint}`;
-			const response = await makeRequest(url, { timeout: 10000 });
-
-			if (response.statusCode >= 200 && response.statusCode < 300) {
-				Logger.success(`✓ ${endpoint}: ${response.statusCode}`);
-
-				// Validate health check response format
-				if (endpoint === "/api/health") {
-					try {
-						const healthData = JSON.parse(response.body);
-						if (!healthData.status || !healthData.timestamp) {
-							Logger.warn(
-								`Health endpoint ${endpoint} missing required fields`,
-							);
-						}
-					} catch (parseError) {
-						Logger.warn(`Health endpoint ${endpoint} returned invalid JSON`);
-					}
-				}
-			} else {
-				errors.push(`${endpoint}: HTTP ${response.statusCode}`);
+			const error = await checkSingleEndpoint(baseUrl, endpoint);
+			if (error) {
+				errors.push(error);
 			}
 		} catch (error) {
 			errors.push(`${endpoint}: ${error.message}`);
@@ -415,10 +440,12 @@ async function checkSecurityHeaders(baseUrl) {
 			Logger.warn("X-Powered-By header should be removed for security");
 		}
 
+		// Security headers are non-critical, so always return true
 		return true;
 	} catch (error) {
 		Logger.warn(`Security header check failed: ${error.message}`);
-		return true; // Non-critical
+		// Non-critical - don't fail the entire deployment for missing headers
+		return true;
 	}
 }
 
@@ -539,7 +566,8 @@ async function runPreDeploymentVerification() {
 	if (failedChecks.length > 0) {
 		Logger.error("\n❌ Pre-deployment verification failed:");
 		failedChecks.forEach((check) => {
-			Logger.error(`  • ${check.name}${check.error ? `: ${check.error}` : ""}`);
+			const errorSuffix = check.error ? `: ${check.error}` : "";
+			Logger.error(`  • ${check.name}${errorSuffix}`);
 		});
 		return false;
 	}
@@ -586,7 +614,8 @@ async function runPostDeploymentVerification(baseUrl) {
 	if (criticalFailures.length > 0) {
 		Logger.error("\n❌ Critical post-deployment checks failed:");
 		criticalFailures.forEach((check) => {
-			Logger.error(`  • ${check.name}${check.error ? `: ${check.error}` : ""}`);
+			const errorSuffix = check.error ? `: ${check.error}` : "";
+			Logger.error(`  • ${check.name}${errorSuffix}`);
 		});
 		return false;
 	}
@@ -594,7 +623,8 @@ async function runPostDeploymentVerification(baseUrl) {
 	if (failedChecks.length > 0) {
 		Logger.warn("\n⚠️  Some non-critical checks failed:");
 		failedChecks.forEach((check) => {
-			Logger.warn(`  • ${check.name}${check.error ? `: ${check.error}` : ""}`);
+			const errorSuffix = check.error ? `: ${check.error}` : "";
+			Logger.warn(`  • ${check.name}${errorSuffix}`);
 		});
 	}
 

@@ -526,7 +526,7 @@ export class StartupValidationService {
 			}
 
 			return services;
-		} catch (configError) {
+		} catch (_configError) {
 			// Return empty array if config service unavailable in test environment
 			return [];
 		}
@@ -564,7 +564,7 @@ export class StartupValidationService {
 				timestamp: new Date(),
 				environment: configService.getConfiguration().nodeEnv,
 			};
-		} catch (configError) {
+		} catch (_configError) {
 			// Fallback to environment variable in test mode
 			return {
 				success: allErrors.length === 0,
@@ -641,7 +641,7 @@ export class StartupValidationService {
 					success: step.success,
 				})),
 			};
-		} catch (configError) {
+		} catch (_configError) {
 			// Return a test-safe validation summary
 			return {
 				environment: process.env.NODE_ENV || "development",

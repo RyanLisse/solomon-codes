@@ -1,5 +1,7 @@
 // Only import AsyncLocalStorage on server-side
-let AsyncLocalStorage: any;
+let AsyncLocalStorage:
+	| typeof import("node:async_hooks").AsyncLocalStorage
+	| undefined;
 if (typeof window === "undefined") {
 	// eslint-disable-next-line @typescript-eslint/no-require-imports
 	AsyncLocalStorage = require("node:async_hooks").AsyncLocalStorage;

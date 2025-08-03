@@ -4,7 +4,7 @@
  */
 
 import { getConfigurationService } from "../config/service";
-import { createServerLogger } from "../logging/server";
+import { createContextLogger } from "../logging/factory";
 
 export interface TelemetryConfig {
 	isEnabled: boolean;
@@ -34,7 +34,7 @@ class TelemetryServiceImpl implements TelemetryService {
 
 	private getLogger() {
 		if (!this.logger) {
-			this.logger = createServerLogger({ service: "telemetry-service" });
+			this.logger = createContextLogger("telemetry-service");
 		}
 		return this.logger;
 	}
@@ -100,7 +100,7 @@ class TelemetryServiceImpl implements TelemetryService {
 			return true;
 		} catch (error) {
 			this.getLogger().error("Failed to initialize telemetry service", {
-				error,
+				error: error instanceof Error ? error.message : String(error),
 			});
 			return false;
 		}
@@ -144,7 +144,7 @@ class TelemetryServiceImpl implements TelemetryService {
 				endpoint: telemetryConfig.endpoint,
 				serviceName: telemetryConfig.serviceName,
 				serviceVersion: telemetryConfig.serviceVersion,
-				headers: telemetryConfig.headers,
+				headers: telemetryConfig.headers as Record<string, string>,
 				timeout: telemetryConfig.timeout,
 				samplingRatio: telemetryConfig.samplingRatio,
 				resourceAttributes: {
@@ -152,7 +152,7 @@ class TelemetryServiceImpl implements TelemetryService {
 					"service.name": telemetryConfig.serviceName,
 					"service.version": telemetryConfig.serviceVersion,
 					"service.instance.id": process.env.HOSTNAME || "unknown",
-				},
+				} as Record<string, string>,
 			};
 		} catch (error) {
 			console.error("Failed to load telemetry configuration", error);
@@ -268,7 +268,7 @@ export function getTelemetryService(): TelemetryService {
  * Coordinates with Next.js OpenTelemetry setup
  */
 export async function initializeTelemetry(): Promise<boolean> {
-	const logger = createServerLogger({ service: "telemetry-init" });
+	const logger = createContextLogger("telemetry-init");
 
 	try {
 		logger.info("Initializing telemetry service...");
@@ -290,7 +290,9 @@ export async function initializeTelemetry(): Promise<boolean> {
 
 		return success;
 	} catch (error) {
-		logger.error("Failed to initialize telemetry service", { error });
+		logger.error("Failed to initialize telemetry service", {
+			error: error instanceof Error ? error.message : String(error),
+		});
 		console.error("❌ Failed to initialize telemetry service:", error);
 		return false;
 	}
@@ -301,7 +303,7 @@ export async function initializeTelemetry(): Promise<boolean> {
  * Should be called during application shutdown
  */
 export async function shutdownTelemetry(): Promise<void> {
-	const logger = createServerLogger({ service: "telemetry-shutdown" });
+	const logger = createContextLogger("telemetry-shutdown");
 
 	try {
 		if (_telemetryService) {
@@ -311,7 +313,9 @@ export async function shutdownTelemetry(): Promise<void> {
 			logger.info("Telemetry service shutdown complete");
 		}
 	} catch (error) {
-		logger.error("Error during telemetry shutdown", { error });
+		logger.error("Error during telemetry shutdown", {
+			error: error instanceof Error ? error.message : String(error),
+		});
 	}
 }
 

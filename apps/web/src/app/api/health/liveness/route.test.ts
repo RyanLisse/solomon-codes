@@ -218,7 +218,7 @@ describe("/api/health/liveness", () => {
 			// Mock process.memoryUsage to throw an error
 			process.memoryUsage = vi.fn().mockImplementation(() => {
 				throw new Error("Memory access denied");
-			}) as typeof process.memoryUsage;
+			}) as unknown as typeof process.memoryUsage;
 
 			const response = await GET();
 			const data = await response.json();
@@ -255,7 +255,7 @@ describe("/api/health/liveness", () => {
 				heapUsed: 50 * 1024 * 1024,
 				external: 10 * 1024 * 1024,
 				arrayBuffers: 5 * 1024 * 1024,
-			}) as typeof process.memoryUsage;
+			}) as unknown as typeof process.memoryUsage;
 
 			await GET();
 

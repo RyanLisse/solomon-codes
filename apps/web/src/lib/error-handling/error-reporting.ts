@@ -5,10 +5,7 @@
 import { getConfigurationService } from "../config/service";
 import { createContextLogger } from "../logging/factory";
 import { getTelemetryService } from "../telemetry";
-import type {
-	CategorizedError as _CategorizedError,
-	ErrorReport,
-} from "./global-handler";
+import type { ErrorReport } from "./global-handler";
 
 export interface ErrorReportingConfig {
 	enabled: boolean;

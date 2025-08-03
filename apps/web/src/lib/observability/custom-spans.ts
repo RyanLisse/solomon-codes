@@ -2,7 +2,7 @@
  * Custom OpenTelemetry spans for business-critical operations
  */
 
-import { SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
+import { type Span, SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
 import { createServerLogger } from "../logging/server";
 
 const logger = createServerLogger({ service: "custom-spans" });
@@ -49,7 +49,7 @@ export const SpanAttributes = {
  */
 export async function withSpan<T>(
 	name: string,
-	operation: (span: any) => Promise<T>,
+	operation: (span: Span) => Promise<T>,
 	attributes?: Record<string, string | number | boolean>,
 ): Promise<T> {
 	return tracer.startActiveSpan(

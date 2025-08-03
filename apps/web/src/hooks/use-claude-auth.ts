@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
 	ClaudeAuthError,
 	getErrorMessage,
@@ -43,18 +43,105 @@ export function useClaudeAuth(): UseClaudeAuthReturn {
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
 
-	// Check existing authentication on mount
-	useEffect(() => {
-		const init = async () => {
-			await checkAuthStatus();
+	/**
+	 * Wait for OAuth popup to complete and return authorization result
+	 */
+	const waitForPopupCallback = useCallback(
+		(
+			popup: Window,
+			_expectedState: string,
+		): Promise<{
+			code: string;
+			state: string;
+		}> => {
+			return new Promise((resolve, reject) => {
+				const checkPopup = () => {
+					try {
+						if (popup.closed) {
+							reject(new Error("Authorization cancelled by user"));
+							return;
+						}
+
+						// Check if popup has navigated to callback URL
+						if (popup.location.href.includes("oauth/code/callback")) {
+							const result = parseAuthorizationCallback(popup.location.href);
+
+							popup.close();
+
+							if (result.error) {
+								reject(new Error(result.error_description || result.error));
+								return;
+							}
+
+							if (!result.code || !result.state) {
+								reject(new Error("Missing authorization code or state"));
+								return;
+							}
+
+							resolve({
+								code: result.code,
+								state: result.state,
+							});
+							return;
+						}
+
+						// Continue checking
+						setTimeout(checkPopup, 1000);
+					} catch (_popupError) {
+						// Popup might be on different domain, continue checking
+						setTimeout(checkPopup, 1000);
+					}
+				};
+
+				checkPopup();
+			});
+		},
+		[],
+	);
+
+	/**
+	 * Refresh OAuth tokens
+	 */
+	const refreshTokens = useCallback(async () => {
+		const tokens = await claudeTokenStore.getTokens();
+		if (!tokens || tokens.authMethod !== "oauth") {
+			throw new Error("No OAuth tokens to refresh");
+		}
+
+		const response = await fetch("/api/auth/claude/refresh", {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify({
+				refreshToken: tokens.refreshToken,
+			}),
+		});
+
+		const result = await response.json();
+
+		if (!result.success) {
+			throw new Error(result.error?.message || "Token refresh failed");
+		}
+
+		// Update stored tokens
+		const updatedTokens: ClaudeTokenData = {
+			...tokens,
+			accessToken: result.data.accessToken,
+			refreshToken: result.data.refreshToken,
+			expiresAt: result.data.expiresAt,
 		};
-		void init();
-	}, [checkAuthStatus]);
+
+		await claudeTokenStore.saveTokens(updatedTokens);
+
+		logger.debug("Claude tokens refreshed successfully");
+	}, []);
 
 	/**
 	 * Check current authentication status from stored tokens
+	 * Note: Currently unused but kept for future initialization needs
 	 */
-	const checkAuthStatus = useCallback(async () => {
+	const _checkAuthStatus = useCallback(async () => {
 		try {
 			setIsLoading(true);
 			setError(null);
@@ -308,100 +395,6 @@ export function useClaudeAuth(): UseClaudeAuthReturn {
 
 		return tokens.accessToken;
 	}, [refreshTokens]);
-
-	/**
-	 * Refresh OAuth tokens
-	 */
-	const refreshTokens = useCallback(async () => {
-		const tokens = await claudeTokenStore.getTokens();
-		if (!tokens || tokens.authMethod !== "oauth") {
-			throw new Error("No OAuth tokens to refresh");
-		}
-
-		const response = await fetch("/api/auth/claude/refresh", {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify({
-				refreshToken: tokens.refreshToken,
-			}),
-		});
-
-		const result = await response.json();
-
-		if (!result.success) {
-			throw new Error(result.error?.message || "Token refresh failed");
-		}
-
-		// Update stored tokens
-		const updatedTokens: ClaudeTokenData = {
-			...tokens,
-			accessToken: result.data.accessToken,
-			refreshToken: result.data.refreshToken,
-			expiresAt: result.data.expiresAt,
-		};
-
-		await claudeTokenStore.saveTokens(updatedTokens);
-
-		logger.debug("Claude tokens refreshed successfully");
-	}, []);
-
-	/**
-	 * Wait for OAuth popup to complete and return authorization result
-	 */
-	const waitForPopupCallback = useCallback(
-		(
-			popup: Window,
-			_expectedState: string,
-		): Promise<{
-			code: string;
-			state: string;
-		}> => {
-			return new Promise((resolve, reject) => {
-				const checkPopup = () => {
-					try {
-						if (popup.closed) {
-							reject(new Error("Authorization cancelled by user"));
-							return;
-						}
-
-						// Check if popup has navigated to callback URL
-						if (popup.location.href.includes("oauth/code/callback")) {
-							const result = parseAuthorizationCallback(popup.location.href);
-
-							popup.close();
-
-							if (result.error) {
-								reject(new Error(result.error_description || result.error));
-								return;
-							}
-
-							if (!result.code || !result.state) {
-								reject(new Error("Missing authorization code or state"));
-								return;
-							}
-
-							resolve({
-								code: result.code,
-								state: result.state,
-							});
-							return;
-						}
-
-						// Continue checking
-						setTimeout(checkPopup, 1000);
-					} catch (_popupError) {
-						// Popup might be on different domain, continue checking
-						setTimeout(checkPopup, 1000);
-					}
-				};
-
-				checkPopup();
-			});
-		},
-		[],
-	);
 
 	return {
 		isAuthenticated,

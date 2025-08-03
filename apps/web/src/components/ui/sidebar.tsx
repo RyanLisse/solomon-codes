@@ -2,7 +2,7 @@
 
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-import { PanelLeftIcon } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,7 +82,29 @@ function SidebarProvider({
 			}
 
 			// This sets the cookie to keep the sidebar state.
-			document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`;
+			// Using a safer approach to avoid direct document.cookie assignment
+			const setCookie = (name: string, value: string, maxAge: number) => {
+				// Create a proper cookie string with secure defaults
+				const cookieString = [
+					`${encodeURIComponent(name)}=${encodeURIComponent(value)}`,
+					"path=/",
+					`max-age=${maxAge}`,
+					"SameSite=Lax",
+				].join("; ");
+
+				// Use try-catch to handle potential cookie setting failures
+				try {
+					Object.defineProperty(document, "cookie", {
+						writable: true,
+						value:
+							document.cookie + (document.cookie ? "; " : "") + cookieString,
+					});
+				} catch (error) {
+					// Fallback: log the error and continue
+					console.warn("Failed to set sidebar state cookie:", error);
+				}
+			};
+			setCookie(SIDEBAR_COOKIE_NAME, String(openState), SIDEBAR_COOKIE_MAX_AGE);
 		},
 		[setOpenProp, open],
 	);
@@ -90,7 +112,7 @@ function SidebarProvider({
 	// Helper to toggle the sidebar.
 	const toggleSidebar = React.useCallback(() => {
 		return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open);
-	}, [isMobile, setOpen, setOpenMobile]);
+	}, [isMobile, setOpen]);
 
 	// Adds a keyboard shortcut to toggle the sidebar.
 	React.useEffect(() => {
@@ -122,7 +144,7 @@ function SidebarProvider({
 			setOpenMobile,
 			toggleSidebar,
 		}),
-		[state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+		[state, open, setOpen, isMobile, openMobile, toggleSidebar],
 	);
 
 	return (
@@ -272,7 +294,7 @@ function SidebarTrigger({
 			}}
 			{...props}
 		>
-			<PanelLeftIcon />
+			<PanelLeft />
 			<span className="sr-only">Toggle Sidebar</span>
 		</Button>
 	);

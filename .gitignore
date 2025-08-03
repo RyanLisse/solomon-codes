@@ -32,3 +32,17 @@ vibekit/
 .env.test.local
 .env.production.local
 .env.backup
+
+# Agent-specific files
+AGENTS.md.backup
+SETUP.sh.backup
+dev.sh
+.agent-cache/
+.agent-sessions/
+agent-logs/
+.remote-agent/
+
+# AI Development artifacts
+*.ai-generated
+.code-review-cache/
+.agent-workspace/

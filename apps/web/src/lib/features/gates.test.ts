@@ -1,4 +1,4 @@
-import { vi as _vi, afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
 	Environment,
 	FeatureGateService,

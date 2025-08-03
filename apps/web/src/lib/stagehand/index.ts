@@ -10,12 +10,19 @@ export type {
 	SessionConfig,
 } from "../../types/stagehand";
 export {
-	getStagehandClient,
-	resetStagehandClient,
 	StagehandClient,
 	type StagehandClientConfig,
 	type StagehandSession,
 } from "./client";
+
+// Import client functions for re-export
+import {
+	getStagehandClient as _getStagehandClient,
+	resetStagehandClient as _resetStagehandClient,
+} from "./client";
+
+export const getStagehandClient = _getStagehandClient;
+export const resetStagehandClient = _resetStagehandClient;
 
 // Convenience utilities
 export const StagehandUtils = {
@@ -34,7 +41,7 @@ export const StagehandUtils = {
 	},
 
 	// Session management
-	async createSession(config?: any) {
+	async createSession(config?: Record<string, unknown>) {
 		const client = getStagehandClient();
 		return client.createSession(config);
 	},
@@ -50,7 +57,7 @@ export const StagehandUtils = {
 	},
 
 	// Automation
-	async runTask(task: any, sessionId?: string) {
+	async runTask(task: unknown, sessionId?: string) {
 		const client = getStagehandClient();
 		return client.runAutomationTask(task, sessionId);
 	},

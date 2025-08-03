@@ -4,7 +4,6 @@ import {
 	FileText,
 	Home,
 	Laptop,
-	MessageSquare,
 	Settings,
 	User,
 	Zap,
@@ -119,48 +118,37 @@ export function AppSidebar({
 
 			<SidebarFooter className="border-gray-200 border-t p-2">
 				{/* Execution Mode */}
-				<div className="mb-2">
-					<SidebarMenu>
-						<SidebarMenuItem>
-							<SidebarMenuButton
-								tooltip={
-									isLocalExecution ? "Local Execution" : "Cloud Execution"
+				<div className="mb-2 p-2">
+					<div className="flex w-full items-center justify-between">
+						<div className="flex items-center gap-2">
+							<Cloud className="h-4 w-4 text-muted-foreground" />
+							<Switch
+								checked={isLocalExecution}
+								onCheckedChange={onLocalExecutionChange}
+								className="data-[state=checked]:bg-primary"
+								aria-label={
+									isLocalExecution
+										? "Switch to Cloud Execution"
+										: "Switch to Local Execution"
 								}
-							>
-								<div className="flex w-full items-center justify-between">
-									<div className="flex items-center gap-2">
-										<Cloud className="h-4 w-4 text-muted-foreground" />
-										<Switch
-											checked={isLocalExecution}
-											onCheckedChange={onLocalExecutionChange}
-											className="data-[state=checked]:bg-primary"
-										/>
-										<Laptop className="h-4 w-4 text-muted-foreground" />
-									</div>
-									<span className="text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
-										{isLocalExecution ? "Local" : "Cloud"}
-									</span>
-								</div>
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					</SidebarMenu>
+							/>
+							<Laptop className="h-4 w-4 text-muted-foreground" />
+						</div>
+						<span className="text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">
+							{isLocalExecution ? "Local" : "Cloud"}
+						</span>
+					</div>
 				</div>
 
 				{/* User Profile */}
-				<SidebarMenu>
-					<SidebarMenuItem>
-						<SidebarMenuButton asChild tooltip="Ryan Lisse">
-							<div className="flex items-center gap-2 p-2">
-								<div className="flex h-6 w-6 items-center justify-center rounded bg-gray-200">
-									<User className="h-4 w-4 text-gray-600" />
-								</div>
-								<span className="font-medium text-sm group-data-[collapsible=icon]:hidden">
-									Ryan Lisse
-								</span>
-							</div>
-						</SidebarMenuButton>
-					</SidebarMenuItem>
-				</SidebarMenu>
+				<div className="flex items-center gap-2 p-2">
+					<div className="flex h-6 w-6 items-center justify-center rounded bg-gray-200">
+						<User className="h-4 w-4 text-gray-600" />
+					</div>
+					<span className="font-medium text-sm group-data-[collapsible=icon]:hidden">
+						Ryan Lisse
+					</span>
+				</div>
 			</SidebarFooter>
 
 			<SidebarRail />

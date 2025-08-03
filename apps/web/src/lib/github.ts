@@ -65,8 +65,8 @@ export class GitHubAuth {
 	getAuthUrl(state?: string): string {
 		this.ensureInitialized();
 		const params = new URLSearchParams({
-			client_id: this.clientId!,
-			redirect_uri: this.redirectUri!,
+			client_id: this.clientId || "",
+			redirect_uri: this.redirectUri || "",
 			scope: "repo user:email",
 			state: state || Math.random().toString(36).substring(7),
 		});
@@ -86,8 +86,8 @@ export class GitHubAuth {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					client_id: this.clientId!,
-					client_secret: this.clientSecret!,
+					client_id: this.clientId || "",
+					client_secret: this.clientSecret || "",
 					code,
 				}),
 			},

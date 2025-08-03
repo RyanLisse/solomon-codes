@@ -24,18 +24,17 @@ import { GET, HEAD } from "./route";
 
 describe("Health Check API", () => {
 	let originalEnv: NodeJS.ProcessEnv;
-	let originalProcess: typeof process;
 
 	beforeEach(() => {
-		// Save original environment and process
+		// Save original environment
 		originalEnv = { ...process.env };
-		originalProcess = { ...process };
 
 		// Set up test environment
 		vi.stubEnv("NODE_ENV", "production");
 		process.env.npm_package_version = "1.0.0";
 		process.env.BUILD_TIME = "2024-01-01T00:00:00.000Z";
 		process.env.SERVICE_NAME = "test-service";
+		process.env.VERCEL_GIT_COMMIT_SHA = "abc123def456";
 
 		// Mock process methods
 		vi.spyOn(process, "uptime").mockReturnValue(3600); // 1 hour uptime
@@ -51,16 +50,22 @@ describe("Health Check API", () => {
 		mockConfigService.getConfiguration.mockReturnValue({
 			nodeEnv: "production",
 			serviceName: "test-service",
+			databaseUrl: "postgres://test:password@localhost:5432/testdb",
 		});
 
 		mockConfigService.getDatabaseConfig.mockReturnValue({
 			url: "postgres://test:password@localhost:5432/testdb",
-			host: "localhost",
+			isConfigured: true,
 		});
 
 		mockConfigService.getTelemetryConfig.mockReturnValue({
 			isEnabled: true,
 			endpoint: "http://localhost:4318/v1/traces",
+			headers: {},
+			samplingRatio: 0.1,
+			timeout: 5000,
+			serviceName: "test-service",
+			serviceVersion: "1.0.0",
 		});
 
 		mockConfigService.getLoggingConfig.mockReturnValue({
@@ -81,11 +86,15 @@ describe("Health Check API", () => {
 	});
 
 	afterEach(() => {
-		// Restore original environment and process
+		// Restore original environment
 		process.env = originalEnv;
-		Object.assign(process, originalProcess);
 
+		// Clear all mocks and restore implementation
+		vi.clearAllMocks();
 		vi.restoreAllMocks();
+
+		// Reset any cached health check results
+		// Note: This may need to be adjusted based on actual cache implementation
 	});
 
 	describe("GET /api/health", () => {
@@ -153,9 +162,16 @@ describe("Health Check API", () => {
 		});
 
 		it("should report database as disconnected when configuration is missing", async () => {
+			// Override the default mock for this test
+			mockConfigService.getConfiguration.mockReturnValue({
+				nodeEnv: "production",
+				serviceName: "test-service",
+				databaseUrl: undefined, // No database URL configured
+			});
+
 			mockConfigService.getDatabaseConfig.mockReturnValue({
-				url: null,
-				host: null,
+				url: undefined,
+				isConfigured: false,
 			});
 
 			const request = new NextRequest("http://localhost:3001/api/health");
@@ -182,7 +198,12 @@ describe("Health Check API", () => {
 		it("should report OpenTelemetry as degraded when endpoint is missing", async () => {
 			mockConfigService.getTelemetryConfig.mockReturnValue({
 				isEnabled: true,
-				endpoint: null,
+				endpoint: null, // Missing endpoint should trigger degraded status
+				headers: {},
+				samplingRatio: 0.1,
+				timeout: 5000,
+				serviceName: "test-service",
+				serviceVersion: "1.0.0",
 			});
 
 			const request = new NextRequest("http://localhost:3001/api/health");

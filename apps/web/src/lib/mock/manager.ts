@@ -163,7 +163,11 @@ export function mockAware<T extends unknown[], R>(
 	mockImplementation: (...args: T) => R | Promise<R>,
 	context?: string,
 ) {
-	return (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) => {
+	return (
+		target: unknown,
+		propertyKey: string,
+		descriptor: PropertyDescriptor,
+	) => {
 		const originalMethod = descriptor.value;
 
 		descriptor.value = async function (...args: T): Promise<R> {
@@ -172,7 +176,9 @@ export function mockAware<T extends unknown[], R>(
 			if (manager.shouldUseMockData()) {
 				const logger = createContextLogger("mock-decorator");
 				logger.debug("Using mock implementation", {
-					context: context || `${(target as { constructor: { name: string } }).constructor.name}.${propertyKey}`,
+					context:
+						context ||
+						`${(target as { constructor: { name: string } }).constructor.name}.${propertyKey}`,
 					method: propertyKey,
 				});
 				return await mockImplementation.apply(this, args);

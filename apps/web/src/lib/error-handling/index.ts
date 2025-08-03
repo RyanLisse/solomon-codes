@@ -7,9 +7,57 @@ import { initializePerformanceMonitoring } from "../monitoring/performance";
 import { initializeErrorReporting } from "./error-reporting";
 import { initializeGlobalErrorHandling } from "./global-handler";
 
+// Export all error handling utilities
 export * from "../monitoring/performance";
+export {
+	api,
+	apiRequest,
+	createHttpError,
+	handleFetchError,
+	withApiErrorHandler,
+	withRetry,
+} from "./api-errors";
+export {
+	ErrorBoundary,
+	type ErrorBoundaryProps,
+	type ErrorBoundaryState,
+	useErrorBoundary,
+	withErrorBoundary,
+} from "./error-boundary";
+
+// Export new error handling system
+export {
+	AppError,
+	createErrorResponse,
+	createInternalError,
+	createNetworkError,
+	createNotFoundError,
+	createSuccessResponse,
+	createUnauthorizedError,
+	createValidationError,
+	type ErrorCode,
+	ErrorCodes,
+	type ErrorContext,
+	type ErrorSeverity,
+	getErrorCode,
+	getErrorMessage,
+	isAppError,
+	isRecoverableError,
+} from "./error-handler";
 export * from "./error-reporting";
 export * from "./global-handler";
+export {
+	type AsyncOperationState,
+	type FormValidationErrors,
+	type FormValidationRule,
+	type UseAsyncOperationOptions,
+	type UseErrorHandlerOptions,
+	useApiCall,
+	useAsyncOperation,
+	useDebouncedError,
+	useErrorHandler,
+	useFormValidation,
+} from "./hooks";
 
 /**
  * Initialize comprehensive error handling and monitoring system

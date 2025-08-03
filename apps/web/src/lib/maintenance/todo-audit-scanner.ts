@@ -196,9 +196,8 @@ async function scanFile(
 
 		for (const patternConfig of ISSUE_PATTERNS) {
 			const { pattern, types } = patternConfig;
-			let match;
-
-			while ((match = pattern.exec(content)) !== null) {
+			let match = pattern.exec(content);
+			while (match !== null) {
 				const matchIndex = match.index;
 				const lineNumber = content.substring(0, matchIndex).split("\n").length;
 				const matchedType = match[1]?.toUpperCase() || types[0];
@@ -226,6 +225,8 @@ async function scanFile(
 					description: description || match[0],
 					tags,
 				});
+
+				match = pattern.exec(content);
 			}
 		}
 

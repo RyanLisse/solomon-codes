@@ -82,7 +82,7 @@ export const mockFileExclusionPattern =
 /**
  * Next.js webpack configuration helper
  */
-export function excludeMockFilesFromBuild(config: any) {
+export function excludeMockFilesFromBuild(config: Record<string, unknown>) {
 	if (IS_PRODUCTION || IS_BUILD_TIME) {
 		// Add rule to exclude mock files
 		config.module.rules.push({
@@ -146,19 +146,19 @@ export function assertNotProduction(context: string): void {
  * Mock data registry for tracking all mock data usage
  */
 class MockDataRegistry {
-	private registry = new Map<string, any>();
+	private registry = new Map<string, unknown>();
 
-	register(key: string, data: any): void {
+	register(key: string, data: unknown): void {
 		if (!IS_PRODUCTION) {
 			this.registry.set(key, data);
 		}
 	}
 
-	get(key: string): any {
+	get(key: string): unknown {
 		return this.registry.get(key);
 	}
 
-	getAll(): Record<string, any> {
+	getAll(): Record<string, unknown> {
 		return Object.fromEntries(this.registry);
 	}
 
@@ -179,21 +179,21 @@ export const mockDataRegistry = new MockDataRegistry();
 /**
  * Register mock data for tracking
  */
-export function registerMockData(key: string, data: any): void {
+export function registerMockData(key: string, data: unknown): void {
 	mockDataRegistry.register(key, data);
 }
 
 /**
  * Get registered mock data
  */
-export function getRegisteredMockData(key: string): any {
+export function getRegisteredMockData(key: string): unknown {
 	return mockDataRegistry.get(key);
 }
 
 /**
  * Development-only console logging
  */
-export const devLog = (...args: any[]) => {
+export const devLog = (...args: unknown[]) => {
 	if (!IS_PRODUCTION) {
 		console.log("[DEV]", ...args);
 	}
@@ -202,7 +202,7 @@ export const devLog = (...args: any[]) => {
 /**
  * Development-only console warning
  */
-export const devWarn = (...args: any[]) => {
+export const devWarn = (...args: unknown[]) => {
 	if (!IS_PRODUCTION) {
 		console.warn("[DEV]", ...args);
 	}

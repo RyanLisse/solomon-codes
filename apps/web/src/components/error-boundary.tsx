@@ -51,16 +51,22 @@ export class ErrorBoundary extends Component<
 	}
 
 	static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+		// Generate error ID immediately
+		const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
 		// Update state so the next render will show the fallback UI
 		return {
 			hasError: true,
 			error,
+			errorId,
 		};
 	}
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-		// Generate error ID
-		const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		// Use the errorId from state (set in getDerivedStateFromError)
+		const errorId =
+			this.state.errorId ||
+			`error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 		// Report error to global error handler
 		const errorHandler = getGlobalClientErrorHandler();
@@ -71,9 +77,12 @@ export class ErrorBoundary extends Component<
 			errorId,
 		});
 
-		this.setState({
-			errorId,
-		});
+		// Update state with errorId if not already set
+		if (!this.state.errorId) {
+			this.setState({
+				errorId,
+			});
+		}
 
 		this.getLogger().error("Error boundary caught error", {
 			correlationId: errorId,
@@ -163,21 +172,6 @@ export class ErrorBoundary extends Component<
 		});
 	};
 
-	private autoRetry = (): void => {
-		// Auto-retry after a delay for transient errors
-		this.resetTimeoutId = setTimeout(
-			() => {
-				if (
-					this.state.hasError &&
-					this.state.retryCount < (this.props.maxRetries || 3)
-				) {
-					this.retry();
-				}
-			},
-			2000 + this.state.retryCount * 1000,
-		); // Exponential backoff
-	};
-
 	render(): ReactNode {
 		if (this.state.hasError && this.state.error && this.state.errorId) {
 			// Use custom fallback if provided
@@ -225,8 +219,9 @@ function DefaultErrorFallback({
 	retryCount,
 	maxRetries,
 	enableRetry,
-}: DefaultErrorFallbackProps): JSX.Element {
+}: DefaultErrorFallbackProps): React.JSX.Element {
 	const canRetry = enableRetry && retryCount < maxRetries;
+	const _showRetryButton = enableRetry;
 
 	return (
 		<div className="error-boundary-fallback mx-auto max-w-md rounded-lg border border-red-200 bg-red-50 p-6">
@@ -238,6 +233,7 @@ function DefaultErrorFallback({
 						stroke="currentColor"
 						viewBox="0 0 24 24"
 					>
+						<title>Error warning icon</title>
 						<path
 							strokeLinecap="round"
 							strokeLinejoin="round"
@@ -269,15 +265,21 @@ function DefaultErrorFallback({
 			</div>
 
 			<div className="flex gap-2">
-				{canRetry && (
+				{enableRetry && (
 					<button
+						type="button"
 						onClick={retry}
-						className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+						className={`rounded px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+							canRetry
+								? "bg-red-600 hover:bg-red-700 focus:ring-red-500"
+								: "cursor-not-allowed bg-gray-400"
+						}`}
 					>
 						Retry ({retryCount}/{maxRetries})
 					</button>
 				)}
 				<button
+					type="button"
 					onClick={() => window.location.reload()}
 					className="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
 				>
@@ -312,8 +314,8 @@ export function withErrorBoundary<P extends object>(
 export function useErrorHandler() {
 	const reportError = React.useCallback(
 		(error: Error, context?: Record<string, unknown>) => {
-			const errorHandler = getGlobalErrorHandler();
-			const errorReport = errorHandler.createErrorReport(error, {
+			const errorHandler = getGlobalClientErrorHandler();
+			errorHandler.handleError(error, {
 				...context,
 				source: "manual-report",
 				timestamp: new Date().toISOString(),
@@ -321,7 +323,6 @@ export function useErrorHandler() {
 
 			const logger = createClientLogger("error-handler-hook");
 			logger.error("Manual error report", {
-				correlationId: errorReport.id,
 				error: error.message,
 				context,
 			});

@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, vi } from "vitest";
 // Setup Node.js environment for integration tests
 beforeAll(() => {
 	// Set test environment
-	process.env.NODE_ENV = "test";
+	vi.stubEnv("NODE_ENV", "test");
 
 	// Mock environment variables for testing
 	process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3001";

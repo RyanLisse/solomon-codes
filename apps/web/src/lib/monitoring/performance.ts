@@ -2,7 +2,6 @@
  * Performance monitoring and alerting service
  */
 
-import { getConfigurationService } from "../config/service";
 import { createContextLogger } from "../logging/factory";
 import { getTelemetryService } from "../telemetry";
 

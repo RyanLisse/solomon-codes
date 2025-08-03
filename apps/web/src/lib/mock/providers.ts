@@ -213,7 +213,7 @@ export const mockGenerators = excludeFromProduction({
 	/**
 	 * Generate mock user
 	 */
-	user: (overrides: Partial<any> = {}) => ({
+	user: (overrides: Partial<Record<string, unknown>> = {}) => ({
 		id: `user-${Math.random().toString(36).substr(2, 9)}`,
 		name: "Mock User",
 		email: "mock@example.com",
@@ -225,7 +225,7 @@ export const mockGenerators = excludeFromProduction({
 	/**
 	 * Generate mock task
 	 */
-	task: (overrides: Partial<any> = {}) => ({
+	task: (overrides: Partial<Record<string, unknown>> = {}) => ({
 		id: `task-${Math.random().toString(36).substr(2, 9)}`,
 		title: "Mock Task",
 		description: "This is a mock task for development",
@@ -239,7 +239,7 @@ export const mockGenerators = excludeFromProduction({
 	/**
 	 * Generate mock environment
 	 */
-	environment: (overrides: Partial<any> = {}) => ({
+	environment: (overrides: Partial<Record<string, unknown>> = {}) => ({
 		id: `env-${Math.random().toString(36).substr(2, 9)}`,
 		name: "Mock Environment",
 		url: "http://localhost:3001",

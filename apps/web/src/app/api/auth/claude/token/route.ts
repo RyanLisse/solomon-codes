@@ -1,5 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+
+class HttpError extends Error {
+	constructor(
+		message: string,
+		public status: number,
+		public response: Record<string, unknown>,
+	) {
+		super(message);
+		this.name = "HttpError";
+	}
+}
+
 import {
 	CLAUDE_OAUTH_CONFIG,
 	ClaudeAuthError,
@@ -20,6 +32,53 @@ const TokenExchangeSchema = z.object({
 	expectedState: z.string().min(1, "Expected state is required"),
 });
 
+async function validateTokenRequest(body: unknown) {
+	const validation = TokenExchangeSchema.safeParse(body);
+	if (!validation.success) {
+		logger.error("Invalid token exchange request", {
+			errors: validation.error.issues,
+		});
+		throw new HttpError("Invalid request parameters", 400, {
+			success: false,
+			error: {
+				type: ClaudeAuthError.INVALID_CODE,
+				message: "Invalid request parameters",
+				details: validation.error.issues,
+			},
+		});
+	}
+	return validation.data;
+}
+
+function validateStateParameter(state: string, expectedState: string) {
+	if (!validateState(state, expectedState)) {
+		logger.error("State validation failed", { receivedState: state });
+		throw new HttpError(getErrorMessage(ClaudeAuthError.INVALID_STATE), 400, {
+			success: false,
+			error: {
+				type: ClaudeAuthError.INVALID_STATE,
+				message: getErrorMessage(ClaudeAuthError.INVALID_STATE),
+			},
+		});
+	}
+}
+
+async function performTokenExchange(code: string, verifier: string) {
+	const tokenResponse = await exchangeCodeForTokens(code, verifier);
+	if (!tokenResponse.success) {
+		throw new HttpError("Token exchange failed", 400, tokenResponse);
+	}
+	return tokenResponse.data;
+}
+
+async function fetchUserProfile(accessToken: string) {
+	const userResponse = await getUserProfile(accessToken);
+	if (!userResponse.success) {
+		throw new HttpError("Failed to fetch user profile", 400, userResponse);
+	}
+	return userResponse.data;
+}
+
 /**
  * Exchange authorization code for access and refresh tokens
  * POST /api/auth/claude/token
@@ -33,75 +92,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 			hasState: !!body.state,
 		});
 
-		// Validate request body
-		const validation = TokenExchangeSchema.safeParse(body);
-		if (!validation.success) {
-			logger.error("Invalid token exchange request", {
-				errors: validation.error.issues,
-			});
-			return NextResponse.json(
-				{
-					success: false,
-					error: {
-						type: ClaudeAuthError.INVALID_CODE,
-						message: "Invalid request parameters",
-						details: validation.error.issues,
-					},
-				},
-				{ status: 400 },
-			);
-		}
-
-		const { code, verifier, state, expectedState } = validation.data;
-
-		// Validate state parameter to prevent CSRF
-		if (!validateState(state, expectedState)) {
-			logger.error("State validation failed", { receivedState: state });
-			return NextResponse.json(
-				{
-					success: false,
-					error: {
-						type: ClaudeAuthError.INVALID_STATE,
-						message: getErrorMessage(ClaudeAuthError.INVALID_STATE),
-					},
-				},
-				{ status: 400 },
-			);
-		}
-
-		// Exchange code for tokens
-		const tokenResponse = await exchangeCodeForTokens(code, verifier);
-
-		if (!tokenResponse.success) {
-			return NextResponse.json(tokenResponse, { status: 400 });
-		}
-
-		// Get user profile
-		const userResponse = await getUserProfile(tokenResponse.data.access_token);
-
-		if (!userResponse.success) {
-			return NextResponse.json(userResponse, { status: 400 });
-		}
+		// Validate and process the request
+		const { code, verifier, state, expectedState } =
+			await validateTokenRequest(body);
+		validateStateParameter(state, expectedState);
+		const tokenData = await performTokenExchange(code, verifier);
+		const userData = await fetchUserProfile(tokenData.access_token);
 
 		// Calculate expiration time
-		const expiresAt = Date.now() + tokenResponse.data.expires_in * 1000;
+		const expiresAt = Date.now() + tokenData.expires_in * 1000;
 
 		logger.debug("Claude OAuth token exchange successful", {
-			userId: userResponse.data.id,
+			userId: userData.id,
 			expiresAt: new Date(expiresAt).toISOString(),
 		});
 
-		// Return tokens and user data
+		// Return successful response
 		return NextResponse.json({
 			success: true,
 			data: {
-				accessToken: tokenResponse.data.access_token,
-				refreshToken: tokenResponse.data.refresh_token,
+				accessToken: tokenData.access_token,
+				refreshToken: tokenData.refresh_token,
 				expiresAt,
-				user: userResponse.data,
+				user: userData,
 			},
 		});
-	} catch (error) {
+	} catch (error: unknown) {
+		// Handle validation and API errors
+		if (error instanceof HttpError) {
+			return NextResponse.json(error.response, { status: error.status });
+		}
+
+		// Handle unexpected errors
 		logger.error("Claude OAuth token exchange failed", {
 			error: error instanceof Error ? error.message : String(error),
 		});

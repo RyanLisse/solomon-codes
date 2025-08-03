@@ -1,5 +1,3 @@
-import React from "react";
-
 interface OpenCodeIconProps {
 	size?: number;
 	className?: string;
@@ -15,6 +13,7 @@ export function OpenCodeIcon({ size = 24, className }: OpenCodeIconProps) {
 			xmlns="http://www.w3.org/2000/svg"
 			className={className}
 		>
+			<title>OpenCode logo</title>
 			<rect width="600" height="600" fill="black" />
 			<path
 				fillRule="evenodd"

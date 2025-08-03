@@ -323,22 +323,25 @@ export class GlobalErrorHandler {
 			// Dynamic access to avoid Edge Runtime static analysis
 			const proc = globalThis.process;
 			if (proc && typeof proc.on === "function") {
-				proc.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
-					this.handleUnhandledRejection(reason, promise);
-				});
+				proc.on(
+					"unhandledRejection",
+					(reason: unknown, promise: Promise<unknown>) => {
+						this.handleUnhandledRejection(reason, promise);
+					},
+				);
 
 				proc.on("uncaughtException", (error: Error) => {
 					this.handleUncaughtException(error);
 				});
 
-				proc.on("warning", (warning: any) => {
+				proc.on("warning", (warning: unknown) => {
 					this.handleWarning(warning);
 				});
 
 				proc.on("SIGTERM", () => this.handleShutdown("SIGTERM"));
 				proc.on("SIGINT", () => this.handleShutdown("SIGINT"));
 			}
-		} catch (error) {
+		} catch (_error) {
 			console.debug("Node.js event handlers not available");
 		}
 	}
@@ -362,7 +365,7 @@ export class GlobalErrorHandler {
 				proc.removeAllListeners("SIGTERM");
 				proc.removeAllListeners("SIGINT");
 			}
-		} catch (error) {
+		} catch (_error) {
 			console.debug("Node.js event cleanup not available");
 		}
 	}
@@ -370,7 +373,7 @@ export class GlobalErrorHandler {
 	/**
 	 * Get system information (Edge Runtime safe)
 	 */
-	private getSystemInfo(): any {
+	private getSystemInfo(): Record<string, unknown> {
 		// Check if we're in Edge Runtime
 		if (typeof globalThis !== "undefined" && globalThis.EdgeRuntime) {
 			return {
@@ -384,7 +387,7 @@ export class GlobalErrorHandler {
 
 		// Node.js runtime - safely access process APIs
 		try {
-			const info: any = { runtime: "node" };
+			const info: Record<string, unknown> = { runtime: "node" };
 			const proc = globalThis.process;
 
 			if (proc) {
@@ -400,7 +403,7 @@ export class GlobalErrorHandler {
 			}
 
 			return info;
-		} catch (error) {
+		} catch (_error) {
 			// Fallback for any runtime that doesn't support these APIs
 			return {
 				uptime: 0,
@@ -674,7 +677,7 @@ export class GlobalErrorHandler {
 		if (this.config.enableAlertingOnCritical) {
 			// Emit critical error event for alerting systems (only in Node.js)
 			if (typeof process !== "undefined" && process.emit) {
-				process.emit("criticalError" as any, error);
+				process.emit("criticalError" as string, error);
 			}
 		}
 
@@ -703,7 +706,7 @@ export class GlobalErrorHandler {
 	private emitErrorEvent(error: BaseApplicationError): void {
 		// Emit error event that can be captured by monitoring systems (only in Node.js)
 		if (typeof process !== "undefined" && process.emit) {
-			process.emit("applicationError" as any, error.toStructuredError());
+			process.emit("applicationError" as string, error.toStructuredError());
 		}
 	}
 }

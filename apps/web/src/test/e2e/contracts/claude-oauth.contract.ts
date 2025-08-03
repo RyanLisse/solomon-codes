@@ -11,8 +11,8 @@ import { expect, type Page } from "@playwright/test";
 export interface ClaudeOAuthInteraction {
 	type: "authorize" | "token" | "user_info";
 	timestamp: number;
-	params?: Record<string, any>;
-	body?: Record<string, any>;
+	params?: Record<string, string | number | boolean>;
+	body?: Record<string, string | number | boolean>;
 }
 
 export interface ClaudeTokenData {

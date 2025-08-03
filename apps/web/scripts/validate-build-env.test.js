@@ -70,11 +70,11 @@ describe("Environment Validation Script", () => {
 		it("should have all required environment variable definitions", async () => {
 			// Mock fs and path modules before importing
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -102,11 +102,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate NEXT_PUBLIC_SERVER_URL correctly", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -130,11 +130,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate NODE_ENV correctly", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -157,11 +157,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate OpenAI API key format", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -182,11 +182,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate database URL format", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -214,11 +214,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate OTEL sampling ratio", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -242,11 +242,11 @@ describe("Environment Validation Script", () => {
 	describe("Deployment Target Configurations", () => {
 		it("should have all deployment target configurations", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -264,11 +264,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate Cloudflare deployment requirements", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -288,11 +288,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate Railway deployment requirements", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -312,11 +312,11 @@ describe("Environment Validation Script", () => {
 
 		it("should validate Vercel deployment requirements", async () => {
 			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
+				existsSync: mock(() => false),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -348,29 +348,48 @@ describe("Environment Validation Script", () => {
 
 	describe("Validation Logic Integration", () => {
 		it("should validate production environment with missing variables", async () => {
+			// Save current environment state
+			const savedEnv = { ...process.env };
+
+			// Set NODE_ENV to production
 			process.env.NODE_ENV = "production";
 
-			// Mock fs and path modules
-			const mockFs = {
-				existsSync: mock.fn(() => false),
-				readFileSync: mock.fn(() => ""),
-			};
-			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
-			};
+			// Clear all environment variables that could affect validation
+			delete process.env.NEXT_PUBLIC_SERVER_URL;
+			delete process.env.OPENAI_API_KEY;
+			delete process.env.E2B_API_KEY;
+			delete process.env.BROWSERBASE_API_KEY;
+			delete process.env.BROWSERBASE_PROJECT_ID;
+			delete process.env.DATABASE_URL;
+			delete process.env.JWT_SECRET;
+			delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
+			delete process.env.LOG_LEVEL;
 
-			mock.module("fs", () => mockFs);
-			mock.module("path", () => mockPath);
+			// Mock fs.existsSync to return false for all .env files to prevent loading any env files
+			const originalExistsSync = require("node:fs").existsSync;
+			require("node:fs").existsSync = mock((path) => {
+				if (path.includes(".env")) {
+					return false;
+				}
+				return originalExistsSync(path);
+			});
 
-			// Clear module cache and import fresh module
-			delete require.cache[require.resolve("./validate-build-env.js")];
-			const module = await import("./validate-build-env.js?t=" + Date.now());
+			try {
+				// Clear module cache and import fresh module
+				delete require.cache[require.resolve("./validate-build-env.js")];
+				const module = require("./validate-build-env.js");
 
-			// Call validateEnvironment which should call process.exit(1)
-			module.validateEnvironment();
+				// Call validateEnvironment which should call process.exit(1)
+				module.validateEnvironment();
 
-			// Should call process.exit with 1 due to missing variables
-			expect(exitSpy).toHaveBeenCalledWith(1);
+				// Should call process.exit with 1 due to missing variables
+				expect(exitSpy).toHaveBeenCalledWith(1);
+			} finally {
+				// Restore fs.existsSync
+				require("node:fs").existsSync = originalExistsSync;
+				// Restore environment
+				process.env = savedEnv;
+			}
 		});
 
 		it("should pass validation with all required variables for production", async () => {
@@ -378,16 +397,23 @@ describe("Environment Validation Script", () => {
 
 			// Set all required production variables
 			const requiredVars = {
+				NODE_ENV: "production",
 				NEXT_PUBLIC_SERVER_URL: "https://production.app.com",
 				OPENAI_API_KEY: "sk-1234567890abcdef",
 				E2B_API_KEY: "12345678901234567890123456789012",
 				BROWSERBASE_API_KEY: "browserbase_key",
 				BROWSERBASE_PROJECT_ID: "project_123",
+				DATABASE_URL: "postgresql://user:pass@localhost/testdb",
 				OTEL_EXPORTER_OTLP_ENDPOINT: "https://otel.endpoint.com",
 				JWT_SECRET: "12345678901234567890123456789012",
 			};
 
 			Object.assign(process.env, requiredVars);
+
+			// Ensure LOG_LEVEL is either unset or has a valid value
+			if (process.env.LOG_LEVEL) {
+				process.env.LOG_LEVEL = process.env.LOG_LEVEL.toLowerCase();
+			}
 
 			const envFileContent = Object.entries(requiredVars)
 				.map(([key, value]) => `${key}=${value}`)
@@ -395,11 +421,11 @@ describe("Environment Validation Script", () => {
 
 			// Mock fs and path modules
 			const mockFs = {
-				existsSync: mock.fn(() => true),
-				readFileSync: mock.fn(() => envFileContent),
+				existsSync: mock(() => true),
+				readFileSync: mock(() => envFileContent),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -407,13 +433,36 @@ describe("Environment Validation Script", () => {
 
 			// Clear module cache and import fresh module
 			delete require.cache[require.resolve("./validate-build-env.js")];
-			const module = await import("./validate-build-env.js?t=" + Date.now());
+			const module = await import(`./validate-build-env.js?t=${Date.now()}`);
 
-			// Call validateEnvironment
-			module.validateEnvironment();
+			// Call validateEnvironment and capture any thrown errors
+			try {
+				// Capture console output to see validation errors
+				const consoleLogs = [];
+				const originalLog = console.log;
+				console.log = (...args) => {
+					consoleLogs.push(args.join(" "));
+					originalLog(...args);
+				};
 
-			// Should not exit with error since all variables are provided
-			expect(exitSpy).not.toHaveBeenCalledWith(1);
+				module.validateEnvironment();
+
+				// Restore console.log
+				console.log = originalLog;
+
+				// If process.exit was called, log the console output for debugging
+				if (exitSpy.mock.calls.length > 0) {
+					console.error("Validation failed. Console output:");
+					consoleLogs.forEach((log) => console.error(log));
+				}
+
+				// Should not exit with error since all variables are provided
+				expect(exitSpy).not.toHaveBeenCalledWith(1);
+			} catch (error) {
+				// If validation throws an error, log it for debugging
+				console.error("Validation error:", error);
+				throw error;
+			}
 		});
 
 		it("should handle deployment-specific validation", async () => {
@@ -423,13 +472,13 @@ describe("Environment Validation Script", () => {
 
 			// Mock fs and path modules
 			const mockFs = {
-				existsSync: mock.fn(() => true),
-				readFileSync: mock.fn(
+				existsSync: mock(() => true),
+				readFileSync: mock(
 					() => "NEXT_PUBLIC_SERVER_URL=https://app.pages.dev",
 				),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -437,7 +486,7 @@ describe("Environment Validation Script", () => {
 
 			// Clear module cache and import fresh module
 			delete require.cache[require.resolve("./validate-build-env.js")];
-			const module = await import("./validate-build-env.js?t=" + Date.now());
+			const module = await import(`./validate-build-env.js?t=${Date.now()}`);
 
 			// Call validateEnvironment
 			module.validateEnvironment();
@@ -451,13 +500,13 @@ describe("Environment Validation Script", () => {
 		it("should handle file system errors gracefully", async () => {
 			// Mock fs to throw error when accessing files
 			const mockFs = {
-				existsSync: mock.fn(() => {
+				existsSync: mock(() => {
 					throw new Error("File system error");
 				}),
-				readFileSync: mock.fn(() => ""),
+				readFileSync: mock(() => ""),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -465,7 +514,7 @@ describe("Environment Validation Script", () => {
 
 			// Clear module cache and import fresh module
 			delete require.cache[require.resolve("./validate-build-env.js")];
-			const module = await import("./validate-build-env.js?t=" + Date.now());
+			const module = await import(`./validate-build-env.js?t=${Date.now()}`);
 
 			// Should handle error gracefully
 			expect(() => {
@@ -476,8 +525,8 @@ describe("Environment Validation Script", () => {
 		it("should handle malformed .env files", async () => {
 			// Mock fs and path modules
 			const mockFs = {
-				existsSync: mock.fn(() => true),
-				readFileSync: mock.fn(
+				existsSync: mock(() => true),
+				readFileSync: mock(
 					() => `
 MALFORMED_LINE_NO_EQUALS
 =NO_KEY_BEFORE_EQUALS
@@ -486,7 +535,7 @@ NORMAL_VAR=normal_value
 				),
 			};
 			const mockPath = {
-				join: mock.fn((...args) => args.join("/")),
+				join: mock((...args) => args.join("/")),
 			};
 
 			mock.module("fs", () => mockFs);
@@ -494,7 +543,7 @@ NORMAL_VAR=normal_value
 
 			// Clear module cache and import fresh module
 			delete require.cache[require.resolve("./validate-build-env.js")];
-			const module = await import("./validate-build-env.js?t=" + Date.now());
+			const module = await import(`./validate-build-env.js?t=${Date.now()}`);
 
 			// Should handle malformed lines without crashing
 			expect(() => {

@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
 		logger.debug("Generating Claude OAuth authorization URL");
 
 		// Generate PKCE challenge and state
-		const pkce = generatePKCEChallenge();
+		const pkce = await generatePKCEChallenge();
 
 		// Build authorization URL
 		const authUrl = buildAuthorizationURL(pkce);

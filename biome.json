@@ -20,7 +20,10 @@
 			"!**/.nuxt",
 			"!bts.jsonc",
 			"!**/.expo",
-			"!**/.wrangler"
+			"!**/.wrangler",
+			"!**/.astro",
+			"!**/wasm/**",
+			"!**/*_bg.js"
 		]
 	},
 	"formatter": {

@@ -12,10 +12,7 @@ import {
 	registerAuditResults,
 	runTodoAudit,
 } from "./todo-audit-scanner";
-import {
-	generateProductionReadinessReport as generateTrackerReport,
-	todoTracker,
-} from "./todo-tracker";
+import { generateProductionReadinessReport as generateTrackerReport } from "./todo-tracker";
 
 const logger = createContextLogger("todo-audit-runner");
 
@@ -59,7 +56,7 @@ async function main() {
 		await writeFile(reportPath, combinedReport, "utf-8");
 
 		// Print summary to console
-		console.log("\n" + "=".repeat(80));
+		console.log(`\n${"=".repeat(80)}`);
 		console.log("🎯 PRODUCTION READINESS ASSESSMENT COMPLETE");
 		console.log("=".repeat(80));
 
@@ -122,7 +119,7 @@ async function main() {
 			console.log(`   • ${recommendation}`);
 		}
 
-		console.log("\n" + "=".repeat(80));
+		console.log(`\n${"=".repeat(80)}`);
 
 		// Exit with appropriate code
 		const exitCode = productionReadiness.blockers.length > 0 ? 1 : 0;

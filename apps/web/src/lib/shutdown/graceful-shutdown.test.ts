@@ -48,7 +48,7 @@ describe("GracefulShutdownService", () => {
 		(closeDatabaseConnections as Mock).mockResolvedValue(undefined);
 
 		// Mock process.exit to prevent actual exit during tests
-		process.exit = vi.fn() as any;
+		process.exit = vi.fn() as unknown as (code?: number) => never;
 		console.log = vi.fn();
 		console.error = vi.fn();
 	});

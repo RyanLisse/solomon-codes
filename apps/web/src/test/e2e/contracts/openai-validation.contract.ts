@@ -12,7 +12,7 @@ export interface OpenAIValidationInteraction {
 	type: "validate";
 	timestamp: number;
 	apiKey: string;
-	headers: Record<string, any>;
+	headers: Record<string, string>;
 }
 
 export interface OpenAIValidationResult {
@@ -83,7 +83,7 @@ export class OpenAIValidationContract {
 	/**
 	 * Expect failed API key validation
 	 */
-	private async expectFailedValidation(apiKey: string, reason: string) {
+	private async expectFailedValidation(_apiKey: string, reason: "invalid_format" | "invalid_key" | "network_error") {
 		const errorResponses = {
 			invalid_format: {
 				error: {
@@ -109,7 +109,7 @@ export class OpenAIValidationContract {
 					code: "network_error",
 				},
 			},
-		};
+		} as const;
 
 		return {
 			returnsError: () => errorResponses[reason],

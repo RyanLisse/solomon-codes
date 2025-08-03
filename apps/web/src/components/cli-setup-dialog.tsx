@@ -11,7 +11,7 @@ import {
 	Terminal,
 	XCircle,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
 
 type InstallationStatus =
 	| "not-checked"
@@ -40,7 +39,6 @@ type InstallationStatus =
 	| "installed"
 	| "not-installed"
 	| "error";
-type ConfigurationStatus = "unconfigured" | "configured" | "invalid";
 
 interface CLIAgent {
 	id: string;
@@ -122,10 +120,10 @@ export function CLISetupDialog() {
 	>({});
 	const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
 	const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
-	const [isChecking, setIsChecking] = useState(false);
+	const [, setIsChecking] = useState(false);
 
 	// Check prerequisites
-	const checkPrerequisites = async () => {
+	const checkPrerequisites = useCallback(async () => {
 		setIsChecking(true);
 
 		// Simulate checking prerequisites (in real app, this would call actual system commands)
@@ -160,7 +158,7 @@ export function CLISetupDialog() {
 		}
 
 		setIsChecking(false);
-	};
+	}, []);
 
 	// Check CLI agent installations
 	const checkCLIAgent = async (agentId: string) => {
@@ -216,7 +214,7 @@ export function CLISetupDialog() {
 		if (open) {
 			checkPrerequisites();
 		}
-	}, [open]);
+	}, [open, checkPrerequisites]);
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>

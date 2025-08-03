@@ -130,8 +130,12 @@ export async function connectElectric(): Promise<ConnectionResult> {
  */
 export async function disconnectElectric(): Promise<ConnectionResult> {
 	try {
-		if (electricClient) {
-			await electricClient.disconnect();
+		if (
+			electricClient &&
+			typeof electricClient === "object" &&
+			"disconnect" in electricClient
+		) {
+			await (electricClient as { disconnect(): Promise<void> }).disconnect();
 		}
 
 		return { success: true };

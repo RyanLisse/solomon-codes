@@ -37,7 +37,7 @@ vi.mock("../config/service", () => ({
 
 // Mock the mock data manager
 vi.mock("../mock/manager", () => ({
-	getMockOrRealData: vi.fn((mockFn, realFn) => realFn()),
+	getMockOrRealData: vi.fn((_mockFn, realFn) => realFn()),
 }));
 
 describe("StagehandClient", () => {

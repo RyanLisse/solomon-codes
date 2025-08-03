@@ -1,5 +1,3 @@
-import type { AppConfig as _AppConfig } from "./schema";
-
 /**
  * Validation result interface
  */

@@ -11,7 +11,9 @@ import {
 
 describe("Environment Validation", () => {
 	const originalEnv = process.env;
-	const consoleSpy = vi.spyOn(console, "log").mockImplementation((): void => {});
+	const consoleSpy = vi
+		.spyOn(console, "log")
+		.mockImplementation((): void => {});
 
 	beforeEach(() => {
 		process.env = { ...originalEnv };

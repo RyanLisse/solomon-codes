@@ -66,7 +66,7 @@ export function ComplexComponent() {
 				</div>
 			)}
 
-			<button onClick={handleAction}>
+			<button type="button" onClick={handleAction}>
 				{isEnabled("enableExperimentalFeatures")
 					? "Try Experimental"
 					: "Use Stable"}
@@ -210,7 +210,7 @@ async function getFromCache(_key: string) {
 	return null;
 }
 
-async function setCache(_key: string, _value: any) {
+async function setCache(_key: string, _value: unknown) {
 	// Cache storage implementation
 }
 
@@ -224,7 +224,7 @@ async function fetchRealData() {
 	return "real data";
 }
 
-async function recordTelemetry(_event: string, _data: any) {
+async function recordTelemetry(_event: string, _data: unknown) {
 	// Telemetry recording implementation
 }
 

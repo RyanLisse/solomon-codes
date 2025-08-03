@@ -5,8 +5,8 @@ import { getFeatureGateService } from "./gates";
  * Environment detection and utilities
  */
 export class EnvironmentService {
-	private configService = getConfigurationService();
-	private featureGates = getFeatureGateService();
+	private readonly configService = getConfigurationService();
+	private readonly featureGates = getFeatureGateService();
 
 	/**
 	 * Get the current environment
@@ -248,7 +248,7 @@ export const getCurrentEnvironment = () =>
 /**
  * Environment-aware console logging (only in development)
  */
-export const devLog = (...args: any[]) => {
+export const devLog = (...args: unknown[]) => {
 	if (isDevelopment()) {
 		console.log("[DEV]", ...args);
 	}
@@ -257,7 +257,7 @@ export const devLog = (...args: any[]) => {
 /**
  * Environment-aware console warning (only in non-production)
  */
-export const devWarn = (...args: any[]) => {
+export const devWarn = (...args: unknown[]) => {
 	if (isNonProduction()) {
 		console.warn("[DEV]", ...args);
 	}
@@ -266,7 +266,7 @@ export const devWarn = (...args: any[]) => {
 /**
  * Environment-aware console error (always enabled but with context)
  */
-export const envError = (...args: any[]) => {
+export const envError = (...args: unknown[]) => {
 	const env = getCurrentEnvironment();
 	console.error(`[${env.toUpperCase()}]`, ...args);
 };

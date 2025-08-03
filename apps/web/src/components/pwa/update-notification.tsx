@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle, Download, RefreshCw, X } from "lucide-react";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useUpdatePrompt } from "@/lib/pwa/pwa-provider";
 
@@ -56,6 +56,7 @@ export function UpdateNotification() {
 
 				{!isUpdating && (
 					<button
+						type="button"
 						onClick={handleDismiss}
 						className="flex-shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 						aria-label="Dismiss update notification"
@@ -200,6 +201,7 @@ export function UpdateToast() {
 							</h3>
 							{!isUpdating && (
 								<button
+									type="button"
 									onClick={handleDismiss}
 									className="ml-2 rounded-md p-1 text-muted-foreground hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
 								>

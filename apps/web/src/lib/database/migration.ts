@@ -170,7 +170,7 @@ export function validateEnvironmentData(
 /**
  * Transform localStorage task data to database format
  */
-function transformTaskForDatabase(task: Record<string, any>): NewTask {
+function transformTaskForDatabase(task: Record<string, unknown>): NewTask {
 	return {
 		id: task.id,
 		title: task.title,
@@ -196,7 +196,9 @@ function transformTaskForDatabase(task: Record<string, any>): NewTask {
 /**
  * Transform localStorage environment data to database format
  */
-function transformEnvironmentForDatabase(environment: any): NewEnvironment {
+function transformEnvironmentForDatabase(
+	environment: Record<string, unknown>,
+): NewEnvironment {
 	return {
 		id: environment.id,
 		name: environment.name,

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	ConfigurationError,
 	getConfig,
@@ -23,7 +23,7 @@ describe("Configuration System", () => {
 	describe("validateConfig", () => {
 		it("should validate configuration with default values", () => {
 			// Set minimal required environment
-			process.env.NODE_ENV = "development";
+			vi.stubEnv("NODE_ENV", "development");
 
 			const config = validateConfig();
 
@@ -36,7 +36,7 @@ describe("Configuration System", () => {
 		});
 
 		it("should load configuration from environment variables", () => {
-			process.env.NODE_ENV = "production";
+			vi.stubEnv("NODE_ENV", "production");
 			process.env.NEXT_PUBLIC_SERVER_URL = "https://example.com";
 			process.env.PORT = "8080";
 			process.env.OPENAI_API_KEY = "sk-test-key";
@@ -116,9 +116,13 @@ describe("Configuration System", () => {
 				expect.fail("Should have thrown ConfigurationError");
 			} catch (error) {
 				expect(error).toBeInstanceOf(ConfigurationError);
-				expect(error.message).toContain("SERVER_URL must be a valid URL");
-				expect(error.details.variable).toBe("NEXT_PUBLIC_SERVER_URL");
-				expect(error.details.suggestion).toContain(
+				expect((error as ConfigurationError).message).toContain(
+					"SERVER_URL must be a valid URL",
+				);
+				expect((error as ConfigurationError).details.variable).toBe(
+					"NEXT_PUBLIC_SERVER_URL",
+				);
+				expect((error as ConfigurationError).details.suggestion).toContain(
 					"Set the NEXT_PUBLIC_SERVER_URL",
 				);
 			}
@@ -175,7 +179,7 @@ describe("Configuration System", () => {
 
 	describe("Environment-specific validation", () => {
 		it("should handle development environment", () => {
-			process.env.NODE_ENV = "development";
+			vi.stubEnv("NODE_ENV", "development");
 
 			const config = validateConfig();
 
@@ -185,7 +189,7 @@ describe("Configuration System", () => {
 		});
 
 		it("should handle staging environment", () => {
-			process.env.NODE_ENV = "staging";
+			vi.stubEnv("NODE_ENV", "staging");
 
 			const config = validateConfig();
 
@@ -193,7 +197,7 @@ describe("Configuration System", () => {
 		});
 
 		it("should handle production environment", () => {
-			process.env.NODE_ENV = "production";
+			vi.stubEnv("NODE_ENV", "production");
 
 			const config = validateConfig();
 

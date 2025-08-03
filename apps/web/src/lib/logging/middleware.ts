@@ -259,7 +259,7 @@ export function createErrorLoggingMiddleware() {
 	return function errorLoggingMiddleware(
 		error: Error,
 		req: ExpressRequest,
-		res: ExpressResponse,
+		_res: ExpressResponse,
 		next: (error?: Error) => void,
 	): void {
 		const correlationId = req.correlationId || "unknown";

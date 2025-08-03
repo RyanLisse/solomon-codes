@@ -6,8 +6,8 @@
  * Supports different deployment targets with specific validation rules
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Environment variable definitions with validation rules
 const ENV_DEFINITIONS = {
@@ -227,28 +227,55 @@ function loadEnvFiles() {
 	const envVars = {};
 
 	for (const file of envFiles) {
-		const filePath = path.join(process.cwd(), file);
-		if (fs.existsSync(filePath)) {
-			const content = fs.readFileSync(filePath, "utf8");
-			const lines = content.split("\n");
-
-			for (const line of lines) {
-				const trimmed = line.trim();
-				if (trimmed && !trimmed.startsWith("#")) {
-					const [key, ...valueParts] = trimmed.split("=");
-					if (key && valueParts.length > 0) {
-						const value = valueParts.join("=").replace(/^['"]|['"]$/g, "");
-						// Only set if not already defined (precedence: process.env > .env.local > .env > .env.example)
-						if (!envVars[key.trim()]) {
-							envVars[key.trim()] = process.env[key.trim()] || value;
-						}
-					}
-				}
-			}
-		}
+		processEnvFile(file, envVars);
 	}
 
 	return envVars;
+}
+
+/**
+ * Process a single environment file and extract variables
+ */
+function processEnvFile(file, envVars) {
+	const filePath = path.join(process.cwd(), file);
+
+	if (!fs.existsSync(filePath)) {
+		return;
+	}
+
+	const content = fs.readFileSync(filePath, "utf8");
+	const lines = content.split("\n");
+
+	for (const line of lines) {
+		processEnvLine(line, envVars);
+	}
+}
+
+/**
+ * Process a single line from an environment file
+ */
+function processEnvLine(line, envVars) {
+	const trimmed = line.trim();
+
+	// Skip empty lines and comments
+	if (!trimmed || trimmed.startsWith("#")) {
+		return;
+	}
+
+	const [key, ...valueParts] = trimmed.split("=");
+
+	// Skip malformed lines
+	if (!key || valueParts.length === 0) {
+		return;
+	}
+
+	const value = valueParts.join("=").replace(/^(["'])|(["'])$/g, "");
+	const normalizedKey = key.trim();
+
+	// Only set if not already defined (precedence: process.env > .env.local > .env > .env.example)
+	if (!envVars[normalizedKey]) {
+		envVars[normalizedKey] = process.env[normalizedKey] || value;
+	}
 }
 
 /**
@@ -259,10 +286,7 @@ function validateEnvVar(key, definition, value, environment) {
 	const warnings = [];
 
 	// Check if required
-	const isRequired =
-		definition.required && definition.required.includes(environment);
-	const isOptional =
-		definition.optional && definition.optional.includes(environment);
+	const isRequired = definition.required?.includes(environment);
 
 	if (isRequired && (!value || value.trim() === "")) {
 		errors.push(`${key} is required for ${environment} environment`);

@@ -191,7 +191,7 @@ export class TodoTracker {
 	 */
 	generateReport(): string {
 		const stats = this.getStatistics();
-		const unresolved = this.getUnresolvedTodos();
+		const _unresolved = this.getUnresolvedTodos();
 		const overdue = this.getOverdueTodos();
 
 		let report = "# TODO Report\n\n";
@@ -276,8 +276,8 @@ export function withTodo(
 	} = {},
 ) {
 	return (
-		target: unknown,
-		propertyKey: string,
+		_target: unknown,
+		_propertyKey: string,
 		descriptor: PropertyDescriptor,
 	) => {
 		const fileName = "unknown"; // Would need to be determined at build time

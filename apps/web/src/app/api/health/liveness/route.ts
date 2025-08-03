@@ -24,6 +24,55 @@ export interface LivenessStatus {
 	};
 }
 
+function checkMemoryWarnings(
+	memoryUsage: NodeJS.MemoryUsage,
+	warnings: string[],
+) {
+	const heapUsagePercent = (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
+	if (heapUsagePercent > 90) {
+		warnings.push(`High heap usage: ${heapUsagePercent.toFixed(1)}%`);
+	}
+
+	const totalMemoryMB = memoryUsage.rss / 1024 / 1024;
+	if (totalMemoryMB > 1024) {
+		warnings.push(`High memory usage: ${totalMemoryMB.toFixed(1)}MB`);
+	}
+}
+
+function checkUptimeWarnings(uptime: number, warnings: string[]) {
+	if (uptime < 60) {
+		warnings.push(`Low uptime: ${uptime.toFixed(1)}s - potential restart loop`);
+	}
+}
+
+async function performRuntimeTests(liveness: LivenessStatus) {
+	try {
+		// Test basic JavaScript execution
+		const testArray = [1, 2, 3];
+		const testResult = testArray.map((x) => x * 2);
+		if (testResult.length !== 3) {
+			liveness.alive = false;
+			liveness.details?.errors.push("Basic JavaScript execution test failed");
+		}
+
+		// Test async execution
+		await new Promise((resolve) => setImmediate(resolve));
+	} catch (error) {
+		liveness.alive = false;
+		liveness.details?.errors.push(
+			`Runtime execution test failed: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
+function updateStatusMessage(liveness: LivenessStatus) {
+	if (!liveness.alive) {
+		liveness.message = "Application is not responding properly";
+	} else if ((liveness.details?.warnings.length ?? 0) > 0) {
+		liveness.message = "Application is alive but with warnings";
+	}
+}
+
 /**
  * GET /api/health/liveness
  * Kubernetes-style liveness probe endpoint
@@ -65,57 +114,11 @@ export async function GET() {
 			},
 		};
 
-		// Check for potential memory issues
-		const heapUsagePercent =
-			(memoryUsage.heapUsed / memoryUsage.heapTotal) * 100;
-		if (heapUsagePercent > 90) {
-			liveness.details?.warnings.push(
-				`High heap usage: ${heapUsagePercent.toFixed(1)}%`,
-			);
-		}
-
-		// Check for very high memory usage (potential memory leak)
-		const totalMemoryMB = memoryUsage.rss / 1024 / 1024;
-		if (totalMemoryMB > 1024) {
-			// More than 1GB
-			liveness.details?.warnings.push(
-				`High memory usage: ${totalMemoryMB.toFixed(1)}MB`,
-			);
-		}
-
-		// Check uptime for potential restart loops
-		if (liveness.uptime < 60) {
-			// Less than 1 minute uptime
-			liveness.details?.warnings.push(
-				`Low uptime: ${liveness.uptime.toFixed(1)}s - potential restart loop`,
-			);
-		}
-
-		// Simple deadlock detection - if we can't access basic Node.js APIs, something is wrong
-		try {
-			// Test basic JavaScript execution
-			const testArray = [1, 2, 3];
-			const testResult = testArray.map((x) => x * 2);
-			if (testResult.length !== 3) {
-				liveness.alive = false;
-				liveness.details?.errors.push("Basic JavaScript execution test failed");
-			}
-
-			// Test async execution
-			await new Promise((resolve) => setImmediate(resolve));
-		} catch (error) {
-			liveness.alive = false;
-			liveness.details?.errors.push(
-				`Runtime execution test failed: ${error instanceof Error ? error.message : String(error)}`,
-			);
-		}
-
-		// Update message based on status
-		if (!liveness.alive) {
-			liveness.message = "Application is not responding properly";
-		} else if (liveness.details?.warnings.length ?? 0 > 0) {
-			liveness.message = "Application is alive but with warnings";
-		}
+		// Perform health checks
+		checkMemoryWarnings(memoryUsage, liveness.details?.warnings || []);
+		checkUptimeWarnings(liveness.uptime, liveness.details?.warnings || []);
+		await performRuntimeTests(liveness);
+		updateStatusMessage(liveness);
 
 		// Determine HTTP status code
 		const statusCode = liveness.alive ? 200 : 500;

@@ -93,13 +93,14 @@ export interface AuthorizationParams {
 /**
  * Generate PKCE challenge for OAuth flow
  */
-export function generatePKCEChallenge(): PKCEChallenge {
-	const challenge = generateChallenge();
+export async function generatePKCEChallenge(): Promise<PKCEChallenge> {
+	const codeVerifier = generateRandomString(128);
+	const challenge = await generateChallenge(codeVerifier);
 	const state = generateRandomString(32);
 
 	return {
-		codeChallenge: challenge.code_challenge,
-		codeVerifier: challenge.code_verifier,
+		codeChallenge: challenge,
+		codeVerifier: codeVerifier,
 		state,
 	};
 }

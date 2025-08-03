@@ -5,9 +5,14 @@ import { defineConfig } from "astro/config";
 
 // https://astro.build/config
 export default defineConfig({
+	site: "https://solomon-codes.com",
+	build: {
+		format: "directory",
+	},
 	integrations: [
 		starlight({
-			title: "My Docs",
+			title: "Solomon Codes Documentation",
+			customCss: [],
 			social: [
 				{
 					icon: "github",
@@ -18,10 +23,7 @@ export default defineConfig({
 			sidebar: [
 				{
 					label: "Guides",
-					items: [
-						// Each item here is one entry in the navigation menu.
-						{ label: "Example Guide", slug: "guides/example" },
-					],
+					autogenerate: { directory: "guides" },
 				},
 				{
 					label: "Reference",
@@ -30,4 +32,15 @@ export default defineConfig({
 			],
 		}),
 	],
+	vite: {
+		build: {
+			rollupOptions: {
+				onwarn(warning, warn) {
+					// Suppress specific warnings that might be related to the 404 issue
+					if (warning.code === "UNRESOLVED_IMPORT") return;
+					warn(warning);
+				},
+			},
+		},
+	},
 });

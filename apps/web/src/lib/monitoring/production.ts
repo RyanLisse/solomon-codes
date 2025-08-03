@@ -3,15 +3,9 @@
  * Provides comprehensive monitoring, alerting, and performance tracking for production deployments
  */
 
-import {
-	context as _context,
-	SpanKind,
-	SpanStatusCode,
-	trace,
-} from "@opentelemetry/api";
-import * as os from "os";
+import * as os from "node:os";
+import { SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
 import type { Logger } from "winston";
-import { getConfigurationService as _getConfigurationService } from "@/lib/config/service";
 import { createLogger } from "@/lib/logging/factory";
 
 // Production monitoring configuration
@@ -156,7 +150,9 @@ export class ProductionMonitoringService {
 				), // 5 seconds
 			},
 			logging: {
-				level: (process.env.LOG_LEVEL as "error" | "warn" | "info" | "debug") || "info",
+				level:
+					(process.env.LOG_LEVEL as "error" | "warn" | "info" | "debug") ||
+					"info",
 				structured: isProduction,
 				enableConsole: true,
 				enableFile: isProduction,
@@ -360,18 +356,21 @@ export class ProductionMonitoringService {
 	 */
 	private async sendWebhookAlert(alert: Alert): Promise<void> {
 		try {
-			const response = await fetch(this.config.alerting.channels.webhook!, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const response = await fetch(
+				this.config.alerting.channels.webhook || "",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						alert,
+						service: "solomon-codes-web",
+						environment: process.env.NODE_ENV,
+						timestamp: new Date().toISOString(),
+					}),
 				},
-				body: JSON.stringify({
-					alert,
-					service: "solomon-codes-web",
-					environment: process.env.NODE_ENV,
-					timestamp: new Date().toISOString(),
-				}),
-			});
+			);
 
 			if (!response.ok) {
 				throw new Error(`Webhook request failed: ${response.status}`);
@@ -426,7 +425,7 @@ export class ProductionMonitoringService {
 				],
 			};
 
-			const response = await fetch(this.config.alerting.channels.slack!, {
+			const response = await fetch(this.config.alerting.channels.slack || "", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -477,7 +476,7 @@ export class ProductionMonitoringService {
 				},
 				(span) => {
 					const originalEnd = response.end;
-					response.end = function (...args: any[]) {
+					response.end = function (...args: Parameters<typeof originalEnd>) {
 						const endTime = Date.now();
 						const duration = endTime - startTime;
 

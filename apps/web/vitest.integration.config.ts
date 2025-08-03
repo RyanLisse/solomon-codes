@@ -22,9 +22,9 @@ export default defineConfig({
 			"src/test/e2e/**",
 			"src/components/**",
 			"src/hooks/**",
-			"src/lib/**/*.test.{js,ts}",
 			"scripts/**",
 			"stores/**",
+			// Note: Removed conflicting src/lib/**/*.test.{js,ts} pattern to allow integration tests
 		],
 		globals: true,
 		testTimeout: 30000,

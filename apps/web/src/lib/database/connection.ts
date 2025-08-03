@@ -149,7 +149,6 @@ export function getDatabaseUrl(environment?: string): string {
 			return process.env.DATABASE_URL || process.env.NEON_DATABASE_URL || "";
 		case "test":
 			return process.env.TEST_DATABASE_URL || process.env.DATABASE_URL || "";
-		case "development":
 		default:
 			return process.env.DATABASE_URL || process.env.DEV_DATABASE_URL || "";
 	}

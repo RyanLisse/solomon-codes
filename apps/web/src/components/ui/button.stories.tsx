@@ -133,6 +133,7 @@ export const WithIcon: Story = {
 					viewBox="0 0 24 24"
 					xmlns="http://www.w3.org/2000/svg"
 				>
+					<title>Add icon</title>
 					<path
 						strokeLinecap="round"
 						strokeLinejoin="round"

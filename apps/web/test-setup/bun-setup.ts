@@ -5,7 +5,11 @@ import { beforeAll } from "bun:test";
 // Setup test environment
 beforeAll(() => {
 	// Set test environment
-	process.env.NODE_ENV = "test";
+	Object.defineProperty(process.env, "NODE_ENV", {
+		value: "test",
+		writable: true,
+		configurable: true,
+	});
 
 	// Mock window object for happy-dom compatibility
 	if (typeof window !== "undefined" && !window.location) {

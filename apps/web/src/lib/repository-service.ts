@@ -70,7 +70,7 @@ export class RepositoryService {
 
 			// Convert commits to tasks
 			const tasks: RepositoryTask[] = await Promise.all(
-				commits.map(async (commit: any, index: number) => {
+				commits.map(async (commit: GitHubCommit, _index: number) => {
 					// Get detailed commit info with stats
 					const commitDetails = await this.getCommitDetails(
 						accessToken,
@@ -162,7 +162,7 @@ export class RepositoryService {
 	private truncateMessage(message: string): string {
 		const firstLine = message.split("\n")[0];
 		return firstLine.length > 80
-			? firstLine.substring(0, 77) + "..."
+			? `${firstLine.substring(0, 77)}...`
 			: firstLine;
 	}
 
@@ -172,27 +172,44 @@ export class RepositoryService {
 	): "completed" | "failed" | "running" {
 		const lowerMessage = message.toLowerCase();
 
-		if (
-			lowerMessage.includes("fix") ||
-			lowerMessage.includes("resolve") ||
-			lowerMessage.includes("complete")
-		) {
-			return "completed";
-		}
-
-		if (
-			lowerMessage.includes("fail") ||
-			lowerMessage.includes("error") ||
-			lowerMessage.includes("bug")
-		) {
-			return "failed";
-		}
-
+		// Check for work in progress first
 		if (
 			lowerMessage.includes("wip") ||
 			lowerMessage.includes("work in progress")
 		) {
 			return "running";
+		}
+
+		// Check for completion keywords that override failure keywords
+		const hasCompletionKeywords =
+			lowerMessage.includes("fix") ||
+			lowerMessage.includes("resolve") ||
+			lowerMessage.includes("complete");
+
+		// Check for failure keywords
+		const hasFailureKeywords =
+			lowerMessage.includes("fail") ||
+			lowerMessage.includes("error") ||
+			lowerMessage.includes("bug");
+
+		// If both completion and failure keywords are present, prioritize completion
+		// unless there are specific failure indicators
+		if (hasCompletionKeywords && hasFailureKeywords) {
+			// "fix: still failing" should be failed, "fix: resolve bug" should be completed
+			if (lowerMessage.includes("still") && lowerMessage.includes("fail")) {
+				return "failed";
+			}
+			return "completed";
+		}
+
+		// Only failure keywords
+		if (hasFailureKeywords) {
+			return "failed";
+		}
+
+		// Only completion keywords
+		if (hasCompletionKeywords) {
+			return "completed";
 		}
 
 		// Default to completed for regular commits

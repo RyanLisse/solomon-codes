@@ -17,11 +17,11 @@ export interface AgentConfig {
 	model?: string;
 }
 
-export interface LettaResponse<T = any> {
+export interface LettaResponse<T = unknown> {
 	success: boolean;
 	data?: T;
 	error?: string;
-	details?: any;
+	details?: Record<string, unknown>;
 }
 
 export interface MemoryUpdate {

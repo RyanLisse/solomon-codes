@@ -59,6 +59,16 @@ export function PWAProvider({
 
 	const swManager = getServiceWorkerManager();
 
+	// Status updater
+	const updateStatus = useCallback(async () => {
+		try {
+			const newStatus = await swManager.getStatus();
+			setStatus(newStatus);
+		} catch (error) {
+			console.error("[PWA] Status update failed:", error);
+		}
+	}, [swManager]);
+
 	// Initialize service worker
 	const initialize = useCallback(async () => {
 		try {
@@ -79,7 +89,7 @@ export function PWAProvider({
 		} finally {
 			setIsLoading(false);
 		}
-	}, [autoRegister]);
+	}, [autoRegister, swManager]);
 
 	// Set up event listeners
 	useEffect(() => {
@@ -88,7 +98,7 @@ export function PWAProvider({
 			updateStatus();
 		};
 
-		const handleRegistrationError = (error: any) => {
+		const handleRegistrationError = (error: unknown) => {
 			console.error("[PWA] Registration failed:", error);
 			setError("Service worker registration failed");
 		};
@@ -139,7 +149,7 @@ export function PWAProvider({
 			swManager.off("app-installed", handleAppInstalled);
 			swManager.off("online-status", handleOnlineStatus);
 		};
-	}, [initialize]);
+	}, [initialize, swManager, updateStatus]);
 
 	// Set up periodic update checks
 	useEffect(() => {
@@ -156,16 +166,7 @@ export function PWAProvider({
 		}, checkUpdateInterval);
 
 		return () => clearInterval(interval);
-	}, [status.isRegistered, checkUpdateInterval]);
-
-	const updateStatus = useCallback(async () => {
-		try {
-			const newStatus = await swManager.getStatus();
-			setStatus(newStatus);
-		} catch (error) {
-			console.error("[PWA] Status update failed:", error);
-		}
-	}, []);
+	}, [status.isRegistered, checkUpdateInterval, swManager]);
 
 	const checkForUpdates = useCallback(async () => {
 		try {
@@ -178,7 +179,7 @@ export function PWAProvider({
 			setError(errorMessage);
 			throw error;
 		}
-	}, [updateStatus]);
+	}, [swManager, updateStatus]);
 
 	const applyUpdate = useCallback(async () => {
 		try {
@@ -191,7 +192,7 @@ export function PWAProvider({
 			setError(errorMessage);
 			throw error;
 		}
-	}, []);
+	}, [swManager]);
 
 	const invalidateCache = useCallback(
 		async (pattern?: string) => {
@@ -206,7 +207,7 @@ export function PWAProvider({
 				throw error;
 			}
 		},
-		[updateStatus],
+		[swManager, updateStatus],
 	);
 
 	const showInstallPrompt = useCallback(async (): Promise<boolean> => {
@@ -223,7 +224,7 @@ export function PWAProvider({
 			setError(errorMessage);
 			throw error;
 		}
-	}, []);
+	}, [swManager]);
 
 	const dismissUpdateNotification = useCallback(() => {
 		setShowUpdateNotification(false);

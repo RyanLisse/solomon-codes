@@ -478,7 +478,7 @@ function formatValidationErrors(zodError?: {
 		path?: string[];
 		message: string;
 		code: string;
-		[key: string]: any;
+		[key: string]: unknown;
 	}>;
 }): ConfigurationError[] {
 	// Handle case where ZodError is passed directly

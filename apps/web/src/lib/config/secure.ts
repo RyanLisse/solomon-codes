@@ -19,9 +19,9 @@ export class SecurityConfigError extends Error {
 // API key validation patterns
 const API_KEY_PATTERNS = {
 	openai: /^sk-[a-zA-Z0-9]{48}$/,
-	e2b: /^e2b_[a-zA-Z0-9]{32}$/,
+	e2b: /^e2b_[a-zA-Z0-9]{40}$/,  // E2B keys are 44 chars total (e2b_ + 40 chars)
 	github: /^gh[ops]_[a-zA-Z0-9]{36}$/,
-	browserbase: /^bb_[a-zA-Z0-9]{32}$/,
+	browserbase: /^bb_live_[a-zA-Z0-9_]+$/,  // Browserbase uses bb_live_ prefix with underscores
 } as const;
 
 // Secure configuration schema
@@ -79,14 +79,6 @@ export class SecureConfigService {
 	): boolean {
 		const pattern = API_KEY_PATTERNS[service];
 		return pattern ? pattern.test(key) : false;
-	}
-
-	/**
-	 * Mask sensitive values for logging
-	 */
-	private maskSensitiveValue(value: string): string {
-		if (value.length <= 8) return "***";
-		return `${value.slice(0, 4)}***${value.slice(-4)}`;
 	}
 
 	/**
@@ -273,6 +265,3 @@ export class SecureConfigService {
 
 // Export singleton instance
 export const secureConfig = SecureConfigService.getInstance();
-
-// Type exports
-export type { SecureConfig };

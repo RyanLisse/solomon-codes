@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { GitHubRepository } from "@/lib/github";
 import {
 	type RepositoryTask,
@@ -26,7 +26,7 @@ export function useRepositoryData(): UseRepositoryDataReturn {
 		useState<GitHubRepository | null>(null);
 
 	// Check for stored access token via API
-	const getAccessToken = async (): Promise<string | null> => {
+	const getAccessToken = useCallback(async (): Promise<string | null> => {
 		if (typeof window === "undefined") return null;
 
 		try {
@@ -37,10 +37,10 @@ export function useRepositoryData(): UseRepositoryDataReturn {
 			console.error("Failed to check auth status:", error);
 			return null;
 		}
-	};
+	}, []);
 
 	// Load repositories and tasks
-	const loadRepositoryData = async () => {
+	const loadRepositoryData = useCallback(async () => {
 		const accessToken = await getAccessToken();
 		if (!accessToken) {
 			setIsAuthenticated(false);
@@ -88,7 +88,7 @@ export function useRepositoryData(): UseRepositoryDataReturn {
 		} finally {
 			setIsLoading(false);
 		}
-	};
+	}, [currentRepository, getAccessToken]);
 
 	// Refresh tasks
 	const refreshTasks = async () => {
@@ -98,7 +98,7 @@ export function useRepositoryData(): UseRepositoryDataReturn {
 	// Load data on mount and when current repository changes
 	useEffect(() => {
 		loadRepositoryData();
-	}, [currentRepository]);
+	}, [loadRepositoryData]);
 
 	// Check authentication status on mount
 	useEffect(() => {
@@ -110,7 +110,7 @@ export function useRepositoryData(): UseRepositoryDataReturn {
 			}
 		};
 		checkAuth();
-	}, []);
+	}, [loadRepositoryData, getAccessToken]);
 
 	return {
 		tasks,

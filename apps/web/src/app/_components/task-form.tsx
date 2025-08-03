@@ -40,30 +40,41 @@ export default function TaskForm() {
 		}
 	}, []);
 
+	const findRepositoryForEnvironment = useCallback(() => {
+		const environment = environments.find(
+			(env) => env.id === selectedEnvironment,
+		);
+		return environment?.githubRepository || "";
+	}, [environments, selectedEnvironment]);
+
+	const createTaskObject = useCallback(
+		(mode: "code" | "ask") => {
+			return {
+				title: value,
+				hasChanges: false,
+				description: "",
+				messages: [],
+				status: "IN_PROGRESS" as const,
+				branch: selectedBranch,
+				sessionId: "",
+				repository: findRepositoryForEnvironment(),
+				mode,
+				useLocalSandbox: useLocal,
+			};
+		},
+		[value, selectedBranch, findRepositoryForEnvironment, useLocal],
+	);
+
 	const handleAddTask = async (mode: "code" | "ask") => {
-		if (value) {
-			try {
-				await createTask.mutateAsync({
-					task: {
-						title: value,
-						hasChanges: false,
-						description: "",
-						messages: [],
-						status: "IN_PROGRESS",
-						branch: selectedBranch,
-						sessionId: "",
-						repository:
-							environments.find((env) => env.id === selectedEnvironment)
-								?.githubRepository || "",
-						mode,
-						useLocalSandbox: useLocal,
-					},
-				});
-				setValue("");
-			} catch (error) {
-				console.error("Failed to create task:", error);
-				// Error handling could be improved with toast notifications
-			}
+		if (!value) return;
+
+		try {
+			const task = createTaskObject(mode);
+			await createTask.mutateAsync({ task });
+			setValue("");
+		} catch (error) {
+			console.error("Failed to create task:", error);
+			// Error handling could be improved with toast notifications
 		}
 	};
 
@@ -78,23 +89,22 @@ export default function TaskForm() {
 		}
 	}, [environments, selectedEnvironment]);
 
+	// Fetch branches when environment changes and set default branch
 	useEffect(() => {
-		if (selectedEnvironment) {
-			const environment = environments.find(
-				(env) => env.id === selectedEnvironment,
-			);
+		const environment = environments.find(
+			(env) => env.id === selectedEnvironment,
+		);
 
-			if (environment?.githubRepository) {
-				fetchBranches(environment.githubRepository);
-			}
+		if (environment?.githubRepository) {
+			fetchBranches(environment.githubRepository);
 		}
 	}, [selectedEnvironment, environments, fetchBranches]);
 
+	// Set default branch when branches are loaded
 	useEffect(() => {
-		if (branches.length > 0) {
-			setSelectedBranch(
-				branches.find((branch) => branch.isDefault)?.name || "",
-			);
+		const defaultBranch = branches.find((branch) => branch.isDefault);
+		if (defaultBranch) {
+			setSelectedBranch(defaultBranch.name);
 		}
 	}, [branches]);
 
@@ -110,6 +120,7 @@ export default function TaskForm() {
 						value={value}
 						onChange={(e) => setValue(e.target.value)}
 						placeholder="Describe a task you want to ship..."
+						aria-label="Task description"
 						className="min-h-[100px] w-full resize-none overflow-hidden border-none p-0 focus:border-transparent focus:outline-none"
 					/>
 					<div className="flex items-center justify-between">

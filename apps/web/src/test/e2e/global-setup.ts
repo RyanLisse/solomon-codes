@@ -8,7 +8,7 @@
  */
 import { chromium, type FullConfig } from "@playwright/test";
 
-async function globalSetup(config: FullConfig) {
+async function globalSetup(_config: FullConfig) {
 	console.log("🔧 Setting up E2E test environment...");
 
 	// Launch browser for setup tasks
@@ -26,7 +26,7 @@ async function globalSetup(config: FullConfig) {
 					console.log("✅ Mock server is ready");
 					break;
 				}
-			} catch (error) {
+			} catch (_error) {
 				retries--;
 				if (retries === 0) {
 					throw new Error("Mock server failed to start");
@@ -51,7 +51,7 @@ async function globalSetup(config: FullConfig) {
 					console.log("✅ Main application is ready");
 					break;
 				}
-			} catch (error) {
+			} catch (_error) {
 				retries--;
 				if (retries === 0) {
 					throw new Error("Main application failed to start");

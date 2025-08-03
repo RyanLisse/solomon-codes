@@ -8,7 +8,7 @@
  */
 import { chromium, type FullConfig } from "@playwright/test";
 
-async function globalTeardown(config: FullConfig) {
+async function globalTeardown(_config: FullConfig) {
 	console.log("🧹 Cleaning up E2E test environment...");
 
 	const browser = await chromium.launch();
@@ -32,7 +32,7 @@ async function globalTeardown(config: FullConfig) {
 				);
 				console.log(`  - Tokens issued: ${interactions.tokensIssued || 0}`);
 			}
-		} catch (error) {
+		} catch (_error) {
 			console.log(
 				"⚠️ Could not collect interaction logs (mock server may be down)",
 			);
@@ -42,7 +42,7 @@ async function globalTeardown(config: FullConfig) {
 		console.log("🔄 Final cleanup...");
 		try {
 			await page.request.post("http://localhost:3002/test/reset");
-		} catch (error) {
+		} catch (_error) {
 			// Mock server may already be down, ignore
 		}
 

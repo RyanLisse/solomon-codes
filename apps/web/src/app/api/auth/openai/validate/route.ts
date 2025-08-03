@@ -80,13 +80,13 @@ export async function POST(request: NextRequest) {
 		const { apiKey } = validateRequestSchema.parse(body);
 
 		logger.debug("Validating OpenAI API key", {
-			keyPrefix: apiKey.substring(0, 7) + "...",
+			keyPrefix: `${apiKey.substring(0, 7)}...`,
 		});
 
 		// Check format first
 		if (!isValidOpenAIKeyFormat(apiKey)) {
 			logger.warn("Invalid OpenAI API key format", {
-				keyPrefix: apiKey.substring(0, 7) + "...",
+				keyPrefix: `${apiKey.substring(0, 7)}...`,
 			});
 
 			return NextResponse.json(
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
 
 		if (!testResult.valid) {
 			logger.warn("OpenAI API key validation failed", {
-				keyPrefix: apiKey.substring(0, 7) + "...",
+				keyPrefix: `${apiKey.substring(0, 7)}...`,
 				error: testResult.error,
 			});
 
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		logger.info("OpenAI API key validated successfully", {
-			keyPrefix: apiKey.substring(0, 7) + "...",
+			keyPrefix: `${apiKey.substring(0, 7)}...`,
 		});
 
 		return NextResponse.json({

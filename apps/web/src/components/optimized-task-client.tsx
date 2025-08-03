@@ -27,10 +27,8 @@ interface StreamingMessage {
 }
 
 interface TaskMessage {
-	id: string;
 	role: "user" | "assistant";
 	type: string;
-	created_at: string;
 	data: Record<string, unknown> & {
 		text?: string;
 		call_id?: string;
@@ -38,6 +36,8 @@ interface TaskMessage {
 			command?: string[];
 		};
 		output?: string;
+		id?: string;
+		created_at?: string;
 	};
 }
 
@@ -156,12 +156,12 @@ export default function OptimizedTaskClient({ id }: Props) {
 			)
 			.sort((a: TaskMessage, b: TaskMessage) => {
 				const aDate = new Date(
-					a.created_at ||
+					a.data.created_at ||
 						(a as TaskMessage & { createdAt?: string }).createdAt ||
 						"",
 				).getTime();
 				const bDate = new Date(
-					b.created_at ||
+					b.data.created_at ||
 						(b as TaskMessage & { createdAt?: string }).createdAt ||
 						"",
 				).getTime();
@@ -205,7 +205,7 @@ export default function OptimizedTaskClient({ id }: Props) {
 						}
 						newMap.set(
 							messageData.streamId as string,
-							message as StreamingMessage,
+							message as unknown as StreamingMessage,
 						);
 						return newMap;
 					});
@@ -246,8 +246,7 @@ export default function OptimizedTaskClient({ id }: Props) {
 					<div>
 						<h1 className="font-semibold text-lg">{task.title}</h1>
 						<p className="text-muted-foreground text-sm">
-							Created{" "}
-							{new Date(task.createdAt || task.created_at).toLocaleDateString()}
+							Created {new Date(task.createdAt).toLocaleDateString()}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -261,9 +260,9 @@ export default function OptimizedTaskClient({ id }: Props) {
 			<ScrollArea className="flex-1 p-4">
 				<div className="space-y-4">
 					{/* Render regular messages */}
-					{sortedMessages.map((message) => (
+					{sortedMessages.map((message, index) => (
 						<MessageItem
-							key={message.id}
+							key={`message-${index}-${message.type}`}
 							message={message}
 							getOutputForCall={getOutputForCall}
 						/>
