@@ -1,0 +1,135 @@
+{
+	"dashboard": {
+		"id": null,
+		"title": "VibeX Application Overview",
+		"tags": ["vibeX", "overview"],
+		"timezone": "browser",
+		"panels": [
+			{
+				"id": 1,
+				"title": "Request Rate",
+				"type": "stat",
+				"targets": [
+					{
+						"expr": "sum(rate(http_requests_total{service_name=\"vibeX-web-app\"}[5m]))",
+						"legendFormat": "Requests/sec"
+					}
+				],
+				"fieldConfig": {
+					"defaults": {
+						"unit": "reqps"
+					}
+				}
+			},
+			{
+				"id": 2,
+				"title": "Response Time (95th percentile)",
+				"type": "stat",
+				"targets": [
+					{
+						"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service_name=\"vibeX-web-app\"}[5m])) by (le))",
+						"legendFormat": "95th percentile"
+					}
+				],
+				"fieldConfig": {
+					"defaults": {
+						"unit": "s"
+					}
+				}
+			},
+			{
+				"id": 3,
+				"title": "Error Rate",
+				"type": "stat",
+				"targets": [
+					{
+						"expr": "sum(rate(http_requests_total{service_name=\"vibeX-web-app\",status_code=~\"5..\"}[5m])) / sum(rate(http_requests_total{service_name=\"vibeX-web-app\"}[5m])) * 100",
+						"legendFormat": "Error Rate %"
+					}
+				],
+				"fieldConfig": {
+					"defaults": {
+						"unit": "percent"
+					}
+				}
+			},
+			{
+				"id": 4,
+				"title": "VibeKit Operations",
+				"type": "timeseries",
+				"targets": [
+					{
+						"expr": "sum(rate(vibeX_vibekit_operations_total[5m])) by (operation)",
+						"legendFormat": "{{operation}}"
+					}
+				]
+			},
+			{
+				"id": 5,
+				"title": "VibeKit Success Rate",
+				"type": "stat",
+				"targets": [
+					{
+						"expr": "sum(rate(vibeX_vibekit_operations_total{status=\"success\"}[5m])) / sum(rate(vibeX_vibekit_operations_total[5m])) * 100",
+						"legendFormat": "Success Rate %"
+					}
+				],
+				"fieldConfig": {
+					"defaults": {
+						"unit": "percent"
+					}
+				}
+			},
+			{
+				"id": 6,
+				"title": "GitHub API Rate Limit",
+				"type": "gauge",
+				"targets": [
+					{
+						"expr": "github_api_rate_limit_remaining / github_api_rate_limit_total * 100",
+						"legendFormat": "Rate Limit %"
+					}
+				],
+				"fieldConfig": {
+					"defaults": {
+						"unit": "percent",
+						"thresholds": {
+							"steps": [
+								{ "color": "red", "value": 0 },
+								{ "color": "yellow", "value": 20 },
+								{ "color": "green", "value": 50 }
+							]
+						}
+					}
+				}
+			},
+			{
+				"id": 7,
+				"title": "Database Query Performance",
+				"type": "timeseries",
+				"targets": [
+					{
+						"expr": "histogram_quantile(0.95, sum(rate(vibeX_db_query_duration_seconds_bucket[5m])) by (le, operation))",
+						"legendFormat": "{{operation}} - 95th percentile"
+					}
+				]
+			},
+			{
+				"id": 8,
+				"title": "Active Sessions",
+				"type": "stat",
+				"targets": [
+					{
+						"expr": "vibeX_active_sessions",
+						"legendFormat": "Active Sessions"
+					}
+				]
+			}
+		],
+		"time": {
+			"from": "now-1h",
+			"to": "now"
+		},
+		"refresh": "30s"
+	}
+}

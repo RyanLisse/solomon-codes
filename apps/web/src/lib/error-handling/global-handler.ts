@@ -2,9 +2,9 @@
  * Global error handling service for unhandled exceptions and rejections
  */
 
+import { getConfigurationService } from "../config/service";
 import { createContextLogger } from "../logging/factory";
 import { getTelemetryService } from "../telemetry";
-import { getConfigurationService } from "../config/service";
 
 export interface ErrorMetadata {
 	correlationId: string;
@@ -60,9 +60,12 @@ export class GlobalErrorHandler {
 		}
 
 		// Handle unhandled promise rejections
-		process.on("unhandledRejection", (reason: unknown, promise: Promise<unknown>) => {
-			this.handleUnhandledRejection(reason, promise);
-		});
+		process.on(
+			"unhandledRejection",
+			(reason: unknown, promise: Promise<unknown>) => {
+				this.handleUnhandledRejection(reason, promise);
+			},
+		);
 
 		// Handle uncaught exceptions
 		process.on("uncaughtException", (error: Error) => {
@@ -81,7 +84,10 @@ export class GlobalErrorHandler {
 	/**
 	 * Handle unhandled promise rejections
 	 */
-	private handleUnhandledRejection(reason: unknown, promise: Promise<unknown>): void {
+	private handleUnhandledRejection(
+		reason: unknown,
+		promise: Promise<unknown>,
+	): void {
 		const error = reason instanceof Error ? reason : new Error(String(reason));
 		const errorReport = this.createErrorReport(error, {
 			type: "unhandled-rejection",
@@ -99,8 +105,13 @@ export class GlobalErrorHandler {
 		this.updateErrorMetrics();
 
 		// In production, we might want to exit gracefully
-		if (this.isProduction() && errorReport.categorization.severity === "critical") {
-			this.getLogger().error("Critical unhandled rejection, initiating graceful shutdown");
+		if (
+			this.isProduction() &&
+			errorReport.categorization.severity === "critical"
+		) {
+			this.getLogger().error(
+				"Critical unhandled rejection, initiating graceful shutdown",
+			);
 			this.initiateGracefulShutdown();
 		}
 	}
@@ -124,7 +135,9 @@ export class GlobalErrorHandler {
 		this.updateErrorMetrics();
 
 		// Uncaught exceptions are always critical
-		this.getLogger().error("Critical uncaught exception, initiating graceful shutdown");
+		this.getLogger().error(
+			"Critical uncaught exception, initiating graceful shutdown",
+		);
 		this.initiateGracefulShutdown();
 	}
 
@@ -149,7 +162,10 @@ export class GlobalErrorHandler {
 	/**
 	 * Create a comprehensive error report
 	 */
-	createErrorReport(error: Error, context: Record<string, unknown> = {}): ErrorReport {
+	createErrorReport(
+		error: Error,
+		context: Record<string, unknown> = {},
+	): ErrorReport {
 		const correlationId = this.generateCorrelationId();
 		const configService = getConfigurationService();
 		const config = configService.getConfiguration();
@@ -203,7 +219,11 @@ export class GlobalErrorHandler {
 		}
 
 		// Network/API errors
-		if (message.includes("fetch") || message.includes("network") || message.includes("timeout")) {
+		if (
+			message.includes("fetch") ||
+			message.includes("network") ||
+			message.includes("timeout")
+		) {
 			return {
 				type: "external",
 				severity: "medium",
@@ -263,11 +283,13 @@ export class GlobalErrorHandler {
 
 			// Store error for analysis (in production, this might go to a database)
 			this.storeErrorForAnalysis(errorReport);
-
 		} catch (reportingError) {
 			this.getLogger().error("Failed to report error", {
 				originalError: errorReport.error.message,
-				reportingError: reportingError instanceof Error ? reportingError.message : String(reportingError),
+				reportingError:
+					reportingError instanceof Error
+						? reportingError.message
+						: String(reportingError),
 			});
 		}
 	}
@@ -357,7 +379,7 @@ export class GlobalErrorHandler {
 	 */
 	private initiateGracefulShutdown(): void {
 		this.getLogger().info("Initiating graceful shutdown due to critical error");
-		
+
 		// Give some time for logging to complete
 		setTimeout(() => {
 			process.exit(1);
@@ -408,16 +430,15 @@ export function getGlobalErrorHandler(): GlobalErrorHandler {
  */
 export function initializeGlobalErrorHandling(): void {
 	const logger = createContextLogger("error-handling-init");
-	
+
 	try {
 		logger.info("Initializing global error handling...");
-		
+
 		const handler = getGlobalErrorHandler();
 		handler.initialize();
-		
+
 		logger.info("Global error handling initialized successfully");
 		console.log("🛡️ Global error handling initialized successfully");
-		
 	} catch (error) {
 		logger.error("Failed to initialize global error handling", { error });
 		console.error("❌ Failed to initialize global error handling:", error);

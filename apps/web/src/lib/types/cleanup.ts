@@ -233,7 +233,10 @@ export const TypeConverters = {
 	/**
 	 * Safely convert unknown to object
 	 */
-	toObject: (value: unknown, fallback: Record<string, unknown> = {}): Record<string, unknown> => {
+	toObject: (
+		value: unknown,
+		fallback: Record<string, unknown> = {},
+	): Record<string, unknown> => {
 		if (TypeGuards.isObject(value)) return value;
 		return fallback;
 	},
@@ -252,12 +255,15 @@ export const TypeConverters = {
  * Disabled implementation tracker
  */
 export class DisabledImplementationTracker {
-	private disabledFeatures = new Map<string, {
-		reason: string;
-		disabledAt: Date;
-		plannedReenabling?: Date;
-		issueUrl?: string;
-	}>();
+	private disabledFeatures = new Map<
+		string,
+		{
+			reason: string;
+			disabledAt: Date;
+			plannedReenabling?: Date;
+			issueUrl?: string;
+		}
+	>();
 
 	/**
 	 * Register a disabled implementation
@@ -268,7 +274,7 @@ export class DisabledImplementationTracker {
 		options?: {
 			plannedReenabling?: Date;
 			issueUrl?: string;
-		}
+		},
 	): void {
 		this.disabledFeatures.set(featureName, {
 			reason,
@@ -345,20 +351,20 @@ export function temporarilyDisabled(
 		plannedReenabling?: Date;
 		issueUrl?: string;
 		fallbackValue?: unknown;
-	}
+	},
 ) {
-	return function (
+	return (
 		target: unknown,
 		propertyKey: string,
-		descriptor: PropertyDescriptor
-	) {
-		const originalMethod = descriptor.value;
-		const featureName = `${target?.constructor?.name || 'Unknown'}.${propertyKey}`;
+		descriptor: PropertyDescriptor,
+	) => {
+		const _originalMethod = descriptor.value;
+		const featureName = `${target?.constructor?.name || "Unknown"}.${propertyKey}`;
 
 		// Register as disabled
 		disabledTracker.registerDisabled(featureName, reason, options);
 
-		descriptor.value = function (...args: unknown[]) {
+		descriptor.value = (...args: unknown[]) => {
 			logger.warn("Attempting to call disabled method", {
 				method: featureName,
 				reason,
@@ -370,7 +376,7 @@ export function temporarilyDisabled(
 			}
 
 			throw new Error(
-				`Method ${featureName} is temporarily disabled: ${reason}`
+				`Method ${featureName} is temporarily disabled: ${reason}`,
 			);
 		};
 
@@ -384,13 +390,13 @@ export function temporarilyDisabled(
 export function safeGet<T>(
 	obj: unknown,
 	path: string,
-	fallback?: T
+	fallback?: T,
 ): T | undefined {
 	if (!TypeGuards.isObject(obj)) {
 		return fallback;
 	}
 
-	const keys = path.split('.');
+	const keys = path.split(".");
 	let current: unknown = obj;
 
 	for (const key of keys) {
@@ -409,7 +415,7 @@ export function safeGet<T>(
 export function assertType<T>(
 	value: unknown,
 	validator: (value: unknown) => value is T,
-	errorMessage: string
+	errorMessage: string,
 ): T {
 	if (!validator(value)) {
 		throw new TypeError(errorMessage);
@@ -423,7 +429,7 @@ export function assertType<T>(
 export function createTypeSafeWrapper<T>(
 	data: unknown,
 	validator: (data: unknown) => data is T,
-	fallback: T
+	fallback: T,
 ): T {
 	if (validator(data)) {
 		return data;

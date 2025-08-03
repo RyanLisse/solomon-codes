@@ -1,9 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type Mock,
+	vi,
+} from "vitest";
 import {
 	GracefulShutdownService,
 	getGracefulShutdownService,
-	registerShutdownHandler,
 	initiateGracefulShutdown,
+	registerShutdownHandler,
 	resetGracefulShutdownService,
 	type ShutdownHandler,
 } from "./graceful-shutdown";
@@ -13,9 +21,9 @@ vi.mock("../logging/factory");
 vi.mock("../telemetry");
 vi.mock("../database/connection");
 
+import { closeDatabaseConnections } from "../database/connection";
 import { createContextLogger } from "../logging/factory";
 import { shutdownTelemetry } from "../telemetry";
-import { closeDatabaseConnections } from "../database/connection";
 
 describe("GracefulShutdownService", () => {
 	const mockLogger = {
@@ -47,7 +55,7 @@ describe("GracefulShutdownService", () => {
 
 	afterEach(() => {
 		vi.restoreAllMocks();
-		
+
 		// Restore original process methods
 		process.exit = originalExit;
 		console.log = originalConsoleLog;
@@ -64,10 +72,19 @@ describe("GracefulShutdownService", () => {
 			const processOnSpy = vi.spyOn(process, "on");
 			new GracefulShutdownService();
 
-			expect(processOnSpy).toHaveBeenCalledWith("SIGTERM", expect.any(Function));
+			expect(processOnSpy).toHaveBeenCalledWith(
+				"SIGTERM",
+				expect.any(Function),
+			);
 			expect(processOnSpy).toHaveBeenCalledWith("SIGINT", expect.any(Function));
-			expect(processOnSpy).toHaveBeenCalledWith("uncaughtException", expect.any(Function));
-			expect(processOnSpy).toHaveBeenCalledWith("unhandledRejection", expect.any(Function));
+			expect(processOnSpy).toHaveBeenCalledWith(
+				"uncaughtException",
+				expect.any(Function),
+			);
+			expect(processOnSpy).toHaveBeenCalledWith(
+				"unhandledRejection",
+				expect.any(Function),
+			);
 		});
 	});
 
@@ -88,7 +105,7 @@ describe("GracefulShutdownService", () => {
 					name: "test-handler",
 					priority: 5,
 					totalHandlers: expect.any(Number),
-				})
+				}),
 			);
 		});
 
@@ -118,7 +135,7 @@ describe("GracefulShutdownService", () => {
 
 		it("should not register handler during shutdown", () => {
 			const service = new GracefulShutdownService();
-			
+
 			// Start shutdown
 			service.shutdown("test");
 
@@ -134,7 +151,7 @@ describe("GracefulShutdownService", () => {
 				"Cannot register handler during shutdown",
 				expect.objectContaining({
 					handlerName: "late-handler",
-				})
+				}),
 			);
 		});
 	});
@@ -156,13 +173,13 @@ describe("GracefulShutdownService", () => {
 				expect.objectContaining({
 					name: "test-handler",
 					remainingHandlers: expect.any(Number),
-				})
+				}),
 			);
 		});
 
 		it("should handle unregistering non-existent handler", () => {
 			const service = new GracefulShutdownService();
-			
+
 			// Should not throw
 			service.unregisterHandler("non-existent");
 		});
@@ -172,7 +189,7 @@ describe("GracefulShutdownService", () => {
 		it("should execute shutdown sequence successfully", async () => {
 			const service = new GracefulShutdownService();
 			const handlerMock = vi.fn().mockResolvedValue(undefined);
-			
+
 			const handler: ShutdownHandler = {
 				name: "test-handler",
 				priority: 5,
@@ -191,23 +208,27 @@ describe("GracefulShutdownService", () => {
 					signal: "SIGTERM",
 					timeout: 5000,
 					handlerCount: expect.any(Number),
-				})
+				}),
 			);
-			expect(console.log).toHaveBeenCalledWith("🛑 Initiating graceful shutdown (signal: SIGTERM)");
+			expect(console.log).toHaveBeenCalledWith(
+				"🛑 Initiating graceful shutdown (signal: SIGTERM)",
+			);
 			expect(process.exit).toHaveBeenCalledWith(0);
 		});
 
 		it("should handle already in progress shutdown", async () => {
 			const service = new GracefulShutdownService();
-			
+
 			// Start first shutdown
 			const shutdownPromise1 = service.shutdown("SIGTERM");
-			
+
 			// Try to start second shutdown
 			const shutdownPromise2 = service.shutdown("SIGINT");
 
 			expect(shutdownPromise1).toBe(shutdownPromise2);
-			expect(mockLogger.info).toHaveBeenCalledWith("Shutdown already in progress, waiting for completion");
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				"Shutdown already in progress, waiting for completion",
+			);
 		});
 
 		it("should handle handler execution errors", async () => {
@@ -233,9 +254,9 @@ describe("GracefulShutdownService", () => {
 				expect.objectContaining({
 					name: "error-handler",
 					error: "Handler failed",
-				})
+				}),
 			);
-			
+
 			// Should still continue with other handlers
 			expect(successHandler.handler).toHaveBeenCalled();
 			expect(process.exit).toHaveBeenCalledWith(0);
@@ -246,7 +267,11 @@ describe("GracefulShutdownService", () => {
 			const slowHandler: ShutdownHandler = {
 				name: "slow-handler",
 				priority: 5,
-				handler: vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 2000))),
+				handler: vi
+					.fn()
+					.mockImplementation(
+						() => new Promise((resolve) => setTimeout(resolve, 2000)),
+					),
 				timeout: 100, // Very short timeout
 			};
 
@@ -259,7 +284,7 @@ describe("GracefulShutdownService", () => {
 				expect.objectContaining({
 					name: "slow-handler",
 					error: "Handler timeout",
-				})
+				}),
 			);
 		});
 
@@ -268,7 +293,11 @@ describe("GracefulShutdownService", () => {
 			const slowHandler: ShutdownHandler = {
 				name: "very-slow-handler",
 				priority: 5,
-				handler: vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 2000))),
+				handler: vi
+					.fn()
+					.mockImplementation(
+						() => new Promise((resolve) => setTimeout(resolve, 2000)),
+					),
 			};
 
 			service.registerHandler(slowHandler);
@@ -280,7 +309,7 @@ describe("GracefulShutdownService", () => {
 				"Shutdown timeout reached, forcing exit",
 				expect.objectContaining({
 					timeout: 50,
-				})
+				}),
 			);
 			expect(process.exit).toHaveBeenCalledWith(1);
 		});
@@ -291,14 +320,16 @@ describe("GracefulShutdownService", () => {
 			const service = new GracefulShutdownService();
 
 			expect(() => service.forceShutdown(2)).toThrow();
-			
+
 			expect(mockLogger.error).toHaveBeenCalledWith(
 				"Forcing immediate shutdown",
 				expect.objectContaining({
 					exitCode: 2,
-				})
+				}),
 			);
-			expect(console.error).toHaveBeenCalledWith("💥 Forcing immediate shutdown due to timeout or critical error");
+			expect(console.error).toHaveBeenCalledWith(
+				"💥 Forcing immediate shutdown due to timeout or critical error",
+			);
 		});
 	});
 
@@ -325,7 +356,9 @@ describe("GracefulShutdownService", () => {
 			expect(metrics.handlersExecuted).toHaveLength(expect.any(Number));
 
 			// Check handler execution metrics
-			const handlerMetric = metrics.handlersExecuted.find(h => h.name === "test-handler");
+			const handlerMetric = metrics.handlersExecuted.find(
+				(h) => h.name === "test-handler",
+			);
 			expect(handlerMetric).toBeDefined();
 			expect(handlerMetric?.success).toBe(true);
 			expect(handlerMetric?.duration).toBeGreaterThan(0);
@@ -344,7 +377,9 @@ describe("GracefulShutdownService", () => {
 			await service.shutdown("SIGTERM");
 
 			const metrics = service.getMetrics();
-			const handlerMetric = metrics.handlersExecuted.find(h => h.name === "failed-handler");
+			const handlerMetric = metrics.handlersExecuted.find(
+				(h) => h.name === "failed-handler",
+			);
 
 			expect(handlerMetric).toBeDefined();
 			expect(handlerMetric?.success).toBe(false);
@@ -377,9 +412,11 @@ describe("GracefulShutdownService", () => {
 
 		it("should handle default handler failures gracefully", async () => {
 			const service = new GracefulShutdownService();
-			
+
 			// Make telemetry shutdown fail
-			(shutdownTelemetry as Mock).mockRejectedValue(new Error("Telemetry shutdown failed"));
+			(shutdownTelemetry as Mock).mockRejectedValue(
+				new Error("Telemetry shutdown failed"),
+			);
 
 			await service.shutdown("SIGTERM");
 
@@ -388,7 +425,7 @@ describe("GracefulShutdownService", () => {
 				expect.objectContaining({
 					name: "shutdown-telemetry",
 					error: "Telemetry shutdown failed",
-				})
+				}),
 			);
 
 			// Should still proceed to exit
@@ -418,7 +455,7 @@ describe("GracefulShutdownService", () => {
 				"Shutdown handler registered",
 				expect.objectContaining({
 					name: "global-handler",
-				})
+				}),
 			);
 		});
 
@@ -430,7 +467,7 @@ describe("GracefulShutdownService", () => {
 				expect.objectContaining({
 					signal: "SIGUSR1",
 					timeout: 10000,
-				})
+				}),
 			);
 		});
 
@@ -449,11 +486,13 @@ describe("GracefulShutdownService", () => {
 			new GracefulShutdownService();
 
 			// Get the SIGTERM handler
-			const sigtermCall = processOnSpy.mock.calls.find(call => call[0] === "SIGTERM");
+			const sigtermCall = processOnSpy.mock.calls.find(
+				(call) => call[0] === "SIGTERM",
+			);
 			expect(sigtermCall).toBeDefined();
 
-			const sigtermHandler = sigtermCall?.[1] as Function;
-			
+			const sigtermHandler = sigtermCall?.[1] as (...args: unknown[]) => void;
+
 			// Trigger the handler
 			sigtermHandler();
 
@@ -465,11 +504,13 @@ describe("GracefulShutdownService", () => {
 			new GracefulShutdownService();
 
 			// Get the SIGINT handler
-			const sigintCall = processOnSpy.mock.calls.find(call => call[0] === "SIGINT");
+			const sigintCall = processOnSpy.mock.calls.find(
+				(call) => call[0] === "SIGINT",
+			);
 			expect(sigintCall).toBeDefined();
 
-			const sigintHandler = sigintCall?.[1] as Function;
-			
+			const sigintHandler = sigintCall?.[1] as (...args: unknown[]) => void;
+
 			// Trigger the handler
 			sigintHandler();
 
@@ -481,12 +522,16 @@ describe("GracefulShutdownService", () => {
 			new GracefulShutdownService();
 
 			// Get the uncaughtException handler
-			const exceptionCall = processOnSpy.mock.calls.find(call => call[0] === "uncaughtException");
+			const exceptionCall = processOnSpy.mock.calls.find(
+				(call) => call[0] === "uncaughtException",
+			);
 			expect(exceptionCall).toBeDefined();
 
-			const exceptionHandler = exceptionCall?.[1] as Function;
+			const exceptionHandler = exceptionCall?.[1] as (
+				...args: unknown[]
+			) => void;
 			const testError = new Error("Test uncaught exception");
-			
+
 			// Trigger the handler
 			expect(() => exceptionHandler(testError)).toThrow();
 
@@ -495,9 +540,12 @@ describe("GracefulShutdownService", () => {
 				expect.objectContaining({
 					error: "Test uncaught exception",
 					stack: expect.any(String),
-				})
+				}),
 			);
-			expect(console.error).toHaveBeenCalledWith("💥 Uncaught exception:", testError);
+			expect(console.error).toHaveBeenCalledWith(
+				"💥 Uncaught exception:",
+				testError,
+			);
 		});
 
 		it("should handle unhandled promise rejections", () => {
@@ -505,12 +553,16 @@ describe("GracefulShutdownService", () => {
 			new GracefulShutdownService();
 
 			// Get the unhandledRejection handler
-			const rejectionCall = processOnSpy.mock.calls.find(call => call[0] === "unhandledRejection");
+			const rejectionCall = processOnSpy.mock.calls.find(
+				(call) => call[0] === "unhandledRejection",
+			);
 			expect(rejectionCall).toBeDefined();
 
-			const rejectionHandler = rejectionCall?.[1] as Function;
+			const rejectionHandler = rejectionCall?.[1] as (
+				...args: unknown[]
+			) => void;
 			const testReason = new Error("Test unhandled rejection");
-			
+
 			// Trigger the handler
 			expect(() => rejectionHandler(testReason, Promise.resolve())).toThrow();
 
@@ -519,9 +571,12 @@ describe("GracefulShutdownService", () => {
 				expect.objectContaining({
 					reason: "Test unhandled rejection",
 					stack: expect.any(String),
-				})
+				}),
 			);
-			expect(console.error).toHaveBeenCalledWith("💥 Unhandled promise rejection:", testReason);
+			expect(console.error).toHaveBeenCalledWith(
+				"💥 Unhandled promise rejection:",
+				testReason,
+			);
 		});
 	});
 });

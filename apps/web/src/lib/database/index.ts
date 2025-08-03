@@ -1,41 +1,37 @@
 // Database schema exports
-export * from "./schema";
-
-// Database types exports
-export * from "./types";
 
 // Database connection exports
 export * from "./connection";
-
 // Re-export commonly used functions for convenience
 export {
-	getDatabase,
-	createDatabaseClient,
 	checkDatabaseHealth,
-	initializeDatabase,
+	createDatabaseClient,
+	getDatabase,
 	getDatabaseConfig,
+	initializeDatabase,
 } from "./connection";
-
+export * from "./schema";
 export {
-	tasks,
-	environments,
 	agentExecutions,
-	observabilityEvents,
 	agentMemory,
-	workflows,
-	workflowExecutions,
+	environments,
 	executionSnapshots,
+	observabilityEvents,
+	tasks,
+	workflowExecutions,
+	workflows,
 } from "./schema";
-
 export type {
-	Task,
-	NewTask,
-	TaskUpdate,
-	Environment,
-	NewEnvironment,
-	EnvironmentUpdate,
 	AgentExecution,
-	NewAgentExecution,
 	DatabaseConfig,
 	DatabaseHealth,
+	Environment,
+	EnvironmentUpdate,
+	NewAgentExecution,
+	NewEnvironment,
+	NewTask,
+	Task,
+	TaskUpdate,
 } from "./types";
+// Database types exports
+export * from "./types";

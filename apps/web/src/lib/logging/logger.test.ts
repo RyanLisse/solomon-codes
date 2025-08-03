@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import * as configService from "../config/service";
 import { getEnvironment, getLogLevel, getServiceVersion } from "./config";
 import {
 	createLogger,
@@ -61,16 +62,17 @@ describe("Winston Logger Configuration", () => {
 
 		it("should fall back to unknown when ConfigurationService throws", () => {
 			// Mock the ConfigurationService to throw an error
-			const originalGetConfigurationService = require("../config/service").getConfigurationService;
-			require("../config/service").getConfigurationService = () => {
-				throw new Error("Configuration service error");
-			};
+			const spy = vi
+				.spyOn(configService, "getConfigurationService")
+				.mockImplementation(() => {
+					throw new Error("Configuration service error");
+				});
 
 			const version = getServiceVersion();
 			expect(version).toBe("unknown");
 
 			// Restore the original function
-			require("../config/service").getConfigurationService = originalGetConfigurationService;
+			spy.mockRestore();
 		});
 	});
 

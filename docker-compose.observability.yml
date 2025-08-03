@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # Jaeger All-in-One for local development
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    container_name: vibeX-jaeger
+    ports:
+      # Jaeger UI
+      - "16686:16686"
+      # OTLP gRPC receiver
+      - "4317:4317"
+      # OTLP HTTP receiver
+      - "4318:4318"
+      # Jaeger Thrift HTTP
+      - "14268:14268"
+      # Jaeger gRPC
+      - "14250:14250"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - LOG_LEVEL=debug
+    networks:
+      - observability
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:14269/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # OpenTelemetry Collector (optional, for advanced routing)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    container_name: vibeX-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./observability/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    ports:
+      # OTLP gRPC receiver (alternative endpoint)
+      - "4319:4317"
+      # OTLP HTTP receiver (alternative endpoint)
+      - "4320:4318"
+      # Health check
+      - "13133:13133"
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    networks:
+      - observability
+    restart: unless-stopped
+    profiles:
+      - advanced
+
+networks:
+  observability:
+    driver: bridge
+    name: vibeX-observability

@@ -2,8 +2,8 @@
  * Performance monitoring and alerting service
  */
 
-import { createContextLogger } from "../logging/factory";
 import { getConfigurationService } from "../config/service";
+import { createContextLogger } from "../logging/factory";
 import { getTelemetryService } from "../telemetry";
 
 export interface PerformanceMetric {
@@ -133,16 +133,22 @@ export class PerformanceMonitoringService {
 				baselineWindow: this.config.baselineWindow,
 				alertingEnabled: this.config.alertingEnabled,
 			});
-
 		} catch (error) {
-			this.getLogger().error("Failed to initialize performance monitoring", { error });
+			this.getLogger().error("Failed to initialize performance monitoring", {
+				error,
+			});
 		}
 	}
 
 	/**
 	 * Record a performance metric
 	 */
-	recordMetric(name: string, value: number, unit: PerformanceMetric["unit"], tags: Record<string, string> = {}): void {
+	recordMetric(
+		name: string,
+		value: number,
+		unit: PerformanceMetric["unit"],
+		tags: Record<string, string> = {},
+	): void {
 		if (!this.config.enabled) return;
 
 		const metric: PerformanceMetric = {
@@ -178,7 +184,11 @@ export class PerformanceMonitoringService {
 	/**
 	 * Record response time metric
 	 */
-	recordResponseTime(endpoint: string, duration: number, statusCode: number): void {
+	recordResponseTime(
+		endpoint: string,
+		duration: number,
+		statusCode: number,
+	): void {
 		this.recordMetric("response_time", duration, "ms", {
 			endpoint,
 			status_code: statusCode.toString(),
@@ -200,7 +210,7 @@ export class PerformanceMonitoringService {
 	 */
 	recordMemoryUsage(): void {
 		const memUsage = process.memoryUsage();
-		
+
 		this.recordMetric("memory_heap_used", memUsage.heapUsed, "bytes");
 		this.recordMetric("memory_heap_total", memUsage.heapTotal, "bytes");
 		this.recordMetric("memory_rss", memUsage.rss, "bytes");
@@ -213,10 +223,10 @@ export class PerformanceMonitoringService {
 	recordCPUUsage(): void {
 		const cpuUsage = process.cpuUsage();
 		const uptimeMs = process.uptime() * 1000;
-		
+
 		// Calculate CPU percentage
-		const userCpuPercent = (cpuUsage.user / 1000) / uptimeMs * 100;
-		const systemCpuPercent = (cpuUsage.system / 1000) / uptimeMs * 100;
+		const userCpuPercent = (cpuUsage.user / 1000 / uptimeMs) * 100;
+		const systemCpuPercent = (cpuUsage.system / 1000 / uptimeMs) * 100;
 		const totalCpuPercent = userCpuPercent + systemCpuPercent;
 
 		this.recordMetric("cpu_usage_user", userCpuPercent, "percentage");
@@ -233,7 +243,8 @@ export class PerformanceMonitoringService {
 		const uptime = process.uptime();
 
 		// Calculate CPU percentage
-		const totalCpuPercent = ((cpuUsage.user + cpuUsage.system) / 1000) / (uptime * 1000) * 100;
+		const totalCpuPercent =
+			((cpuUsage.user + cpuUsage.system) / 1000 / (uptime * 1000)) * 100;
 
 		return {
 			cpu: {
@@ -263,10 +274,10 @@ export class PerformanceMonitoringService {
 	/**
 	 * Get performance metrics for a time range
 	 */
-	getMetrics(name?: string, hours: number = 1): PerformanceMetric[] {
+	getMetrics(name?: string, hours = 1): PerformanceMetric[] {
 		const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
-		
-		return this.metrics.filter(metric => {
+
+		return this.metrics.filter((metric) => {
 			const metricTime = new Date(metric.timestamp);
 			return metricTime > cutoff && (!name || metric.name === name);
 		});
@@ -285,13 +296,13 @@ export class PerformanceMonitoringService {
 	getAlerts(): PerformanceAlert[] {
 		// Return only recent alerts (last 24 hours)
 		const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-		return this.alerts.filter(alert => new Date(alert.timestamp) > cutoff);
+		return this.alerts.filter((alert) => new Date(alert.timestamp) > cutoff);
 	}
 
 	/**
 	 * Get performance summary
 	 */
-	getPerformanceSummary(hours: number = 1) {
+	getPerformanceSummary(hours = 1) {
 		const metrics = this.getMetrics(undefined, hours);
 		const alerts = this.getAlerts();
 		const resourceUtilization = this.getResourceUtilization();
@@ -330,10 +341,9 @@ export class PerformanceMonitoringService {
 			try {
 				this.recordMemoryUsage();
 				this.recordCPUUsage();
-				
+
 				// Record uptime
 				this.recordMetric("uptime", process.uptime(), "count");
-				
 			} catch (error) {
 				this.getLogger().error("Error during system monitoring", { error });
 			}
@@ -344,14 +354,16 @@ export class PerformanceMonitoringService {
 	 * Update baseline for a metric
 	 */
 	private updateBaseline(metric: PerformanceMetric): void {
-		const windowStart = new Date(Date.now() - this.config.baselineWindow * 60 * 60 * 1000);
-		const recentMetrics = this.metrics.filter(m => 
-			m.name === metric.name && new Date(m.timestamp) > windowStart
+		const windowStart = new Date(
+			Date.now() - this.config.baselineWindow * 60 * 60 * 1000,
+		);
+		const recentMetrics = this.metrics.filter(
+			(m) => m.name === metric.name && new Date(m.timestamp) > windowStart,
 		);
 
 		if (recentMetrics.length < 10) return; // Need enough data points
 
-		const values = recentMetrics.map(m => m.value).sort((a, b) => a - b);
+		const values = recentMetrics.map((m) => m.value).sort((a, b) => a - b);
 		const count = values.length;
 
 		const baseline: PerformanceBaseline = {
@@ -382,9 +394,15 @@ export class PerformanceMonitoringService {
 		let message = "";
 
 		// Response time alerts
-		if (metric.name === "response_time" && metric.value > this.config.thresholds.responseTime) {
+		if (
+			metric.name === "response_time" &&
+			metric.value > this.config.thresholds.responseTime
+		) {
 			alertTriggered = true;
-			severity = metric.value > this.config.thresholds.responseTime * 2 ? "critical" : "warning";
+			severity =
+				metric.value > this.config.thresholds.responseTime * 2
+					? "critical"
+					: "warning";
 			message = `Response time ${metric.value}ms exceeds threshold ${this.config.thresholds.responseTime}ms`;
 		}
 
@@ -394,15 +412,24 @@ export class PerformanceMonitoringService {
 			const percentage = (memUsage.heapUsed / memUsage.heapTotal) * 100;
 			if (percentage > this.config.thresholds.memoryUsage) {
 				alertTriggered = true;
-				severity = percentage > this.config.thresholds.memoryUsage * 1.2 ? "critical" : "warning";
+				severity =
+					percentage > this.config.thresholds.memoryUsage * 1.2
+						? "critical"
+						: "warning";
 				message = `Memory usage ${percentage.toFixed(1)}% exceeds threshold ${this.config.thresholds.memoryUsage}%`;
 			}
 		}
 
 		// CPU usage alerts
-		if (metric.name === "cpu_usage_total" && metric.value > this.config.thresholds.cpuUsage) {
+		if (
+			metric.name === "cpu_usage_total" &&
+			metric.value > this.config.thresholds.cpuUsage
+		) {
 			alertTriggered = true;
-			severity = metric.value > this.config.thresholds.cpuUsage * 1.2 ? "critical" : "warning";
+			severity =
+				metric.value > this.config.thresholds.cpuUsage * 1.2
+					? "critical"
+					: "warning";
 			message = `CPU usage ${metric.value.toFixed(1)}% exceeds threshold ${this.config.thresholds.cpuUsage}%`;
 		}
 
@@ -418,7 +445,7 @@ export class PerformanceMonitoringService {
 			};
 
 			this.alerts.push(alert);
-			
+
 			this.getLogger().warn("Performance alert triggered", {
 				alertId: alert.id,
 				metric: alert.metric,
@@ -451,11 +478,15 @@ export class PerformanceMonitoringService {
 	 * Clean old metrics based on retention policy
 	 */
 	private cleanOldMetrics(): void {
-		const cutoff = new Date(Date.now() - this.config.metricsRetention * 24 * 60 * 60 * 1000);
+		const cutoff = new Date(
+			Date.now() - this.config.metricsRetention * 24 * 60 * 60 * 1000,
+		);
 		const initialCount = this.metrics.length;
-		
-		this.metrics = this.metrics.filter(metric => new Date(metric.timestamp) > cutoff);
-		
+
+		this.metrics = this.metrics.filter(
+			(metric) => new Date(metric.timestamp) > cutoff,
+		);
+
 		const removedCount = initialCount - this.metrics.length;
 		if (removedCount > 0) {
 			this.getLogger().debug("Cleaned old metrics", { removedCount });
@@ -502,10 +533,14 @@ export class PerformanceMonitoringService {
 	 */
 	private getThresholdForMetric(metricName: string): number {
 		switch (metricName) {
-			case "response_time": return this.config.thresholds.responseTime;
-			case "memory_heap_used": return this.config.thresholds.memoryUsage;
-			case "cpu_usage_total": return this.config.thresholds.cpuUsage;
-			default: return 0;
+			case "response_time":
+				return this.config.thresholds.responseTime;
+			case "memory_heap_used":
+				return this.config.thresholds.memoryUsage;
+			case "cpu_usage_total":
+				return this.config.thresholds.cpuUsage;
+			default:
+				return 0;
 		}
 	}
 
@@ -551,21 +586,22 @@ export function getPerformanceMonitoringService(): PerformanceMonitoringService 
 /**
  * Initialize performance monitoring
  */
-export function initializePerformanceMonitoring(config?: Partial<PerformanceConfig>): void {
+export function initializePerformanceMonitoring(
+	config?: Partial<PerformanceConfig>,
+): void {
 	const logger = createContextLogger("performance-monitoring-init");
-	
+
 	try {
 		logger.info("Initializing performance monitoring...");
-		
+
 		const service = getPerformanceMonitoringService();
 		if (config) {
 			service.updateConfig(config);
 		}
 		service.initialize();
-		
+
 		logger.info("Performance monitoring initialized successfully");
 		console.log("📈 Performance monitoring initialized successfully");
-		
 	} catch (error) {
 		logger.error("Failed to initialize performance monitoring", { error });
 		console.error("❌ Failed to initialize performance monitoring:", error);

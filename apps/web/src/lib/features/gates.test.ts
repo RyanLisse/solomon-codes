@@ -1,11 +1,11 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { vi as _vi, afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-	FeatureGateService,
-	getFeatureGateService,
-	resetFeatureGateService,
-	isFeatureEnabled,
 	Environment,
+	FeatureGateService,
 	Features,
+	getFeatureGateService,
+	isFeatureEnabled,
+	resetFeatureGateService,
 } from "./gates";
 
 describe("FeatureGateService", () => {
@@ -24,7 +24,7 @@ describe("FeatureGateService", () => {
 	describe("FeatureGateService", () => {
 		it("should initialize with development gates", () => {
 			process.env.NODE_ENV = "development";
-			
+
 			const service = new FeatureGateService();
 			const gates = service.getAllGates();
 
@@ -40,7 +40,7 @@ describe("FeatureGateService", () => {
 			process.env.OPENAI_API_KEY = "sk-test-key";
 			process.env.BROWSERBASE_API_KEY = "bb-test-key";
 			process.env.BROWSERBASE_PROJECT_ID = "test-project";
-			
+
 			const service = new FeatureGateService();
 			const gates = service.getAllGates();
 
@@ -136,7 +136,7 @@ describe("FeatureGateService", () => {
 		it("should configure staging environment correctly", () => {
 			process.env.NODE_ENV = "staging";
 			process.env.OPENAI_API_KEY = "sk-test-key";
-			
+
 			const service = new FeatureGateService();
 			const gates = service.getAllGates();
 
@@ -150,7 +150,7 @@ describe("FeatureGateService", () => {
 		it("should handle missing API configuration", () => {
 			delete process.env.BROWSERBASE_API_KEY;
 			delete process.env.BROWSERBASE_PROJECT_ID;
-			
+
 			const service = new FeatureGateService();
 			const gates = service.getAllGates();
 
@@ -160,7 +160,7 @@ describe("FeatureGateService", () => {
 		it("should enable features based on API availability", () => {
 			process.env.BROWSERBASE_API_KEY = "bb-test-key";
 			process.env.BROWSERBASE_PROJECT_ID = "test-project";
-			
+
 			const service = new FeatureGateService();
 			const gates = service.getAllGates();
 

@@ -1,9 +1,10 @@
 /**
  * Telemetry service for OpenTelemetry configuration and initialization
+ * Coordinates with Next.js OpenTelemetry setup via @vercel/otel
  */
 
 import { getConfigurationService } from "../config/service";
-import { createContextLogger } from "../logging/factory";
+import { createServerLogger } from "../logging/server";
 
 export interface TelemetryConfig {
 	isEnabled: boolean;
@@ -33,7 +34,7 @@ class TelemetryServiceImpl implements TelemetryService {
 
 	private getLogger() {
 		if (!this.logger) {
-			this.logger = createContextLogger("telemetry-service");
+			this.logger = createServerLogger({ service: "telemetry-service" });
 		}
 		return this.logger;
 	}
@@ -66,7 +67,7 @@ class TelemetryServiceImpl implements TelemetryService {
 
 		try {
 			const config = this.getConfig();
-			
+
 			if (!config.isEnabled) {
 				this.getLogger().info("Telemetry is disabled, skipping initialization");
 				this.initialized = true;
@@ -89,15 +90,18 @@ class TelemetryServiceImpl implements TelemetryService {
 			// Test endpoint connectivity (optional)
 			const isConnectable = await this.testEndpointConnectivity(config);
 			if (!isConnectable) {
-				this.getLogger().warn("Telemetry endpoint is not reachable, continuing with degraded functionality");
+				this.getLogger().warn(
+					"Telemetry endpoint is not reachable, continuing with degraded functionality",
+				);
 			}
 
 			this.initialized = true;
 			this.getLogger().info("Telemetry service initialized successfully");
 			return true;
-
 		} catch (error) {
-			this.getLogger().error("Failed to initialize telemetry service", { error });
+			this.getLogger().error("Failed to initialize telemetry service", {
+				error,
+			});
 			return false;
 		}
 	}
@@ -112,14 +116,14 @@ class TelemetryServiceImpl implements TelemetryService {
 
 		try {
 			this.getLogger().info("Shutting down telemetry service");
-			
+
 			// In a real implementation, you would flush any pending telemetry data
 			// and clean up resources here
-			
+
 			this.initialized = false;
 			this.config = null;
 			this.logger = null;
-			
+
 			console.log("Telemetry service shutdown complete");
 		} catch (error) {
 			console.error("Error during telemetry service shutdown", error);
@@ -152,7 +156,7 @@ class TelemetryServiceImpl implements TelemetryService {
 			};
 		} catch (error) {
 			console.error("Failed to load telemetry configuration", error);
-			
+
 			// Return a safe fallback configuration
 			return {
 				isEnabled: false,
@@ -199,7 +203,9 @@ class TelemetryServiceImpl implements TelemetryService {
 		}
 
 		if (errors.length > 0) {
-			this.getLogger().error("Telemetry configuration validation failed", { errors });
+			this.getLogger().error("Telemetry configuration validation failed", {
+				errors,
+			});
 			return false;
 		}
 
@@ -209,7 +215,9 @@ class TelemetryServiceImpl implements TelemetryService {
 	/**
 	 * Test connectivity to the telemetry endpoint
 	 */
-	private async testEndpointConnectivity(config: TelemetryConfig): Promise<boolean> {
+	private async testEndpointConnectivity(
+		config: TelemetryConfig,
+	): Promise<boolean> {
 		try {
 			// Extract the base URL for health checking
 			const url = new URL(config.endpoint);
@@ -229,9 +237,8 @@ class TelemetryServiceImpl implements TelemetryService {
 
 			clearTimeout(timeoutId);
 			return response.ok;
-
 		} catch (error) {
-			this.getLogger().debug("Telemetry endpoint connectivity test failed", { 
+			this.getLogger().debug("Telemetry endpoint connectivity test failed", {
 				endpoint: config.endpoint,
 				error: error instanceof Error ? error.message : String(error),
 			});
@@ -258,24 +265,29 @@ export function getTelemetryService(): TelemetryService {
 /**
  * Initialize the telemetry service
  * Should be called at application startup
+ * Coordinates with Next.js OpenTelemetry setup
  */
 export async function initializeTelemetry(): Promise<boolean> {
-	const logger = createContextLogger("telemetry-init");
-	
+	const logger = createServerLogger({ service: "telemetry-init" });
+
 	try {
 		logger.info("Initializing telemetry service...");
-		
+
 		const service = getTelemetryService();
 		const success = await service.initialize();
-		
+
 		if (success) {
 			logger.info("Telemetry service initialized successfully");
 			console.log("📊 Telemetry service initialized successfully");
 		} else {
-			logger.warn("Telemetry service initialization failed, continuing without telemetry");
-			console.warn("⚠️ Telemetry service initialization failed, continuing without telemetry");
+			logger.warn(
+				"Telemetry service initialization failed, continuing without telemetry",
+			);
+			console.warn(
+				"⚠️ Telemetry service initialization failed, continuing without telemetry",
+			);
 		}
-		
+
 		return success;
 	} catch (error) {
 		logger.error("Failed to initialize telemetry service", { error });
@@ -289,8 +301,8 @@ export async function initializeTelemetry(): Promise<boolean> {
  * Should be called during application shutdown
  */
 export async function shutdownTelemetry(): Promise<void> {
-	const logger = createContextLogger("telemetry-shutdown");
-	
+	const logger = createServerLogger({ service: "telemetry-shutdown" });
+
 	try {
 		if (_telemetryService) {
 			logger.info("Shutting down telemetry service...");

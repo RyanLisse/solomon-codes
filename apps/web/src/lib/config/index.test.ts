@@ -54,7 +54,8 @@ describe("Configuration System", () => {
 		});
 
 		it("should parse OTEL headers as JSON", () => {
-			process.env.OTEL_EXPORTER_OTLP_HEADERS = '{"Authorization":"Bearer token"}';
+			process.env.OTEL_EXPORTER_OTLP_HEADERS =
+				'{"Authorization":"Bearer token"}';
 
 			const config = validateConfig();
 
@@ -117,7 +118,9 @@ describe("Configuration System", () => {
 				expect(error).toBeInstanceOf(ConfigurationError);
 				expect(error.message).toContain("SERVER_URL must be a valid URL");
 				expect(error.details.variable).toBe("NEXT_PUBLIC_SERVER_URL");
-				expect(error.details.suggestion).toContain("Set the NEXT_PUBLIC_SERVER_URL");
+				expect(error.details.suggestion).toContain(
+					"Set the NEXT_PUBLIC_SERVER_URL",
+				);
 			}
 		});
 	});
@@ -134,11 +137,11 @@ describe("Configuration System", () => {
 		it("should reload configuration after reset", () => {
 			const config1 = getConfig();
 			resetConfig();
-			
+
 			expect(isConfigLoaded()).toBe(false);
-			
+
 			const config2 = getConfig();
-			
+
 			expect(config1).not.toBe(config2);
 			expect(isConfigLoaded()).toBe(true);
 		});

@@ -8,14 +8,14 @@ import { createApiLogger } from "@/lib/logging/factory";
  */
 export async function GET() {
 	const logger = createApiLogger("version");
-	
+
 	try {
 		logger.info("Version information requested");
-		
+
 		const configService = getConfigurationService();
 		const config = configService.getConfiguration();
 		const envInfo = configService.getEnvironmentInfo();
-		
+
 		const versionInfo = {
 			version: config.appVersion,
 			serviceName: config.serviceName,
@@ -29,17 +29,17 @@ export async function GET() {
 			platform: process.platform,
 			timestamp: new Date().toISOString(),
 		};
-		
+
 		logger.info("Version information retrieved", {
 			version: versionInfo.version,
 			environment: versionInfo.environment,
 		});
 
-		return NextResponse.json(versionInfo, { 
+		return NextResponse.json(versionInfo, {
 			status: 200,
 			headers: {
 				"Cache-Control": "public, max-age=300", // Cache for 5 minutes
-			}
+			},
 		});
 	} catch (error) {
 		logger.error("Version endpoint error", {
@@ -55,8 +55,7 @@ export async function GET() {
 				},
 				timestamp: new Date().toISOString(),
 			},
-			{ status: 500 }
+			{ status: 500 },
 		);
 	}
 }
-

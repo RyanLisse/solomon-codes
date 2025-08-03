@@ -1,0 +1,440 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '20.18.1'
+  BUN_VERSION: '1.2.19'
+
+jobs:
+  # Quality checks and linting
+  quality:
+    name: Code Quality & Linting
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+          cd apps/web && npm ci --prefer-offline --no-audit
+
+      - name: Run Biome linting
+        run: npm run check
+
+      - name: Run ESLint
+        run: |
+          cd apps/web
+          npm run lint
+
+      - name: TypeScript type checking
+        run: |
+          cd apps/web
+          npm run typecheck
+
+      - name: Cache quality results
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            apps/web/.next/cache
+            node_modules/.cache
+          key: quality-${{ runner.os }}-${{ github.sha }}
+
+  # Unit tests
+  test-unit:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality
+    
+    strategy:
+      matrix:
+        test-group: [unit, integration]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            apps/web/.next/cache
+            node_modules/.cache
+          key: quality-${{ runner.os }}-${{ github.sha }}
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+          cd apps/web && npm ci --prefer-offline --no-audit
+
+      - name: Run unit tests
+        run: |
+          cd apps/web
+          npm run test:ci
+        env:
+          CI: true
+
+      - name: Generate test coverage
+        if: matrix.test-group == 'unit'
+        run: |
+          cd apps/web
+          npm run test:coverage
+
+      - name: Upload coverage reports
+        if: matrix.test-group == 'unit'
+        uses: codecov/codecov-action@v4
+        with:
+          directory: apps/web/coverage
+          flags: unit-tests
+          name: unit-test-coverage
+          fail_ci_if_error: false
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-group }}
+          path: |
+            apps/web/coverage/
+            apps/web/test-results/
+          retention-days: 7
+
+  # End-to-end tests
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality
+    
+    strategy:
+      matrix:
+        browser: [chromium, firefox]
+        shard: [1/2, 2/2]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+          cd apps/web && npm ci --prefer-offline --no-audit
+
+      - name: Install Playwright
+        run: |
+          cd apps/web
+          npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Build application
+        run: |
+          cd apps/web
+          npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Start application
+        run: |
+          cd apps/web
+          npm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+
+      - name: Run E2E tests
+        run: |
+          cd apps/web
+          npx playwright test --project=${{ matrix.browser }} --shard=${{ matrix.shard }}
+        env:
+          CI: true
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.browser }}-${{ matrix.shard }}
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7
+
+  # Build and deployment validation
+  build:
+    name: Build & Deploy Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [quality, test-unit]
+    
+    strategy:
+      matrix:
+        deployment: [vercel, cloudflare, railway]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+          cd apps/web && npm ci --prefer-offline --no-audit
+
+      - name: Validate environment configuration
+        run: |
+          cd apps/web
+          npm run validate-env
+
+      - name: Build for production
+        run: |
+          cd apps/web
+          npm run build:production
+        env:
+          NODE_ENV: production
+          ANALYZE: false
+
+      - name: Build Storybook
+        run: |
+          cd apps/web
+          npm run build-storybook
+
+      - name: Validate deployment readiness
+        run: |
+          cd apps/web
+          npm run verify-deployment
+
+      - name: Test health endpoints
+        run: |
+          cd apps/web
+          npm start &
+          sleep 10
+          npm run health-check
+          npm run ready-check
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ matrix.deployment }}
+          path: |
+            apps/web/.next/
+            apps/web/storybook-static/
+          retention-days: 3
+
+  # Security and dependency scanning
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefer-offline --no-audit
+          cd apps/web && npm ci --prefer-offline --no-audit
+
+      - name: Run npm audit
+        run: |
+          cd apps/web
+          npm audit --audit-level=moderate
+
+      - name: Run Snyk security scan
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=medium
+
+  # Deployment to staging (develop branch)
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [test-unit, test-e2e, build, security]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment: staging
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-vercel
+          path: apps/web/
+
+      - name: Deploy to Vercel (staging)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: apps/web
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+  # Deployment to production (main branch)
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [test-unit, test-e2e, build, security]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-vercel
+          path: apps/web/
+
+      - name: Deploy to Vercel (production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+          working-directory: apps/web
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+      - name: Post-deployment validation
+        run: |
+          cd apps/web
+          npm run verify-deployment:post
+
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  # Cleanup and notifications
+  cleanup:
+    name: Cleanup & Notifications
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, deploy-production]
+    if: always()
+    
+    steps:
+      - name: Cleanup old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            
+            // Keep only the latest 5 artifacts per type
+            const artifactGroups = {};
+            artifacts.data.artifacts.forEach(artifact => {
+              const baseName = artifact.name.split('-')[0];
+              if (!artifactGroups[baseName]) artifactGroups[baseName] = [];
+              artifactGroups[baseName].push(artifact);
+            });
+            
+            for (const [group, items] of Object.entries(artifactGroups)) {
+              if (items.length > 5) {
+                const toDelete = items.slice(5);
+                for (const artifact of toDelete) {
+                  await github.rest.actions.deleteArtifact({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    artifact_id: artifact.id,
+                  });
+                }
+              }
+            }
+
+      - name: Notify deployment status
+        if: github.ref == 'refs/heads/main'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          channel: '#deployments'
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

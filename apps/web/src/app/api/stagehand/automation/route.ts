@@ -43,7 +43,7 @@ const AutomationRequestSchema = z.object({
 
 export async function POST(request: NextRequest) {
 	const logger = createApiLogger("stagehand/automation");
-	
+
 	try {
 		const body = await request.json();
 		const validatedRequest = AutomationRequestSchema.parse(body);
@@ -122,9 +122,9 @@ export async function POST(request: NextRequest) {
 
 		if (error instanceof z.ZodError) {
 			return NextResponse.json(
-				{ 
+				{
 					success: false,
-					error: "Invalid request parameters", 
+					error: "Invalid request parameters",
 					details: error.issues,
 					timestamp: new Date().toISOString(),
 				},
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
 		}
 
 		return NextResponse.json(
-			{ 
+			{
 				success: false,
 				error: "Internal server error",
 				timestamp: new Date().toISOString(),

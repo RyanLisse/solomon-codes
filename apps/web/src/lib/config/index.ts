@@ -1,6 +1,11 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { configSchema, ENV_VAR_MAP, type AppConfig } from "./schema";
+// Note: These imports are only available in Node.js runtime, not Edge Runtime
+// Only import if we're in a Node.js environment
+const isNodeEnvironment =
+	typeof process !== "undefined" && process.versions?.node;
+const fs = isNodeEnvironment ? require("node:fs") : null;
+const path = isNodeEnvironment ? require("node:path") : null;
+
+import { type AppConfig, configSchema, ENV_VAR_MAP } from "./schema";
 
 /**
  * Configuration validation error with detailed information
@@ -107,14 +112,14 @@ export abstract class BaseApplicationError extends Error {
 		if (this.context.fingerprint) {
 			return this.context.fingerprint;
 		}
-		
+
 		// Generate fingerprint from error code, message, and component
 		const components = [
 			this.code,
 			this.message.replace(/\d+/g, "N"), // Replace numbers for deduplication
 			this.context.component,
 		].filter(Boolean);
-		
+
 		return btoa(components.join(":")).slice(0, 16);
 	}
 
@@ -320,36 +325,36 @@ export const ErrorCodes = {
 	INVALID_INPUT: "USER_INVALID_INPUT",
 	VALIDATION_FAILED: "USER_VALIDATION_FAILED",
 	NOT_FOUND: "USER_NOT_FOUND",
-	
+
 	// System errors
 	INTERNAL_ERROR: "SYSTEM_INTERNAL_ERROR",
 	SERVICE_UNAVAILABLE: "SYSTEM_SERVICE_UNAVAILABLE",
 	TIMEOUT: "SYSTEM_TIMEOUT",
 	RESOURCE_EXHAUSTED: "SYSTEM_RESOURCE_EXHAUSTED",
-	
+
 	// External service errors
 	EXTERNAL_API_ERROR: "EXTERNAL_API_ERROR",
 	EXTERNAL_TIMEOUT: "EXTERNAL_TIMEOUT",
 	EXTERNAL_RATE_LIMITED: "EXTERNAL_RATE_LIMITED",
-	
+
 	// Network errors
 	NETWORK_TIMEOUT: "NETWORK_TIMEOUT",
 	NETWORK_UNAVAILABLE: "NETWORK_UNAVAILABLE",
 	NETWORK_DNS_ERROR: "NETWORK_DNS_ERROR",
-	
+
 	// Database errors
 	DATABASE_CONNECTION_ERROR: "DATABASE_CONNECTION_ERROR",
 	DATABASE_QUERY_ERROR: "DATABASE_QUERY_ERROR",
 	DATABASE_CONSTRAINT_ERROR: "DATABASE_CONSTRAINT_ERROR",
-	
+
 	// Performance errors
 	PERFORMANCE_TIMEOUT: "PERFORMANCE_TIMEOUT",
 	PERFORMANCE_MEMORY_ERROR: "PERFORMANCE_MEMORY_ERROR",
-	
+
 	// Security errors
 	SECURITY_BREACH: "SECURITY_BREACH",
 	SECURITY_SUSPICIOUS_ACTIVITY: "SECURITY_SUSPICIOUS_ACTIVITY",
-	
+
 	// Configuration errors
 	CONFIG_ERROR: "CONFIG_ERROR",
 	CONFIG_MISSING: "CONFIG_MISSING",
@@ -366,32 +371,24 @@ export function createStructuredError(
 	if (error instanceof BaseApplicationError) {
 		return error;
 	}
-	
+
 	if (error instanceof Error) {
 		// Convert standard Error to SystemError
-		return new SystemError(
-			error.message,
-			ErrorCodes.INTERNAL_ERROR,
-			{
-				...context,
-				stackTrace: error.stack,
-			},
-		);
+		return new SystemError(error.message, ErrorCodes.INTERNAL_ERROR, {
+			...context,
+			stackTrace: error.stack,
+		});
 	}
-	
+
 	// Handle non-Error types (strings, objects, etc.)
 	const message = typeof error === "string" ? error : "Unknown error occurred";
-	return new SystemError(
-		message,
-		ErrorCodes.INTERNAL_ERROR,
-		{
-			...context,
-			metadata: {
-				...context.metadata,
-				originalError: error,
-			},
+	return new SystemError(message, ErrorCodes.INTERNAL_ERROR, {
+		...context,
+		metadata: {
+			...context.metadata,
+			originalError: error,
 		},
-	);
+	});
 }
 
 /**
@@ -401,7 +398,7 @@ export function isRetryableError(error: unknown): boolean {
 	if (error instanceof BaseApplicationError) {
 		return error.retryable;
 	}
-	
+
 	// Default retry logic for non-application errors
 	if (error instanceof Error) {
 		const message = error.message.toLowerCase();
@@ -412,7 +409,7 @@ export function isRetryableError(error: unknown): boolean {
 			message.includes("rate limit")
 		);
 	}
-	
+
 	return false;
 }
 
@@ -430,8 +427,13 @@ export function getErrorSeverityFromStatus(status: number): ErrorSeverity {
  */
 function loadAppVersion(): string {
 	try {
-		const packageJsonPath = join(process.cwd(), "package.json");
-		const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf-8"));
+		// Only attempt to read in Node.js environment
+		if (!isNodeEnvironment || !fs || !path) {
+			return "unknown";
+		}
+
+		const packageJsonPath = path.join(process.cwd(), "package.json");
+		const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf-8"));
 		return packageJson.version || "unknown";
 	} catch {
 		return "unknown";
@@ -443,42 +445,82 @@ function loadAppVersion(): string {
  */
 function extractEnvironmentVariables(): Record<string, string | undefined> {
 	const envVars: Record<string, string | undefined> = {};
-	
+
 	for (const [configKey, envKey] of Object.entries(ENV_VAR_MAP)) {
 		envVars[configKey] = process.env[envKey];
 	}
-	
+
 	// Special handling for app version - load from package.json if not set
 	if (!envVars.appVersion) {
 		envVars.appVersion = loadAppVersion();
 	}
-	
+
 	return envVars;
 }
 
 /**
  * Format validation errors into user-friendly messages
  */
-function formatValidationErrors(errors: any[]): ConfigurationError[] {
+function formatValidationErrors(zodError?: {
+	errors?: Array<{
+		path?: string[];
+		message: string;
+		code: string;
+		[key: string]: any;
+	}>;
+}): ConfigurationError[] {
+	// Handle case where ZodError is passed directly
+	const errors = zodError?.errors;
+
+	if (!errors || !Array.isArray(errors) || errors.length === 0) {
+		console.error(
+			"❌ No validation errors found in ZodError structure:",
+			zodError,
+		);
+		return [
+			new ConfigurationError(
+				"Configuration validation failed - check environment variables",
+			),
+		];
+	}
+
 	return errors.map((error) => {
-		const path = error.path.join(".");
+		const path =
+			error.path && Array.isArray(error.path) && error.path.length > 0
+				? error.path.join(".")
+				: "unknown";
 		const envVar = Object.entries(ENV_VAR_MAP).find(
-			([key]) => key === error.path[0],
+			([key]) => key === error.path?.[0],
 		)?.[1];
-		
+
 		let suggestion = "";
 		if (envVar) {
-			suggestion = `Set the ${envVar} environment variable`;
-			if (error.expected) {
-				suggestion += ` to ${error.expected}`;
+			if (
+				error.code === "invalid_enum_value" ||
+				error.code === "invalid_value"
+			) {
+				// Handle enum validation errors with available options
+				const values = error.values || error.expected;
+				if (Array.isArray(values)) {
+					suggestion = `Set ${envVar} to one of: ${values.map((v) => `"${v}"`).join(", ")}`;
+				} else {
+					suggestion = `Set the ${envVar} environment variable correctly`;
+				}
+			} else {
+				suggestion = `Set the ${envVar} environment variable`;
+				if (error.expected) {
+					suggestion += ` to ${error.expected}`;
+				}
 			}
 		}
-		
+
 		return new ConfigurationError(
 			`Configuration validation failed for '${path}': ${error.message}`,
 			{
 				variable: envVar,
-				expected: error.expected,
+				expected: Array.isArray(error.values)
+					? error.values.join("|")
+					: error.expected,
 				received: error.received,
 				suggestion,
 			},
@@ -494,10 +536,22 @@ export function validateConfig(): AppConfig {
 	try {
 		const envVars = extractEnvironmentVariables();
 		const result = configSchema.safeParse(envVars);
-		
+
 		if (!result.success) {
-			const errors = formatValidationErrors(result.error.errors);
-			
+			// Safely handle Zod errors
+			let errors: ConfigurationError[];
+			try {
+				console.log("❌ Validation failed, raw error:", result.error);
+				errors = formatValidationErrors(result.error);
+			} catch (formatError) {
+				console.error("❌ Error formatting validation errors:", formatError);
+				// Fallback error
+				throw new ConfigurationError(
+					"Configuration validation failed with formatting error",
+					{ suggestion: "Check your environment variables" },
+				);
+			}
+
 			// Log all configuration errors - keep console for critical startup errors
 			console.error("❌ Configuration validation failed:");
 			for (const error of errors) {
@@ -506,17 +560,19 @@ export function validateConfig(): AppConfig {
 					console.error(`    💡 ${error.details.suggestion}`);
 				}
 			}
-			
+
 			// Throw the first error to fail fast
 			throw errors[0];
 		}
-		
+
 		return result.data;
 	} catch (error) {
 		if (error instanceof ConfigurationError) {
 			throw error;
 		}
-		
+
+		// Better error details for debugging
+		console.error("❌ Unexpected configuration error:", error);
 		throw new ConfigurationError(
 			`Failed to load configuration: ${error instanceof Error ? error.message : String(error)}`,
 		);

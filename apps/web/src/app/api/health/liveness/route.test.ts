@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type Mock,
+	vi,
+} from "vitest";
 import { GET } from "./route";
 
 // Mock dependencies
@@ -26,23 +34,23 @@ describe("/api/health/liveness", () => {
 		(createApiLogger as Mock).mockReturnValue(mockLogger);
 
 		// Mock process methods with realistic values
-		process.uptime = vi.fn().mockReturnValue(300); // 5 minutes uptime
+		process.uptime = vi.fn().mockReturnValue(300) as typeof process.uptime; // 5 minutes uptime
 		process.memoryUsage = vi.fn().mockReturnValue({
-			rss: 50 * 1024 * 1024,       // 50MB
+			rss: 50 * 1024 * 1024, // 50MB
 			heapTotal: 30 * 1024 * 1024, // 30MB
-			heapUsed: 15 * 1024 * 1024,  // 15MB (50% heap usage)
-			external: 5 * 1024 * 1024,   // 5MB
+			heapUsed: 15 * 1024 * 1024, // 15MB (50% heap usage)
+			external: 5 * 1024 * 1024, // 5MB
 			arrayBuffers: 1 * 1024 * 1024, // 1MB
-		});
+		}) as unknown as typeof process.memoryUsage;
 		process.cpuUsage = vi.fn().mockReturnValue({
-			user: 100000,    // 100ms
-			system: 50000,   // 50ms
-		});
+			user: 100000, // 100ms
+			system: 50000, // 50ms
+		}) as typeof process.cpuUsage;
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
-		
+
 		// Restore original process methods
 		process.uptime = originalUptime;
 		process.memoryUsage = originalMemoryUsage;
@@ -87,7 +95,7 @@ describe("/api/health/liveness", () => {
 				heapUsed: 28.5 * 1024 * 1024, // 95% heap usage
 				external: 5 * 1024 * 1024,
 				arrayBuffers: 1 * 1024 * 1024,
-			});
+			}) as unknown as typeof process.memoryUsage;
 
 			const response = await GET();
 			const data = await response.json();
@@ -95,7 +103,9 @@ describe("/api/health/liveness", () => {
 			expect(response.status).toBe(200);
 			expect(data.alive).toBe(true);
 			expect(data.message).toBe("Application is alive but with warnings");
-			expect(data.details.warnings).toContain(expect.stringContaining("High heap usage: 95.0%"));
+			expect(data.details.warnings).toContain(
+				expect.stringContaining("High heap usage: 95.0%"),
+			);
 		});
 
 		it("should warn about high memory usage", async () => {
@@ -106,7 +116,7 @@ describe("/api/health/liveness", () => {
 				heapUsed: 50 * 1024 * 1024,
 				external: 10 * 1024 * 1024,
 				arrayBuffers: 5 * 1024 * 1024,
-			});
+			}) as unknown as typeof process.memoryUsage;
 
 			const response = await GET();
 			const data = await response.json();
@@ -114,12 +124,14 @@ describe("/api/health/liveness", () => {
 			expect(response.status).toBe(200);
 			expect(data.alive).toBe(true);
 			expect(data.message).toBe("Application is alive but with warnings");
-			expect(data.details.warnings).toContain(expect.stringContaining("High memory usage: 2048.0MB"));
+			expect(data.details.warnings).toContain(
+				expect.stringContaining("High memory usage: 2048.0MB"),
+			);
 		});
 
 		it("should warn about low uptime indicating restart loops", async () => {
 			// Mock low uptime (30 seconds)
-			process.uptime = vi.fn().mockReturnValue(30);
+			process.uptime = vi.fn().mockReturnValue(30) as typeof process.uptime;
 
 			const response = await GET();
 			const data = await response.json();
@@ -128,7 +140,9 @@ describe("/api/health/liveness", () => {
 			expect(data.alive).toBe(true);
 			expect(data.uptime).toBe(30);
 			expect(data.message).toBe("Application is alive but with warnings");
-			expect(data.details.warnings).toContain(expect.stringContaining("Low uptime: 30.0s - potential restart loop"));
+			expect(data.details.warnings).toContain(
+				expect.stringContaining("Low uptime: 30.0s - potential restart loop"),
+			);
 		});
 
 		it("should detect runtime execution problems", async () => {
@@ -142,7 +156,9 @@ describe("/api/health/liveness", () => {
 			expect(response.status).toBe(500);
 			expect(data.alive).toBe(false);
 			expect(data.message).toBe("Application is not responding properly");
-			expect(data.details.errors).toContain("Basic JavaScript execution test failed");
+			expect(data.details.errors).toContain(
+				"Basic JavaScript execution test failed",
+			);
 
 			// Restore original method
 			Array.prototype.map = originalMap;
@@ -153,7 +169,7 @@ describe("/api/health/liveness", () => {
 			const originalSetImmediate = global.setImmediate;
 			global.setImmediate = vi.fn().mockImplementation(() => {
 				throw new Error("Event loop blocked");
-			});
+			}) as unknown as typeof setImmediate;
 
 			const response = await GET();
 			const data = await response.json();
@@ -161,7 +177,9 @@ describe("/api/health/liveness", () => {
 			expect(response.status).toBe(500);
 			expect(data.alive).toBe(false);
 			expect(data.message).toBe("Application is not responding properly");
-			expect(data.details.errors).toContain("Runtime execution test failed: Event loop blocked");
+			expect(data.details.errors).toContain(
+				"Runtime execution test failed: Event loop blocked",
+			);
 
 			// Restore original method
 			global.setImmediate = originalSetImmediate;
@@ -169,14 +187,14 @@ describe("/api/health/liveness", () => {
 
 		it("should combine multiple warnings correctly", async () => {
 			// Setup multiple warning conditions
-			process.uptime = vi.fn().mockReturnValue(45); // Low uptime
+			process.uptime = vi.fn().mockReturnValue(45) as typeof process.uptime; // Low uptime
 			process.memoryUsage = vi.fn().mockReturnValue({
 				rss: 1.5 * 1024 * 1024 * 1024, // High memory (1.5GB)
 				heapTotal: 100 * 1024 * 1024,
-				heapUsed: 92 * 1024 * 1024,    // High heap usage (92%)
+				heapUsed: 92 * 1024 * 1024, // High heap usage (92%)
 				external: 10 * 1024 * 1024,
 				arrayBuffers: 5 * 1024 * 1024,
-			});
+			}) as unknown as typeof process.memoryUsage;
 
 			const response = await GET();
 			const data = await response.json();
@@ -185,16 +203,22 @@ describe("/api/health/liveness", () => {
 			expect(data.alive).toBe(true);
 			expect(data.message).toBe("Application is alive but with warnings");
 			expect(data.details.warnings).toHaveLength(3);
-			expect(data.details.warnings).toContain(expect.stringContaining("High heap usage: 92.0%"));
-			expect(data.details.warnings).toContain(expect.stringContaining("High memory usage: 1536.0MB"));
-			expect(data.details.warnings).toContain(expect.stringContaining("Low uptime: 45.0s"));
+			expect(data.details.warnings).toContain(
+				expect.stringContaining("High heap usage: 92.0%"),
+			);
+			expect(data.details.warnings).toContain(
+				expect.stringContaining("High memory usage: 1536.0MB"),
+			);
+			expect(data.details.warnings).toContain(
+				expect.stringContaining("Low uptime: 45.0s"),
+			);
 		});
 
 		it("should handle endpoint errors gracefully", async () => {
 			// Mock process.memoryUsage to throw an error
 			process.memoryUsage = vi.fn().mockImplementation(() => {
 				throw new Error("Memory access denied");
-			});
+			}) as typeof process.memoryUsage;
 
 			const response = await GET();
 			const data = await response.json();
@@ -219,7 +243,7 @@ describe("/api/health/liveness", () => {
 					heapUsagePercent: expect.any(String),
 					errors: 0,
 					warnings: 0,
-				})
+				}),
 			);
 		});
 
@@ -231,7 +255,7 @@ describe("/api/health/liveness", () => {
 				heapUsed: 50 * 1024 * 1024,
 				external: 10 * 1024 * 1024,
 				arrayBuffers: 5 * 1024 * 1024,
-			});
+			}) as typeof process.memoryUsage;
 
 			await GET();
 
@@ -240,7 +264,7 @@ describe("/api/health/liveness", () => {
 				expect.objectContaining({
 					alive: true,
 					warnings: 1,
-				})
+				}),
 			);
 		});
 
@@ -256,7 +280,7 @@ describe("/api/health/liveness", () => {
 				expect.objectContaining({
 					alive: false,
 					errors: 1,
-				})
+				}),
 			);
 
 			// Restore original method
@@ -284,9 +308,15 @@ describe("/api/health/liveness", () => {
 			const afterTime = new Date().toISOString();
 			const data = await response.json();
 
-			expect(data.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-			expect(data.timestamp).toBeGreaterThanOrEqual(beforeTime);
-			expect(data.timestamp).toBeLessThanOrEqual(afterTime);
+			expect(data.timestamp).toMatch(
+				/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+			);
+			expect(new Date(data.timestamp).getTime()).toBeGreaterThanOrEqual(
+				new Date(beforeTime).getTime(),
+			);
+			expect(new Date(data.timestamp).getTime()).toBeLessThanOrEqual(
+				new Date(afterTime).getTime(),
+			);
 		});
 
 		it("should include current process PID", async () => {
@@ -309,7 +339,7 @@ describe("/api/health/liveness", () => {
 			expect(data.memory).toHaveProperty("arrayBuffers");
 
 			// All should be numbers
-			Object.values(data.memory).forEach(value => {
+			Object.values(data.memory).forEach((value) => {
 				expect(typeof value).toBe("number");
 				expect(value).toBeGreaterThanOrEqual(0);
 			});

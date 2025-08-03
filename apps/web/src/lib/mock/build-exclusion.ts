@@ -76,7 +76,8 @@ export function createMockWrapper<T>(data: T): MockDataWrapper<T> {
  * Webpack plugin helper for excluding mock files
  * This can be used in next.config.js to exclude mock files from production builds
  */
-export const mockFileExclusionPattern = /\.(mock|fixture|test-data)\.(ts|tsx|js|jsx)$/;
+export const mockFileExclusionPattern =
+	/\.(mock|fixture|test-data)\.(ts|tsx|js|jsx)$/;
 
 /**
  * Next.js webpack configuration helper

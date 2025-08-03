@@ -1,7 +1,7 @@
-import { desc, eq, and, or, sql, inArray, gte, lte } from "drizzle-orm";
-import { tasks, taskMetrics, environments } from "./optimized-schema";
+import { and, desc, eq, gte, sql } from "drizzle-orm";
 import type { PgDatabase } from "drizzle-orm/pg-core";
 import { createContextLogger } from "../logging/factory";
+import { taskMetrics, tasks } from "./optimized-schema";
 
 const logger = createContextLogger("query-service");
 
@@ -9,11 +9,14 @@ const logger = createContextLogger("query-service");
  * Optimized database query service with performance monitoring
  */
 export class OptimizedQueryService {
-	private db: PgDatabase<any>;
-	private queryCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+	private db: PgDatabase<Record<string, never>>;
+	private queryCache = new Map<
+		string,
+		{ data: unknown; timestamp: number; ttl: number }
+	>();
 	private readonly CACHE_TTL = 60000; // 1 minute
-	
-	constructor(database: PgDatabase<any>) {
+
+	constructor(database: PgDatabase<Record<string, never>>) {
 		this.db = database;
 	}
 
@@ -23,7 +26,7 @@ export class OptimizedQueryService {
 	private async executeWithCache<T>(
 		cacheKey: string,
 		queryFn: () => Promise<T>,
-		ttl: number = this.CACHE_TTL
+		ttl: number = this.CACHE_TTL,
 	): Promise<T> {
 		const cached = this.queryCache.get(cacheKey);
 		if (cached && Date.now() - cached.timestamp < cached.ttl) {
@@ -36,10 +39,10 @@ export class OptimizedQueryService {
 
 		// Log slow queries for optimization
 		if (executionTime > 1000) {
-			logger.warn("Slow query detected", { 
-				cacheKey, 
-				executionTime, 
-				query: "cached_execution" 
+			logger.warn("Slow query detected", {
+				cacheKey,
+				executionTime,
+				query: "cached_execution",
 			});
 		}
 
@@ -63,19 +66,19 @@ export class OptimizedQueryService {
 			archived?: boolean;
 			limit?: number;
 			offset?: number;
-		} = {}
+		} = {},
 	) {
 		const cacheKey = `tasks_user_${userId}_${JSON.stringify(options)}`;
-		
+
 		return this.executeWithCache(cacheKey, async () => {
 			const { status, archived = false, limit = 20, offset = 0 } = options;
-			
+
 			// Use composite index: tasks_user_status_idx or tasks_user_archived_idx
 			const whereConditions = [
 				eq(tasks.userId, userId),
 				eq(tasks.isArchived, archived),
 			];
-			
+
 			if (status) {
 				whereConditions.push(eq(tasks.status, status));
 			}
@@ -102,9 +105,9 @@ export class OptimizedQueryService {
 	/**
 	 * Get recent tasks with performance metrics
 	 */
-	async getRecentTasksWithMetrics(userId: string, limit: number = 10) {
+	async getRecentTasksWithMetrics(userId: string, limit = 10) {
 		const cacheKey = `recent_tasks_metrics_${userId}_${limit}`;
-		
+
 		return this.executeWithCache(cacheKey, async () => {
 			return await this.db
 				.select({
@@ -116,10 +119,7 @@ export class OptimizedQueryService {
 					executionTimeMs: tasks.executionTimeMs,
 				})
 				.from(tasks)
-				.where(and(
-					eq(tasks.userId, userId),
-					eq(tasks.isArchived, false)
-				))
+				.where(and(eq(tasks.userId, userId), eq(tasks.isArchived, false)))
 				.orderBy(desc(tasks.lastAccessedAt))
 				.limit(limit);
 		});
@@ -131,30 +131,36 @@ export class OptimizedQueryService {
 	async searchTasksBySimilarity(
 		userId: string,
 		queryEmbedding: number[],
-		threshold: number = 0.8,
-		limit: number = 10
+		threshold = 0.8,
+		limit = 10,
 	) {
-		const cacheKey = `search_tasks_${userId}_${queryEmbedding.slice(0, 5).join('')}_${threshold}_${limit}`;
-		
-		return this.executeWithCache(cacheKey, async () => {
-			// Use vector similarity search with pgvector
-			return await this.db
-				.select({
-					id: tasks.id,
-					title: tasks.title,
-					description: tasks.description,
-					status: tasks.status,
-					similarity: sql<number>`1 - (embedding <=> ${queryEmbedding})`,
-				})
-				.from(tasks)
-				.where(and(
-					eq(tasks.userId, userId),
-					eq(tasks.isArchived, false),
-					sql`1 - (embedding <=> ${queryEmbedding}) > ${threshold}`
-				))
-				.orderBy(sql`embedding <=> ${queryEmbedding}`)
-				.limit(limit);
-		}, 300000); // 5 minute cache for similarity searches
+		const cacheKey = `search_tasks_${userId}_${queryEmbedding.slice(0, 5).join("")}_${threshold}_${limit}`;
+
+		return this.executeWithCache(
+			cacheKey,
+			async () => {
+				// Use vector similarity search with pgvector
+				return await this.db
+					.select({
+						id: tasks.id,
+						title: tasks.title,
+						description: tasks.description,
+						status: tasks.status,
+						similarity: sql<number>`1 - (embedding <=> ${queryEmbedding})`,
+					})
+					.from(tasks)
+					.where(
+						and(
+							eq(tasks.userId, userId),
+							eq(tasks.isArchived, false),
+							sql`1 - (embedding <=> ${queryEmbedding}) > ${threshold}`,
+						),
+					)
+					.orderBy(sql`embedding <=> ${queryEmbedding}`)
+					.limit(limit);
+			},
+			300000,
+		); // 5 minute cache for similarity searches
 	}
 
 	/**
@@ -162,59 +168,57 @@ export class OptimizedQueryService {
 	 */
 	async getTaskWithDetails(taskId: string, userId: string) {
 		const cacheKey = `task_details_${taskId}_${userId}`;
-		
-		return this.executeWithCache(cacheKey, async () => {
-			const startTime = Date.now();
-			
-			const task = await this.db
-				.select()
-				.from(tasks)
-				.where(and(
-					eq(tasks.id, taskId),
-					eq(tasks.userId, userId)
-				))
-				.limit(1);
 
-			// Track access time for analytics
-			if (task.length > 0) {
-				await this.db
-					.update(tasks)
-					.set({ lastAccessedAt: new Date() })
-					.where(eq(tasks.id, taskId));
-				
-				// Record query performance metric
-				const executionTime = Date.now() - startTime;
-				await this.recordTaskMetric(taskId, 'query_time', executionTime);
-			}
+		return this.executeWithCache(
+			cacheKey,
+			async () => {
+				const startTime = Date.now();
 
-			return task[0] || null;
-		}, 30000); // 30 second cache for task details
+				const task = await this.db
+					.select()
+					.from(tasks)
+					.where(and(eq(tasks.id, taskId), eq(tasks.userId, userId)))
+					.limit(1);
+
+				// Track access time for analytics
+				if (task.length > 0) {
+					await this.db
+						.update(tasks)
+						.set({ lastAccessedAt: new Date() })
+						.where(eq(tasks.id, taskId));
+
+					// Record query performance metric
+					const executionTime = Date.now() - startTime;
+					await this.recordTaskMetric(taskId, "query_time", executionTime);
+				}
+
+				return task[0] || null;
+			},
+			30000,
+		); // 30 second cache for task details
 	}
 
 	/**
 	 * Bulk update task statuses with optimized batch operation
 	 */
 	async bulkUpdateTaskStatuses(
-		updates: Array<{ id: string; status: string; userId: string }>
+		updates: Array<{ id: string; status: string; userId: string }>,
 	) {
 		const startTime = Date.now();
-		
+
 		try {
 			// Use batch update for better performance
 			const results = await Promise.all(
 				updates.map(({ id, status, userId }) =>
 					this.db
 						.update(tasks)
-						.set({ 
-							status, 
+						.set({
+							status,
 							updatedAt: new Date(),
-							lastAccessedAt: new Date()
+							lastAccessedAt: new Date(),
 						})
-						.where(and(
-							eq(tasks.id, id),
-							eq(tasks.userId, userId)
-						))
-				)
+						.where(and(eq(tasks.id, id), eq(tasks.userId, userId))),
+				),
 			);
 
 			// Clear relevant caches
@@ -224,18 +228,18 @@ export class OptimizedQueryService {
 
 			// Record batch operation performance
 			const executionTime = Date.now() - startTime;
-			logger.info("Bulk task update completed", { 
-				taskCount: updates.length, 
+			logger.info("Bulk task update completed", {
+				taskCount: updates.length,
 				executionTime,
-				operation: "bulk_update"
+				operation: "bulk_update",
 			});
 
 			return results;
 		} catch (error) {
-			logger.error("Bulk task update failed", { 
-				error: error.message, 
+			logger.error("Bulk task update failed", {
+				error: error.message,
 				taskCount: updates.length,
-				operation: "bulk_update"
+				operation: "bulk_update",
 			});
 			throw error;
 		}
@@ -246,46 +250,52 @@ export class OptimizedQueryService {
 	 */
 	async getDatabasePerformanceInsights(userId: string) {
 		const cacheKey = `db_performance_${userId}`;
-		
-		return this.executeWithCache(cacheKey, async () => {
-			// Get query performance metrics
-			const queryMetrics = await this.db
-				.select({
-					metricType: taskMetrics.metricType,
-					avgValue: sql<number>`AVG(${taskMetrics.value})`,
-					maxValue: sql<number>`MAX(${taskMetrics.value})`,
-					count: sql<number>`COUNT(*)`,
-				})
-				.from(taskMetrics)
-				.leftJoin(tasks, eq(taskMetrics.taskId, tasks.id))
-				.where(eq(tasks.userId, userId))
-				.groupBy(taskMetrics.metricType);
 
-			// Get slow queries
-			const slowQueries = await this.db
-				.select({
-					taskId: taskMetrics.taskId,
-					value: taskMetrics.value,
-					timestamp: taskMetrics.timestamp,
-					taskTitle: tasks.title,
-				})
-				.from(taskMetrics)
-				.leftJoin(tasks, eq(taskMetrics.taskId, tasks.id))
-				.where(and(
-					eq(tasks.userId, userId),
-					eq(taskMetrics.metricType, 'query_time'),
-					gte(taskMetrics.value, 1000)
-				))
-				.orderBy(desc(taskMetrics.timestamp))
-				.limit(10);
+		return this.executeWithCache(
+			cacheKey,
+			async () => {
+				// Get query performance metrics
+				const queryMetrics = await this.db
+					.select({
+						metricType: taskMetrics.metricType,
+						avgValue: sql<number>`AVG(${taskMetrics.value})`,
+						maxValue: sql<number>`MAX(${taskMetrics.value})`,
+						count: sql<number>`COUNT(*)`,
+					})
+					.from(taskMetrics)
+					.leftJoin(tasks, eq(taskMetrics.taskId, tasks.id))
+					.where(eq(tasks.userId, userId))
+					.groupBy(taskMetrics.metricType);
 
-			return {
-				metrics: queryMetrics,
-				slowQueries,
-				cacheHitRate: this.getCacheHitRate(),
-				activeConnections: await this.getActiveConnectionCount(),
-			};
-		}, 120000); // 2 minute cache for performance insights
+				// Get slow queries
+				const slowQueries = await this.db
+					.select({
+						taskId: taskMetrics.taskId,
+						value: taskMetrics.value,
+						timestamp: taskMetrics.timestamp,
+						taskTitle: tasks.title,
+					})
+					.from(taskMetrics)
+					.leftJoin(tasks, eq(taskMetrics.taskId, tasks.id))
+					.where(
+						and(
+							eq(tasks.userId, userId),
+							eq(taskMetrics.metricType, "query_time"),
+							gte(taskMetrics.value, 1000),
+						),
+					)
+					.orderBy(desc(taskMetrics.timestamp))
+					.limit(10);
+
+				return {
+					metrics: queryMetrics,
+					slowQueries,
+					cacheHitRate: this.getCacheHitRate(),
+					activeConnections: await this.getActiveConnectionCount(),
+				};
+			},
+			120000,
+		); // 2 minute cache for performance insights
 	}
 
 	/**
@@ -295,7 +305,7 @@ export class OptimizedQueryService {
 		taskId: string,
 		metricType: string,
 		value: number,
-		unit: string = 'ms'
+		unit = "ms",
 	) {
 		try {
 			await this.db.insert(taskMetrics).values({
@@ -307,10 +317,10 @@ export class OptimizedQueryService {
 			});
 		} catch (error) {
 			// Don't fail the main operation if metric recording fails
-			logger.warn("Failed to record task metric", { 
-				error: error.message, 
+			logger.warn("Failed to record task metric", {
+				error: error.message,
 				taskId: metric.taskId,
-				metricType: metric.type 
+				metricType: metric.type,
 			});
 		}
 	}
@@ -319,10 +329,10 @@ export class OptimizedQueryService {
 	 * Clear cache for specific user
 	 */
 	private clearUserCache(userId: string) {
-		const keysToDelete = Array.from(this.queryCache.keys()).filter(key =>
-			key.includes(userId)
+		const keysToDelete = Array.from(this.queryCache.keys()).filter((key) =>
+			key.includes(userId),
 		);
-		keysToDelete.forEach(key => this.queryCache.delete(key));
+		keysToDelete.forEach((key) => this.queryCache.delete(key));
 	}
 
 	/**

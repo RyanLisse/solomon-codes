@@ -1,7 +1,7 @@
 import { trace } from "@opentelemetry/api";
 import winston from "winston";
-import { getOpenTelemetryConfig } from "../config";
 import { getTelemetryService } from "../../telemetry";
+import { getOpenTelemetryConfig } from "../config";
 
 /**
  * Extract trace context from the current OpenTelemetry span
@@ -70,7 +70,13 @@ export class OpenTelemetryTransport extends winston.Transport {
 	}
 
 	log(info: winston.LogEntry, callback: () => void) {
-		setImmediate(() => {
+		// Use setTimeout as fallback for Edge Runtime compatibility
+		const scheduleCallback =
+			typeof setImmediate !== "undefined"
+				? setImmediate
+				: (fn: () => void) => setTimeout(fn, 0);
+
+		scheduleCallback(() => {
 			this.emit("logged", info);
 		});
 
@@ -223,14 +229,16 @@ export function createOpenTelemetryLoggingMiddleware() {
  * Integrates with existing Winston and OpenTelemetry infrastructure
  */
 
-import { createContextLogger } from "../../factory";
-import { getCorrelationId } from "../utils/correlation";
 import {
-	BaseApplicationError,
+	type BaseApplicationError,
 	createStructuredError,
-	ErrorSeverity,
 	ErrorCategory,
-} from "../../config";
+	ErrorSeverity,
+} from "../../config/client";
+import { createLogger } from "../index";
+import type { Logger } from "../types";
+// Import only what we need to avoid circular dependencies
+import { getCorrelationId } from "../utils/correlation";
 
 export interface GlobalErrorHandlerConfig {
 	enableProcessExitOnCritical?: boolean;
@@ -252,13 +260,14 @@ export interface ErrorMetrics {
  * Global error handler class with rate limiting and metrics
  */
 export class GlobalErrorHandler {
-	private logger = createContextLogger("global-error-handler");
+	private logger: Logger;
 	private config: GlobalErrorHandlerConfig;
 	private errorMetrics: ErrorMetrics;
 	private errorTimestamps: Date[] = [];
 	private isInitialized = false;
 
 	constructor(config: GlobalErrorHandlerConfig = {}) {
+		this.logger = createLogger("global-error-handler");
 		this.config = {
 			enableProcessExitOnCritical: false,
 			enableAlertingOnCritical: true,
@@ -292,29 +301,115 @@ export class GlobalErrorHandler {
 			return;
 		}
 
-		// Handle unhandled promise rejections
-		process.on("unhandledRejection", (reason, promise) => {
-			this.handleUnhandledRejection(reason, promise);
-		});
-
-		// Handle uncaught exceptions
-		process.on("uncaughtException", (error) => {
-			this.handleUncaughtException(error);
-		});
-
-		// Handle warning events
-		process.on("warning", (warning) => {
-			this.handleWarning(warning);
-		});
-
-		// Graceful shutdown handlers
-		process.on("SIGTERM", () => this.handleShutdown("SIGTERM"));
-		process.on("SIGINT", () => this.handleShutdown("SIGINT"));
+		// Node.js-specific event handlers (skip in Edge Runtime)
+		this.setupNodeEventHandlers();
 
 		this.isInitialized = true;
 		this.logger.info("Global error handler initialized", {
 			config: this.config,
 		});
+	}
+
+	/**
+	 * Setup Node.js-specific event handlers (Edge Runtime safe)
+	 */
+	private setupNodeEventHandlers(): void {
+		// Only execute in actual Node.js runtime
+		if (typeof globalThis !== "undefined" && globalThis.EdgeRuntime) {
+			return; // Skip in Edge Runtime
+		}
+
+		try {
+			// Dynamic access to avoid Edge Runtime static analysis
+			const proc = globalThis.process;
+			if (proc && typeof proc.on === "function") {
+				proc.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
+					this.handleUnhandledRejection(reason, promise);
+				});
+
+				proc.on("uncaughtException", (error: Error) => {
+					this.handleUncaughtException(error);
+				});
+
+				proc.on("warning", (warning: any) => {
+					this.handleWarning(warning);
+				});
+
+				proc.on("SIGTERM", () => this.handleShutdown("SIGTERM"));
+				proc.on("SIGINT", () => this.handleShutdown("SIGINT"));
+			}
+		} catch (error) {
+			console.debug("Node.js event handlers not available");
+		}
+	}
+
+	/**
+	 * Clean up Node.js event handlers (Edge Runtime safe)
+	 */
+	private cleanupNodeEventHandlers(): void {
+		// Only execute in actual Node.js runtime
+		if (typeof globalThis !== "undefined" && globalThis.EdgeRuntime) {
+			return; // Skip in Edge Runtime
+		}
+
+		try {
+			// Dynamic access to avoid Edge Runtime static analysis
+			const proc = globalThis.process;
+			if (proc && typeof proc.removeAllListeners === "function") {
+				proc.removeAllListeners("unhandledRejection");
+				proc.removeAllListeners("uncaughtException");
+				proc.removeAllListeners("warning");
+				proc.removeAllListeners("SIGTERM");
+				proc.removeAllListeners("SIGINT");
+			}
+		} catch (error) {
+			console.debug("Node.js event cleanup not available");
+		}
+	}
+
+	/**
+	 * Get system information (Edge Runtime safe)
+	 */
+	private getSystemInfo(): any {
+		// Check if we're in Edge Runtime
+		if (typeof globalThis !== "undefined" && globalThis.EdgeRuntime) {
+			return {
+				uptime: 0,
+				memoryUsage: {},
+				platform: "edge",
+				nodeVersion: "edge-runtime",
+				runtime: "edge",
+			};
+		}
+
+		// Node.js runtime - safely access process APIs
+		try {
+			const info: any = { runtime: "node" };
+			const proc = globalThis.process;
+
+			if (proc) {
+				info.uptime = proc.uptime?.() || 0;
+				info.memoryUsage = proc.memoryUsage?.() || {};
+				info.platform = proc.platform || "unknown";
+				info.nodeVersion = proc.version || "unknown";
+			} else {
+				info.uptime = 0;
+				info.memoryUsage = {};
+				info.platform = "unknown";
+				info.nodeVersion = "unknown";
+			}
+
+			return info;
+		} catch (error) {
+			// Fallback for any runtime that doesn't support these APIs
+			return {
+				uptime: 0,
+				memoryUsage: {},
+				platform: "unknown",
+				nodeVersion: "unknown",
+				runtime: "unknown",
+			};
+		}
 	}
 
 	/**
@@ -411,10 +506,8 @@ export class GlobalErrorHandler {
 			finalMetrics: this.getMetrics(),
 		});
 
-		// Remove event listeners
-		process.removeAllListeners("unhandledRejection");
-		process.removeAllListeners("uncaughtException");
-		process.removeAllListeners("warning");
+		// Clean up Node.js event handlers
+		this.cleanupNodeEventHandlers();
 
 		this.isInitialized = false;
 	}
@@ -422,7 +515,10 @@ export class GlobalErrorHandler {
 	/**
 	 * Handle unhandled promise rejections
 	 */
-	private handleUnhandledRejection(reason: unknown, promise: Promise<unknown>): void {
+	private handleUnhandledRejection(
+		reason: unknown,
+		promise: Promise<unknown>,
+	): void {
 		const error = this.handleError(reason, {
 			component: "global-error-handler",
 			action: "unhandled-rejection",
@@ -432,11 +528,19 @@ export class GlobalErrorHandler {
 		});
 
 		// Critical unhandled rejections should potentially crash the process
-		if (error.severity === ErrorSeverity.CRITICAL && this.config.enableProcessExitOnCritical) {
+		if (
+			error.severity === ErrorSeverity.CRITICAL &&
+			this.config.enableProcessExitOnCritical
+		) {
 			this.logger.fatal("Critical unhandled rejection, exiting process", {
 				error: error.toStructuredError(),
 			});
-			process.exit(1);
+			// Only exit in Node.js environment
+			if (typeof process !== "undefined" && process.exit) {
+				process.exit(1);
+			} else {
+				throw error;
+			}
 		}
 	}
 
@@ -453,8 +557,12 @@ export class GlobalErrorHandler {
 			error: structuredError.toStructuredError(),
 		});
 
-		// Always exit on uncaught exceptions after logging
-		process.exit(1);
+		// Always exit on uncaught exceptions after logging (only in Node.js)
+		if (typeof process !== "undefined" && process.exit) {
+			process.exit(1);
+		} else {
+			throw error;
+		}
 	}
 
 	/**
@@ -477,7 +585,10 @@ export class GlobalErrorHandler {
 		});
 
 		this.shutdown();
-		process.exit(0);
+		// Only exit in Node.js environment
+		if (typeof process !== "undefined" && process.exit) {
+			process.exit(0);
+		}
 	}
 
 	/**
@@ -513,7 +624,9 @@ export class GlobalErrorHandler {
 	 * Check if error should be processed (rate limiting)
 	 */
 	private shouldProcessError(): boolean {
-		return this.errorMetrics.errorRate < (this.config.maxErrorsPerMinute || 100);
+		return (
+			this.errorMetrics.errorRate < (this.config.maxErrorsPerMinute || 100)
+		);
 	}
 
 	/**
@@ -559,19 +672,27 @@ export class GlobalErrorHandler {
 	 */
 	private handleCriticalError(error: BaseApplicationError): void {
 		if (this.config.enableAlertingOnCritical) {
-			// Emit critical error event for alerting systems
-			process.emit("criticalError" as any, error);
+			// Emit critical error event for alerting systems (only in Node.js)
+			if (typeof process !== "undefined" && process.emit) {
+				process.emit("criticalError" as any, error);
+			}
 		}
 
 		// Log additional context for critical errors
+		const getSystemInfo = () => {
+			if (typeof process === "undefined") {
+				return {
+					runtime: "edge",
+					timestamp: Date.now(),
+				};
+			}
+
+			return this.getSystemInfo();
+		};
+
 		this.logger.fatal("Critical error requires immediate attention", {
 			error: error.toStructuredError(),
-			systemInfo: {
-				uptime: process.uptime(),
-				memoryUsage: process.memoryUsage(),
-				platform: process.platform,
-				nodeVersion: process.version,
-			},
+			systemInfo: getSystemInfo(),
 			errorMetrics: this.getMetrics(),
 		});
 	}
@@ -580,8 +701,10 @@ export class GlobalErrorHandler {
 	 * Emit error event for external monitoring systems
 	 */
 	private emitErrorEvent(error: BaseApplicationError): void {
-		// Emit error event that can be captured by monitoring systems
-		process.emit("applicationError" as any, error.toStructuredError());
+		// Emit error event that can be captured by monitoring systems (only in Node.js)
+		if (typeof process !== "undefined" && process.emit) {
+			process.emit("applicationError" as any, error.toStructuredError());
+		}
 	}
 }
 

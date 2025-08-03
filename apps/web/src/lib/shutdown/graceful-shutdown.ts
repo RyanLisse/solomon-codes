@@ -1,6 +1,6 @@
+import { closeDatabaseConnections } from "../database/connection";
 import { createContextLogger } from "../logging/factory";
 import { shutdownTelemetry } from "../telemetry";
-import { closeDatabaseConnections } from "../database/connection";
 
 export interface ShutdownHandler {
 	name: string;
@@ -69,7 +69,7 @@ export class GracefulShutdownService {
 	 * Unregister a shutdown handler
 	 */
 	unregisterHandler(name: string): void {
-		const index = this.handlers.findIndex(h => h.name === name);
+		const index = this.handlers.findIndex((h) => h.name === name);
 		if (index !== -1) {
 			this.handlers.splice(index, 1);
 			this.logger.debug("Shutdown handler unregistered", {
@@ -99,7 +99,9 @@ export class GracefulShutdownService {
 		});
 
 		// Still use console for critical shutdown messages to ensure visibility
-		console.log(`🛑 Initiating graceful shutdown (signal: ${signal || "manual"})`);
+		console.log(
+			`🛑 Initiating graceful shutdown (signal: ${signal || "manual"})`,
+		);
 
 		this.shutdownPromise = this.executeShutdown(timeout);
 		return this.shutdownPromise;
@@ -118,7 +120,9 @@ export class GracefulShutdownService {
 			metrics: this.metrics,
 		});
 
-		console.error("💥 Forcing immediate shutdown due to timeout or critical error");
+		console.error(
+			"💥 Forcing immediate shutdown due to timeout or critical error",
+		);
 		process.exit(exitCode);
 	}
 
@@ -162,11 +166,12 @@ export class GracefulShutdownService {
 				handlersExecuted: this.metrics.handlersExecuted.length,
 			});
 
-			console.log(`✅ Graceful shutdown completed in ${this.metrics.duration}ms`);
+			console.log(
+				`✅ Graceful shutdown completed in ${this.metrics.duration}ms`,
+			);
 
 			clearTimeout(overallTimeout);
 			process.exit(0);
-
 		} catch (error) {
 			this.logger.error("Error during shutdown sequence", {
 				error: error instanceof Error ? error.message : String(error),
@@ -183,7 +188,7 @@ export class GracefulShutdownService {
 	 */
 	private async executeHandler(handler: ShutdownHandler): Promise<void> {
 		const startTime = Date.now();
-		
+
 		this.logger.info("Executing shutdown handler", {
 			name: handler.name,
 			priority: handler.priority,
@@ -195,9 +200,12 @@ export class GracefulShutdownService {
 				// Execute with timeout
 				await Promise.race([
 					handler.handler(),
-					new Promise((_, reject) => 
-						setTimeout(() => reject(new Error("Handler timeout")), handler.timeout)
-					)
+					new Promise((_, reject) =>
+						setTimeout(
+							() => reject(new Error("Handler timeout")),
+							handler.timeout,
+						),
+					),
 				]);
 			} else {
 				// Execute without timeout
@@ -217,10 +225,10 @@ export class GracefulShutdownService {
 				name: handler.name,
 				duration: endTime - startTime,
 			});
-
 		} catch (error) {
 			const endTime = Date.now();
-			const errorMessage = error instanceof Error ? error.message : String(error);
+			const errorMessage =
+				error instanceof Error ? error.message : String(error);
 
 			this.metrics.handlersExecuted.push({
 				name: handler.name,
@@ -286,7 +294,7 @@ export class GracefulShutdownService {
 			handler: async () => {
 				this.logger.info("Flushing remaining logs");
 				// Give time for log flushing
-				await new Promise(resolve => setTimeout(resolve, 100));
+				await new Promise((resolve) => setTimeout(resolve, 100));
 			},
 			timeout: 2000,
 		});
@@ -299,7 +307,7 @@ export class GracefulShutdownService {
 		// Handle SIGTERM (Kubernetes, Docker, etc.)
 		process.on("SIGTERM", () => {
 			this.logger.info("Received SIGTERM signal");
-			this.shutdown("SIGTERM", 30000).catch(error => {
+			this.shutdown("SIGTERM", 30000).catch((error) => {
 				this.logger.error("Error during SIGTERM shutdown", { error });
 				this.forceShutdown(1);
 			});
@@ -308,7 +316,7 @@ export class GracefulShutdownService {
 		// Handle SIGINT (Ctrl+C)
 		process.on("SIGINT", () => {
 			this.logger.info("Received SIGINT signal");
-			this.shutdown("SIGINT", 15000).catch(error => {
+			this.shutdown("SIGINT", 15000).catch((error) => {
 				this.logger.error("Error during SIGINT shutdown", { error });
 				this.forceShutdown(1);
 			});
@@ -325,11 +333,14 @@ export class GracefulShutdownService {
 		});
 
 		// Handle unhandled promise rejections
-		process.on("unhandledRejection", (reason, promise) => {
-			this.logger.error("Unhandled promise rejection, initiating emergency shutdown", {
-				reason: reason instanceof Error ? reason.message : String(reason),
-				stack: reason instanceof Error ? reason.stack : undefined,
-			});
+		process.on("unhandledRejection", (reason, _promise) => {
+			this.logger.error(
+				"Unhandled promise rejection, initiating emergency shutdown",
+				{
+					reason: reason instanceof Error ? reason.message : String(reason),
+					stack: reason instanceof Error ? reason.stack : undefined,
+				},
+			);
 			console.error("💥 Unhandled promise rejection:", reason);
 			this.forceShutdown(1);
 		});
@@ -363,7 +374,10 @@ export function registerShutdownHandler(handler: ShutdownHandler): void {
 /**
  * Initiate graceful shutdown
  */
-export async function initiateGracefulShutdown(signal?: string, timeout = 30000): Promise<void> {
+export async function initiateGracefulShutdown(
+	signal?: string,
+	timeout = 30000,
+): Promise<void> {
 	return getGracefulShutdownService().shutdown(signal, timeout);
 }
 

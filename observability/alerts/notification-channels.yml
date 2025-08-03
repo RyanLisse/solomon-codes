@@ -1,0 +1,72 @@
+# Notification Channel Configurations for VibeX Alerts
+
+# Slack Integration
+slack_configs:
+  - api_url: "${SLACK_WEBHOOK_URL}"
+    channel: "#vibeX-alerts"
+    title: "VibeX Alert: {{ .GroupLabels.alertname }}"
+    text: |
+      {{ range .Alerts }}
+      *Alert:* {{ .Annotations.summary }}
+      *Description:* {{ .Annotations.description }}
+      *Severity:* {{ .Labels.severity }}
+      *Service:* {{ .Labels.service }}
+      {{ if .Annotations.runbook_url }}*Runbook:* {{ .Annotations.runbook_url }}{{ end }}
+      {{ end }}
+    send_resolved: true
+
+# Email Configuration
+email_configs:
+  - to: "${ALERT_EMAIL_TO}"
+    from: "${ALERT_EMAIL_FROM}"
+    smarthost: "${SMTP_HOST}:${SMTP_PORT}"
+    auth_username: "${SMTP_USERNAME}"
+    auth_password: "${SMTP_PASSWORD}"
+    subject: "VibeX Alert: {{ .GroupLabels.alertname }}"
+    body: |
+      {{ range .Alerts }}
+      Alert: {{ .Annotations.summary }}
+      Description: {{ .Annotations.description }}
+      Severity: {{ .Labels.severity }}
+      Service: {{ .Labels.service }}
+      {{ if .Annotations.runbook_url }}Runbook: {{ .Annotations.runbook_url }}{{ end }}
+      
+      {{ end }}
+
+# PagerDuty Integration (for critical alerts)
+pagerduty_configs:
+  - routing_key: "${PAGERDUTY_INTEGRATION_KEY}"
+    description: "{{ .GroupLabels.alertname }}: {{ .CommonAnnotations.summary }}"
+    severity: "{{ .CommonLabels.severity }}"
+    details:
+      service: "{{ .CommonLabels.service }}"
+      description: "{{ .CommonAnnotations.description }}"
+      runbook_url: "{{ .CommonAnnotations.runbook_url }}"
+
+# Webhook for custom integrations
+webhook_configs:
+  - url: "${CUSTOM_WEBHOOK_URL}"
+    send_resolved: true
+    http_config:
+      bearer_token: "${WEBHOOK_AUTH_TOKEN}"
+    title: "VibeX Alert"
+    text: |
+      {
+        "alert": "{{ .GroupLabels.alertname }}",
+        "summary": "{{ .CommonAnnotations.summary }}",
+        "description": "{{ .CommonAnnotations.description }}",
+        "severity": "{{ .CommonLabels.severity }}",
+        "service": "{{ .CommonLabels.service }}",
+        "status": "{{ .Status }}",
+        "alerts": [
+          {{ range .Alerts }}
+          {
+            "status": "{{ .Status }}",
+            "labels": {{ .Labels | toJSON }},
+            "annotations": {{ .Annotations | toJSON }},
+            "startsAt": "{{ .StartsAt }}",
+            "endsAt": "{{ .EndsAt }}"
+          }{{ if not (last $index $.Alerts) }},{{ end }}
+          {{ end }}
+        ]
+      }

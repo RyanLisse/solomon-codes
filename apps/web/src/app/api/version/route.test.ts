@@ -1,10 +1,17 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { NextResponse } from "next/server";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Import modules for mocking
+import * as configService from "@/lib/config/service";
+import * as loggingFactory from "@/lib/logging/factory";
 
 // Mock dependencies following London School TDD principles
+const mockGetConfiguration = vi.fn();
+const mockGetEnvironmentInfo = vi.fn();
+
 vi.mock("@/lib/config/service", () => ({
 	getConfigurationService: vi.fn(() => ({
-		getConfiguration: vi.fn(),
-		getEnvironmentInfo: vi.fn(),
+		getConfiguration: mockGetConfiguration,
+		getEnvironmentInfo: mockGetEnvironmentInfo,
 	})),
 }));
 
@@ -27,7 +34,7 @@ import { GET } from "./route";
 
 /**
  * London School TDD Test Suite for Version Endpoint
- * 
+ *
  * Following London School (mockist) approach:
  * - Outside-in development from behavior down to implementation
  * - Mock all collaborators to test interactions
@@ -61,20 +68,23 @@ describe("GET /api/version - London School TDD", () => {
 
 		// Mock system functions
 		vi.spyOn(process, "uptime").mockReturnValue(12345);
-		vi.spyOn(Date.prototype, "toISOString").mockReturnValue("2024-01-01T12:00:00.000Z");
+		vi.spyOn(Date.prototype, "toISOString").mockReturnValue(
+			"2024-01-01T12:00:00.000Z",
+		);
 
 		// Setup default successful behaviors for happy path
-		const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
-		const mockConfigService = getConfigurationService();
-		mockConfigService.getConfiguration.mockReturnValue(mockConfig);
-		mockConfigService.getEnvironmentInfo.mockReturnValue(mockEnvironmentInfo);
+		mockGetConfiguration.mockReturnValue(mockConfig);
+		mockGetEnvironmentInfo.mockReturnValue(mockEnvironmentInfo);
 
-		const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
-		const mockLogger = createApiLogger();
+		const { createApiLogger } = vi.mocked(loggingFactory);
+		const _mockLogger = createApiLogger("test-route");
 		// Logger methods are already mocked by the vi.mock setup
 
-		const { NextResponse } = vi.mocked(require("next/server"));
-		NextResponse.json.mockReturnValue({ status: 200 });
+		const mockedNextResponse = vi.mocked(NextResponse);
+		mockedNextResponse.json.mockReturnValue({
+			status: 200,
+			json: vi.fn(),
+		} as any);
 	});
 
 	afterEach(() => {
@@ -88,10 +98,10 @@ describe("GET /api/version - London School TDD", () => {
 
 			// Assert - Verify the conversation sequence between collaborators
 			// London School focuses on HOW objects collaborate
-			
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
-			
+
+			const { createApiLogger } = vi.mocked(loggingFactory);
+			const { getConfigurationService } = vi.mocked(configService);
+
 			// 1. Should create logger with correct route context
 			expect(createApiLogger).toHaveBeenCalledWith("version");
 			expect(createApiLogger).toHaveBeenCalledTimes(1);
@@ -103,17 +113,22 @@ describe("GET /api/version - London School TDD", () => {
 			const mockLogger = createApiLogger();
 
 			// 3. Should log the incoming request
-			expect(mockLogger.info).toHaveBeenCalledWith("Version information requested");
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				"Version information requested",
+			);
 
 			// 4. Should fetch configuration data through proper sequence
 			expect(mockConfigService.getConfiguration).toHaveBeenCalledTimes(1);
 			expect(mockConfigService.getEnvironmentInfo).toHaveBeenCalledTimes(1);
 
 			// 5. Should log successful retrieval with context
-			expect(mockLogger.info).toHaveBeenCalledWith("Version information retrieved", {
-				version: mockConfig.appVersion,
-				environment: mockEnvironmentInfo.environment,
-			});
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				"Version information retrieved",
+				{
+					version: mockConfig.appVersion,
+					environment: mockEnvironmentInfo.environment,
+				},
+			);
 
 			// 6. Verify total logger interactions (2 info calls)
 			expect(mockLogger.info).toHaveBeenCalledTimes(2);
@@ -124,9 +139,9 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify the data contract and response construction
-			const { NextResponse } = vi.mocked(require("next/server"));
-			
-			expect(NextResponse.json).toHaveBeenCalledWith(
+			const mockedNextResponse = vi.mocked(NextResponse);
+
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					// Core version data from configuration service
 					version: mockConfig.appVersion,
@@ -135,12 +150,12 @@ describe("GET /api/version - London School TDD", () => {
 					profile: mockEnvironmentInfo.profile,
 					description: mockEnvironmentInfo.description,
 					features: mockEnvironmentInfo.features,
-					
+
 					// System runtime information
 					uptime: 12345,
 					nodeVersion: process.version,
 					platform: process.platform,
-					
+
 					// Timestamps
 					buildTimestamp: "2024-01-01T12:00:00.000Z",
 					timestamp: "2024-01-01T12:00:00.000Z",
@@ -150,7 +165,7 @@ describe("GET /api/version - London School TDD", () => {
 					headers: {
 						"Cache-Control": "public, max-age=300",
 					},
-				}
+				},
 			);
 		});
 
@@ -159,16 +174,16 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify caching behavior
-			const { NextResponse } = vi.mocked(require("next/server"));
-			
-			expect(NextResponse.json).toHaveBeenCalledWith(
+			const mockedNextResponse = vi.mocked(NextResponse);
+
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				expect.any(Object),
 				expect.objectContaining({
 					status: 200,
 					headers: expect.objectContaining({
 						"Cache-Control": "public, max-age=300",
 					}),
-				})
+				}),
 			);
 		});
 	});
@@ -177,7 +192,7 @@ describe("GET /api/version - London School TDD", () => {
 		it("should handle configuration retrieval errors with proper error logging and response", async () => {
 			// Arrange - Setup error scenario in collaborator
 			const configError = new Error("Configuration service unavailable");
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
+			const { getConfigurationService } = vi.mocked(configService);
 			const mockConfigService = getConfigurationService();
 			mockConfigService.getConfiguration.mockImplementation(() => {
 				throw configError;
@@ -187,13 +202,15 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify error handling collaboration
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
-			const { NextResponse } = vi.mocked(require("next/server"));
+			const { createApiLogger } = vi.mocked(loggingFactory);
+			const mockedNextResponse = vi.mocked(NextResponse);
 			const mockLogger = createApiLogger();
 
 			// 1. Should still create logger and log initial request
 			expect(createApiLogger).toHaveBeenCalledWith("version");
-			expect(mockLogger.info).toHaveBeenCalledWith("Version information requested");
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				"Version information requested",
+			);
 
 			// 2. Should attempt to get configuration service
 			expect(getConfigurationService).toHaveBeenCalledTimes(1);
@@ -206,7 +223,7 @@ describe("GET /api/version - London School TDD", () => {
 			});
 
 			// 4. Should return error response with proper format
-			expect(NextResponse.json).toHaveBeenCalledWith(
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				{
 					error: "Failed to retrieve version information",
 					details: {
@@ -214,7 +231,7 @@ describe("GET /api/version - London School TDD", () => {
 					},
 					timestamp: "2024-01-01T12:00:00.000Z",
 				},
-				{ status: 500 }
+				{ status: 500 },
 			);
 
 			// 5. Verify no success logging occurred
@@ -224,7 +241,7 @@ describe("GET /api/version - London School TDD", () => {
 		it("should handle environment info retrieval errors with proper error workflow", async () => {
 			// Arrange - Setup error in environment info retrieval
 			const envError = new Error("Environment info not available");
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
+			const { getConfigurationService } = vi.mocked(configService);
 			const mockConfigService = getConfigurationService();
 			mockConfigService.getEnvironmentInfo.mockImplementation(() => {
 				throw envError;
@@ -234,33 +251,33 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify error handling sequence
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
-			const { NextResponse } = vi.mocked(require("next/server"));
+			const { createApiLogger } = vi.mocked(loggingFactory);
+			const mockedNextResponse = vi.mocked(NextResponse);
 			const mockLogger = createApiLogger();
 
 			expect(mockConfigService.getConfiguration).toHaveBeenCalledTimes(1);
 			expect(mockConfigService.getEnvironmentInfo).toHaveBeenCalledTimes(1);
-			
+
 			expect(mockLogger.error).toHaveBeenCalledWith("Version endpoint error", {
 				error: envError.message,
 				stack: envError.stack,
 			});
 
-			expect(NextResponse.json).toHaveBeenCalledWith(
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					error: "Failed to retrieve version information",
 					details: {
 						error: envError.message,
 					},
 				}),
-				{ status: 500 }
+				{ status: 500 },
 			);
 		});
 
 		it("should handle non-Error exceptions with proper string conversion", async () => {
 			// Arrange - Setup non-Error exception scenario
 			const stringError = "Configuration timeout";
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
+			const { getConfigurationService } = vi.mocked(configService);
 			const mockConfigService = getConfigurationService();
 			mockConfigService.getConfiguration.mockImplementation(() => {
 				throw stringError;
@@ -270,8 +287,8 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify proper handling of non-Error exceptions
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
-			const { NextResponse } = vi.mocked(require("next/server"));
+			const { createApiLogger } = vi.mocked(loggingFactory);
+			const mockedNextResponse = vi.mocked(NextResponse);
 			const mockLogger = createApiLogger();
 
 			expect(mockLogger.error).toHaveBeenCalledWith("Version endpoint error", {
@@ -279,14 +296,14 @@ describe("GET /api/version - London School TDD", () => {
 				stack: undefined, // No stack for non-Error types
 			});
 
-			expect(NextResponse.json).toHaveBeenCalledWith(
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					error: "Failed to retrieve version information",
 					details: {
 						error: stringError,
 					},
 				}),
-				{ status: 500 }
+				{ status: 500 },
 			);
 		});
 	});
@@ -297,18 +314,25 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify logger collaboration contract
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
+			const { createApiLogger } = vi.mocked(loggingFactory);
 			const mockLogger = createApiLogger();
 
 			// 1. Logger creation with proper context
 			expect(createApiLogger).toHaveBeenCalledWith("version");
 
 			// 2. Logger usage pattern verification
-			expect(mockLogger.info).toHaveBeenNthCalledWith(1, "Version information requested");
-			expect(mockLogger.info).toHaveBeenNthCalledWith(2, "Version information retrieved", {
-				version: mockConfig.appVersion,
-				environment: mockEnvironmentInfo.environment,
-			});
+			expect(mockLogger.info).toHaveBeenNthCalledWith(
+				1,
+				"Version information requested",
+			);
+			expect(mockLogger.info).toHaveBeenNthCalledWith(
+				2,
+				"Version information retrieved",
+				{
+					version: mockConfig.appVersion,
+					environment: mockEnvironmentInfo.environment,
+				},
+			);
 
 			// 3. No error logging in success case
 			expect(mockLogger.error).not.toHaveBeenCalled();
@@ -320,9 +344,9 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify structured logging contract
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
+			const { createApiLogger } = vi.mocked(loggingFactory);
 			const mockLogger = createApiLogger();
-			
+
 			const secondInfoCall = mockLogger.info.mock.calls[1];
 			expect(secondInfoCall[0]).toBe("Version information retrieved");
 			expect(secondInfoCall[1]).toEqual({
@@ -338,10 +362,10 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Comprehensive interaction verification
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
-			const { NextResponse } = vi.mocked(require("next/server"));
-			
+			const { createApiLogger } = vi.mocked(loggingFactory);
+			const { getConfigurationService } = vi.mocked(configService);
+			const mockedNextResponse = vi.mocked(NextResponse);
+
 			const mockConfigService = getConfigurationService();
 			const mockLogger = createApiLogger();
 
@@ -351,7 +375,7 @@ describe("GET /api/version - London School TDD", () => {
 			expect(mockConfigService.getEnvironmentInfo).toHaveBeenCalledTimes(1);
 			expect(mockLogger.info).toHaveBeenCalledTimes(2);
 			expect(mockLogger.error).toHaveBeenCalledTimes(0);
-			expect(NextResponse.json).toHaveBeenCalledTimes(1);
+			expect(mockedNextResponse.json).toHaveBeenCalledTimes(1);
 		});
 
 		it("should verify no unnecessary collaborator calls are made", async () => {
@@ -359,15 +383,15 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify minimal necessary interactions
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
-			
+			const { createApiLogger } = vi.mocked(loggingFactory);
+			const { getConfigurationService } = vi.mocked(configService);
+
 			const mockConfigService = getConfigurationService();
 			const mockLogger = createApiLogger();
 
 			expect(mockLogger.warn).not.toHaveBeenCalled();
 			expect(mockLogger.debug).not.toHaveBeenCalled();
-			
+
 			// Verify configuration service is called with no parameters
 			expect(mockConfigService.getConfiguration).toHaveBeenCalledWith();
 			expect(mockConfigService.getEnvironmentInfo).toHaveBeenCalledWith();
@@ -378,29 +402,29 @@ describe("GET /api/version - London School TDD", () => {
 		it("should always include timestamp in both success and error responses", async () => {
 			// Test success case
 			await GET();
-			
-			const { NextResponse } = vi.mocked(require("next/server"));
-			expect(NextResponse.json).toHaveBeenCalledWith(
+
+			const mockedNextResponse = vi.mocked(NextResponse);
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					timestamp: "2024-01-01T12:00:00.000Z",
 				}),
-				expect.any(Object)
+				expect.any(Object),
 			);
 
 			// Reset and test error case
 			vi.clearAllMocks();
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
+			const { getConfigurationService } = vi.mocked(configService);
 			const mockConfigService = getConfigurationService();
 			mockConfigService.getConfiguration.mockImplementation(() => {
 				throw new Error("Test error");
 			});
 
 			await GET();
-			expect(NextResponse.json).toHaveBeenCalledWith(
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					timestamp: "2024-01-01T12:00:00.000Z",
 				}),
-				expect.any(Object)
+				expect.any(Object),
 			);
 		});
 
@@ -409,8 +433,8 @@ describe("GET /api/version - London School TDD", () => {
 			await GET();
 
 			// Assert - Verify response contract compliance
-			const { NextResponse } = vi.mocked(require("next/server"));
-			const responseCall = NextResponse.json.mock.calls[0];
+			const mockedNextResponse = vi.mocked(NextResponse);
+			const responseCall = mockedNextResponse.json.mock.calls[0];
 			const responseData = responseCall[0];
 			const responseOptions = responseCall[1];
 
@@ -448,17 +472,21 @@ describe("GET /api/version - London School TDD", () => {
 				features: null,
 			};
 
-			const { getConfigurationService } = vi.mocked(require("@/lib/config/service"));
+			const { getConfigurationService } = vi.mocked(configService);
 			const mockConfigService = getConfigurationService();
-			mockConfigService.getConfiguration.mockReturnValue(edgeCaseConfig as any);
-			mockConfigService.getEnvironmentInfo.mockReturnValue(edgeCaseEnvInfo as any);
+			mockConfigService.getConfiguration.mockReturnValue(
+				edgeCaseConfig as AppConfig,
+			);
+			mockConfigService.getEnvironmentInfo.mockReturnValue(
+				edgeCaseEnvInfo as EnvironmentInfo,
+			);
 
 			// Act
 			await GET();
 
 			// Assert - Verify graceful handling
-			const { NextResponse } = vi.mocked(require("next/server"));
-			expect(NextResponse.json).toHaveBeenCalledWith(
+			const mockedNextResponse = vi.mocked(NextResponse);
+			expect(mockedNextResponse.json).toHaveBeenCalledWith(
 				expect.objectContaining({
 					version: undefined,
 					serviceName: null,
@@ -467,16 +495,19 @@ describe("GET /api/version - London School TDD", () => {
 					description: "",
 					features: null,
 				}),
-				expect.any(Object)
+				expect.any(Object),
 			);
 
 			// Verify logging still works with edge case data
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
+			const { createApiLogger } = vi.mocked(loggingFactory);
 			const mockLogger = createApiLogger();
-			expect(mockLogger.info).toHaveBeenCalledWith("Version information retrieved", {
-				version: undefined,
-				environment: undefined,
-			});
+			expect(mockLogger.info).toHaveBeenCalledWith(
+				"Version information retrieved",
+				{
+					version: undefined,
+					environment: undefined,
+				},
+			);
 		});
 
 		it("should handle system function failures gracefully", async () => {
@@ -488,12 +519,13 @@ describe("GET /api/version - London School TDD", () => {
 			// Act & Assert - Should propagate error through normal error handling
 			await GET();
 
-			const { createApiLogger } = vi.mocked(require("@/lib/logging/factory"));
+			const { createApiLogger } = vi.mocked(loggingFactory);
 			const mockLogger = createApiLogger();
-			expect(mockLogger.error).toHaveBeenCalledWith("Version endpoint error", 
+			expect(mockLogger.error).toHaveBeenCalledWith(
+				"Version endpoint error",
 				expect.objectContaining({
 					error: "System uptime not available",
-				})
+				}),
 			);
 		});
 	});

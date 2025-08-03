@@ -1,4 +1,10 @@
-import { AsyncLocalStorage } from "node:async_hooks";
+// Only import AsyncLocalStorage on server-side
+let AsyncLocalStorage: any;
+if (typeof window === "undefined") {
+	// eslint-disable-next-line @typescript-eslint/no-require-imports
+	AsyncLocalStorage = require("node:async_hooks").AsyncLocalStorage;
+}
+
 import type { NextRequest, NextResponse } from "next/server";
 
 // Extend globalThis to include correlation ID for testing
@@ -19,9 +25,12 @@ interface MiddlewareResponse {
 }
 
 /**
- * Correlation ID context storage
+ * Correlation ID context storage (server-side only)
  */
-const correlationStorage = new AsyncLocalStorage<string>();
+const correlationStorage =
+	typeof window === "undefined" && AsyncLocalStorage
+		? new AsyncLocalStorage<string>()
+		: null;
 
 /**
  * Generate a new correlation ID using crypto.randomUUID
@@ -34,9 +43,11 @@ export function generateCorrelationId(): string {
  * Get the current correlation ID from context
  */
 export function getCorrelationId(): string | undefined {
-	// Try AsyncLocalStorage first
-	const asyncId = correlationStorage.getStore();
-	if (asyncId) return asyncId;
+	// Try AsyncLocalStorage first (server-side only)
+	if (correlationStorage) {
+		const asyncId = correlationStorage.getStore();
+		if (asyncId) return asyncId;
+	}
 
 	// Fallback to global storage for testing
 	return globalThis.__correlationId;

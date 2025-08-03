@@ -1,5 +1,5 @@
-import { createLogger as createWinstonLogger } from "./index";
 import { getConfigurationService } from "../config/service";
+import { createLogger as createWinstonLogger } from "./index";
 import type { Logger } from "./types";
 
 /**
@@ -138,7 +138,7 @@ export class LoggerFactory {
 		initialContext?: Partial<LoggerContext>,
 	): ContextAwareLogger {
 		const baseLogger = createWinstonLogger(component);
-		
+
 		const context: LoggerContext = {
 			component,
 			environment: this.configService.getConfiguration().nodeEnv,

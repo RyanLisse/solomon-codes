@@ -10,14 +10,9 @@ export const configSchema = z.object({
 		.string()
 		.url("SERVER_URL must be a valid URL")
 		.default("http://localhost:3001"),
-	port: z.coerce
-		.number()
-		.int()
-		.min(1)
-		.max(65535)
-		.default(3001),
+	port: z.coerce.number().int().min(1).max(65535).default(3001),
 	nodeEnv: z
-		.enum(["development", "staging", "production"])
+		.enum(["development", "staging", "production", "test"])
 		.default("development"),
 
 	// API Keys - Required in production
@@ -25,8 +20,9 @@ export const configSchema = z.object({
 		.string()
 		.min(1, "OPENAI_API_KEY is required")
 		.optional()
-		.refine(
-			(val, ctx) => {
+		.refine((val, ctx) => {
+			// Safely check ctx.path with proper null/undefined checks
+			if (ctx && ctx.path && Array.isArray(ctx.path) && ctx.path.length >= 2) {
 				if (ctx.path[0] === "nodeEnv" && ctx.path[1] === "production" && !val) {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
@@ -34,17 +30,17 @@ export const configSchema = z.object({
 					});
 					return false;
 				}
-				return true;
-			},
-		),
-	
+			}
+			return true;
+		}),
+
 	e2bApiKey: z.string().optional(),
-	
+
 	browserbaseApiKey: z
 		.string()
 		.min(1, "BROWSERBASE_API_KEY is required for browser automation")
 		.optional(),
-	
+
 	browserbaseProjectId: z
 		.string()
 		.min(1, "BROWSERBASE_PROJECT_ID is required for browser automation")
@@ -53,22 +49,37 @@ export const configSchema = z.object({
 	// Telemetry Configuration
 	otelEndpoint: z
 		.string()
-		.url("OTEL_EXPORTER_OTLP_ENDPOINT must be a valid URL")
 		.optional()
-		.refine(
-			(val, ctx) => {
-				const nodeEnv = process.env.NODE_ENV;
-				if (nodeEnv === "production" && !val) {
+		.refine((val, ctx) => {
+			// Allow empty string for test environment
+			const nodeEnv = process.env.NODE_ENV;
+			if (nodeEnv === "test" && (!val || val === "")) {
+				return true;
+			}
+			// Require valid URL for non-test environments
+			if (val && val !== "") {
+				try {
+					new URL(val);
+					return true;
+				} catch {
 					ctx.addIssue({
 						code: z.ZodIssueCode.custom,
-						message: "OTEL_EXPORTER_OTLP_ENDPOINT is required in production",
+						message: "OTEL_EXPORTER_OTLP_ENDPOINT must be a valid URL",
 					});
 					return false;
 				}
-				return true;
-			},
-		),
-	
+			}
+			// Required in production
+			if (nodeEnv === "production" && !val) {
+				ctx.addIssue({
+					code: z.ZodIssueCode.custom,
+					message: "OTEL_EXPORTER_OTLP_ENDPOINT is required in production",
+				});
+				return false;
+			}
+			return true;
+		}),
+
 	otelHeaders: z
 		.string()
 		.transform((val, ctx) => {
@@ -84,13 +95,13 @@ export const configSchema = z.object({
 		})
 		.pipe(z.record(z.string()))
 		.default("{}"),
-	
+
 	otelSamplingRatio: z.coerce
 		.number()
 		.min(0, "OTEL_SAMPLING_RATIO must be between 0 and 1")
 		.max(1, "OTEL_SAMPLING_RATIO must be between 0 and 1")
 		.default(1.0),
-	
+
 	otelTimeout: z.coerce
 		.number()
 		.int()
@@ -102,13 +113,15 @@ export const configSchema = z.object({
 		.string()
 		.min(1, "APP_VERSION must be provided")
 		.default("unknown"),
-	
+
 	logLevel: z
-		.enum(["debug", "info", "warn", "error"])
+		.string()
+		.toLowerCase()
+		.pipe(z.enum(["debug", "info", "warn", "error"]))
 		.default("info"),
-	
+
 	logFilePath: z.string().optional(),
-	
+
 	serviceName: z
 		.string()
 		.min(1, "SERVICE_NAME must be provided")

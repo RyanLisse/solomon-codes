@@ -3,6 +3,7 @@
 import { Eye, Globe, Play, Settings } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	createStagehandSession,
 	observePageElements,
 	runAutomationTask,
 } from "@/app/actions/stagehand";
@@ -89,19 +90,30 @@ export default function StagehandForm() {
 				}
 			}
 
+			// Create session with configuration
+			const sessionResult = await createStagehandSession(sessionConfig);
+			if (!sessionResult.success) {
+				setResult({
+					success: false,
+					error: sessionResult.error || "Failed to create session",
+				});
+				setIsLoading(false);
+				return;
+			}
+
 			if (mode === "action") {
 				const task: AutomationTask = {
 					url,
 					instructions,
 					extractSchema: parsedSchema,
 				};
-				const response = await runAutomationTask(task, sessionConfig);
+				const response = await runAutomationTask(task, sessionResult.sessionId);
 				setResult(response);
 			} else {
 				const response = await observePageElements(
 					url,
 					instructions,
-					sessionConfig,
+					sessionResult.sessionId,
 				);
 				setResult(response);
 			}

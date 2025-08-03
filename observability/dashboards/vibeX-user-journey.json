@@ -1,0 +1,116 @@
+{
+	"dashboard": {
+		"id": null,
+		"title": "VibeX User Journey Analytics",
+		"tags": ["vibeX", "user-journey"],
+		"timezone": "browser",
+		"panels": [
+			{
+				"id": 1,
+				"title": "Task Creation Rate",
+				"type": "timeseries",
+				"targets": [
+					{
+						"expr": "sum(rate(vibeX_tasks_created_total[5m])) by (task_type)",
+						"legendFormat": "{{task_type}}"
+					}
+				]
+			},
+			{
+				"id": 2,
+				"title": "Task Completion Funnel",
+				"type": "piechart",
+				"targets": [
+					{
+						"expr": "sum(vibeX_tasks_total) by (status)",
+						"legendFormat": "{{status}}"
+					}
+				]
+			},
+			{
+				"id": 3,
+				"title": "Time to First Code Generation",
+				"type": "histogram",
+				"targets": [
+					{
+						"expr": "histogram_quantile(0.50, sum(rate(vibeX_time_to_first_generation_seconds_bucket[5m])) by (le))",
+						"legendFormat": "50th percentile"
+					},
+					{
+						"expr": "histogram_quantile(0.95, sum(rate(vibeX_time_to_first_generation_seconds_bucket[5m])) by (le))",
+						"legendFormat": "95th percentile"
+					}
+				]
+			},
+			{
+				"id": 4,
+				"title": "Pull Request Success Rate",
+				"type": "stat",
+				"targets": [
+					{
+						"expr": "sum(rate(vibeX_pull_requests_total{status=\"success\"}[5m])) / sum(rate(vibeX_pull_requests_total[5m])) * 100",
+						"legendFormat": "PR Success Rate %"
+					}
+				],
+				"fieldConfig": {
+					"defaults": {
+						"unit": "percent"
+					}
+				}
+			},
+			{
+				"id": 5,
+				"title": "User Authentication Events",
+				"type": "timeseries",
+				"targets": [
+					{
+						"expr": "sum(rate(vibeX_auth_events_total[5m])) by (event_type)",
+						"legendFormat": "{{event_type}}"
+					}
+				]
+			},
+			{
+				"id": 6,
+				"title": "Session Duration Distribution",
+				"type": "histogram",
+				"targets": [
+					{
+						"expr": "histogram_quantile(0.50, sum(rate(vibeX_session_duration_seconds_bucket[5m])) by (le))",
+						"legendFormat": "Median"
+					},
+					{
+						"expr": "histogram_quantile(0.90, sum(rate(vibeX_session_duration_seconds_bucket[5m])) by (le))",
+						"legendFormat": "90th percentile"
+					}
+				]
+			},
+			{
+				"id": 7,
+				"title": "Feature Usage Heatmap",
+				"type": "heatmap",
+				"targets": [
+					{
+						"expr": "sum(rate(vibeX_feature_usage_total[5m])) by (feature, hour)",
+						"legendFormat": "{{feature}}"
+					}
+				]
+			},
+			{
+				"id": 8,
+				"title": "Error Distribution by User Journey Stage",
+				"type": "bargraph",
+				"targets": [
+					{
+						"expr": "sum(rate(vibeX_errors_total[5m])) by (journey_stage)",
+						"legendFormat": "{{journey_stage}}"
+					}
+				]
+			}
+		],
+		"time": {
+			"from": "now-24h",
+			"to": "now"
+		},
+		"refresh": "1m"
+	}
+}

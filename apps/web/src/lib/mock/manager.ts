@@ -163,16 +163,12 @@ export function mockAware<T extends any[], R>(
 	mockImplementation: (...args: T) => R | Promise<R>,
 	context?: string,
 ) {
-	return function (
-		target: any,
-		propertyKey: string,
-		descriptor: PropertyDescriptor,
-	) {
+	return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
 		const originalMethod = descriptor.value;
 
 		descriptor.value = async function (...args: T): Promise<R> {
 			const manager = getMockDataManager();
-			
+
 			if (manager.shouldUseMockData()) {
 				const logger = createContextLogger("mock-decorator");
 				logger.debug("Using mock implementation", {

@@ -7,10 +7,10 @@ import {
 	pgTable,
 	text,
 	timestamp,
+	unique,
 	uuid,
 	varchar,
 	vector,
-	unique,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -49,20 +49,38 @@ export const tasks = pgTable(
 		userIdx: index("tasks_user_idx").on(table.userId),
 		archivedIdx: index("tasks_archived_idx").on(table.isArchived),
 		createdAtIdx: index("tasks_created_at_idx").on(table.createdAt),
-		
+
 		// Composite indexes for common query patterns
-		userStatusIdx: index("tasks_user_status_idx").on(table.userId, table.status),
-		userCreatedIdx: index("tasks_user_created_idx").on(table.userId, table.createdAt),
-		sessionStatusIdx: index("tasks_session_status_idx").on(table.sessionId, table.status),
-		statusCreatedIdx: index("tasks_status_created_idx").on(table.status, table.createdAt),
-		userArchivedIdx: index("tasks_user_archived_idx").on(table.userId, table.isArchived),
-		
+		userStatusIdx: index("tasks_user_status_idx").on(
+			table.userId,
+			table.status,
+		),
+		userCreatedIdx: index("tasks_user_created_idx").on(
+			table.userId,
+			table.createdAt,
+		),
+		sessionStatusIdx: index("tasks_session_status_idx").on(
+			table.sessionId,
+			table.status,
+		),
+		statusCreatedIdx: index("tasks_status_created_idx").on(
+			table.status,
+			table.createdAt,
+		),
+		userArchivedIdx: index("tasks_user_archived_idx").on(
+			table.userId,
+			table.isArchived,
+		),
+
 		// Performance optimization indexes
 		lastAccessedIdx: index("tasks_last_accessed_idx").on(table.lastAccessedAt),
 		priorityIdx: index("tasks_priority_idx").on(table.priority),
-		
+
 		// Unique constraints
-		sessionTaskUnique: unique("tasks_session_unique").on(table.sessionId, table.title),
+		sessionTaskUnique: unique("tasks_session_unique").on(
+			table.sessionId,
+			table.title,
+		),
 	}),
 );
 
@@ -75,7 +93,9 @@ export const environments = pgTable(
 		id: uuid("id").primaryKey().defaultRandom(),
 		name: varchar("name", { length: 255 }).notNull(),
 		description: text("description").notNull(),
-		githubOrganization: varchar("github_organization", { length: 255 }).notNull(),
+		githubOrganization: varchar("github_organization", {
+			length: 255,
+		}).notNull(),
 		githubToken: text("github_token").notNull(),
 		githubRepository: varchar("github_repository", { length: 255 }).notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -91,13 +111,22 @@ export const environments = pgTable(
 		nameIdx: index("environments_name_idx").on(table.name),
 		userIdx: index("environments_user_idx").on(table.userId),
 		activeIdx: index("environments_active_idx").on(table.isActive),
-		
+
 		// Composite indexes for common query patterns
-		userActiveIdx: index("environments_user_active_idx").on(table.userId, table.isActive),
-		userNameIdx: index("environments_user_name_idx").on(table.userId, table.name),
-		
+		userActiveIdx: index("environments_user_active_idx").on(
+			table.userId,
+			table.isActive,
+		),
+		userNameIdx: index("environments_user_name_idx").on(
+			table.userId,
+			table.name,
+		),
+
 		// Unique constraints
-		userNameUnique: unique("environments_user_name_unique").on(table.userId, table.name),
+		userNameUnique: unique("environments_user_name_unique").on(
+			table.userId,
+			table.name,
+		),
 	}),
 );
 
@@ -108,7 +137,9 @@ export const taskMetrics = pgTable(
 	"task_metrics",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		taskId: uuid("task_id").notNull().references(() => tasks.id, { onDelete: "cascade" }),
+		taskId: uuid("task_id")
+			.notNull()
+			.references(() => tasks.id, { onDelete: "cascade" }),
 		metricType: varchar("metric_type", { length: 50 }).notNull(),
 		value: integer("value").notNull(),
 		unit: varchar("unit", { length: 20 }).notNull().default("ms"),
@@ -119,7 +150,10 @@ export const taskMetrics = pgTable(
 		taskIdx: index("task_metrics_task_idx").on(table.taskId),
 		typeIdx: index("task_metrics_type_idx").on(table.metricType),
 		timestampIdx: index("task_metrics_timestamp_idx").on(table.timestamp),
-		taskTypeIdx: index("task_metrics_task_type_idx").on(table.taskId, table.metricType),
+		taskTypeIdx: index("task_metrics_task_type_idx").on(
+			table.taskId,
+			table.metricType,
+		),
 	}),
 );
 
@@ -152,7 +186,7 @@ export const dbConfig = {
 		reapIntervalMillis: 1000,
 		createRetryIntervalMillis: 200,
 	},
-	
+
 	// Query optimization settings
 	queryConfig: {
 		// Enable prepared statements for better performance
@@ -161,7 +195,7 @@ export const dbConfig = {
 		logSlowQueries: true,
 		slowQueryThreshold: 1000, // 1 second
 	},
-	
+
 	// ElectricSQL specific optimizations
 	electricConfig: {
 		// Enable write-through caching
@@ -192,7 +226,7 @@ export const performanceQueries = {
 		ORDER BY tm.timestamp DESC
 		LIMIT 10
 	`,
-	
+
 	// Get task performance summary
 	getTaskPerformanceSummary: `
 		SELECT 
@@ -209,7 +243,7 @@ export const performanceQueries = {
 		GROUP BY t.id, t.title, t.status
 		ORDER BY avg_execution_time DESC
 	`,
-	
+
 	// Get database health metrics
 	getDatabaseHealth: `
 		SELECT 

@@ -4,8 +4,8 @@
  */
 
 import React from "react";
+import { devLog, useEnvironment } from "./environment";
 import { FeatureGate, useFeatureGates, withFeatureGate } from "./gates";
-import { useEnvironment, devLog } from "./environment";
 
 // Example 1: Using FeatureGate component for conditional rendering
 export function DebugPanel() {
@@ -22,7 +22,7 @@ export function DebugPanel() {
 // Example 2: Using FeatureGate with fallback
 export function DataDisplay() {
 	return (
-		<FeatureGate 
+		<FeatureGate
 			feature="enableMockData"
 			fallback={<div>Loading real data...</div>}
 		>
@@ -35,17 +35,17 @@ export function DataDisplay() {
 export function ComplexComponent() {
 	const { isEnabled, isDevelopment, isProduction } = useFeatureGates();
 	const environment = useEnvironment();
-	
+
 	React.useEffect(() => {
 		if (isEnabled("enableDetailedLogging")) {
 			devLog("Component mounted with detailed logging");
 		}
-		
+
 		if (isDevelopment()) {
 			devLog("Development mode - extra debugging enabled");
 		}
 	}, [isEnabled, isDevelopment]);
-	
+
 	const handleAction = () => {
 		if (isEnabled("enableExperimentalFeatures")) {
 			// Use experimental API
@@ -55,36 +55,38 @@ export function ComplexComponent() {
 			stableAction();
 		}
 	};
-	
+
 	return (
 		<div>
 			<h2>Environment: {environment.environment}</h2>
-			
+
 			{isProduction() && (
 				<div className="production-warning">
 					Production mode - limited features available
 				</div>
 			)}
-			
+
 			<button onClick={handleAction}>
-				{isEnabled("enableExperimentalFeatures") ? "Try Experimental" : "Use Stable"}
+				{isEnabled("enableExperimentalFeatures")
+					? "Try Experimental"
+					: "Use Stable"}
 			</button>
 		</div>
 	);
 }
 
 // Example 4: Higher-order component for feature gating
-const ExperimentalFeature = withFeatureGate(
+const _ExperimentalFeature = withFeatureGate(
 	"enableExperimentalFeatures",
-	() => <div>Experimental features not available</div>
+	() => <div>Experimental features not available</div>,
 )(function ExperimentalComponent() {
 	return <div>This is an experimental feature!</div>;
 });
 
 // Example 5: API route with feature gating
 export async function apiRouteExample(request: Request) {
-	const { isEnabled } = useFeatureGates();
-	
+	const { isEnabled } = getFeatureGateService();
+
 	// Check if rate limiting should be applied
 	if (isEnabled("enableRateLimiting")) {
 		// Apply rate limiting logic
@@ -93,96 +95,99 @@ export async function apiRouteExample(request: Request) {
 			return new Response("Rate limit exceeded", { status: 429 });
 		}
 	}
-	
+
 	// Check if caching should be used
 	if (isEnabled("enableCaching")) {
 		const cached = await getFromCache(request.url);
 		if (cached) {
 			return new Response(cached, {
-				headers: { "X-Cache": "HIT" }
+				headers: { "X-Cache": "HIT" },
 			});
 		}
 	}
-	
+
 	// Process request normally
 	const result = await processRequest(request);
-	
+
 	// Cache result if caching is enabled
 	if (isEnabled("enableCaching")) {
 		await setCache(request.url, result);
 	}
-	
+
 	return new Response(result);
 }
 
 // Example 6: Server action with feature gating
 export async function serverActionExample() {
-	const { isEnabled } = useFeatureGates();
-	
+	const { isEnabled } = getFeatureGateService();
+
 	if (isEnabled("enableMockData")) {
 		// Return mock data for development
 		return {
 			data: "mock-data",
-			source: "mock"
+			source: "mock",
 		};
 	}
-	
+
 	// Fetch real data
 	const realData = await fetchRealData();
-	
+
 	// Add telemetry if enabled
 	if (isEnabled("enableTelemetry")) {
 		await recordTelemetry("server-action-executed", {
 			action: "serverActionExample",
-			dataSize: realData.length
+			dataSize: realData.length,
 		});
 	}
-	
+
 	return {
 		data: realData,
-		source: "real"
+		source: "real",
 	};
 }
 
 // Example 7: Middleware with feature gating
-export function middlewareExample(request: Request) {
-	const { isEnabled } = useFeatureGates();
-	
+export function middlewareExample(_request: Request) {
+	const { isEnabled } = getFeatureGateService();
+
 	const response = new Response();
-	
+
 	// Add security headers if required
 	if (isEnabled("requireSecureEndpoints")) {
 		response.headers.set("Strict-Transport-Security", "max-age=31536000");
 		response.headers.set("X-Content-Type-Options", "nosniff");
 		response.headers.set("X-Frame-Options", "DENY");
 	}
-	
+
 	// Enable CORS for development
 	if (isEnabled("enableCORS")) {
 		response.headers.set("Access-Control-Allow-Origin", "*");
-		response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+		response.headers.set(
+			"Access-Control-Allow-Methods",
+			"GET, POST, PUT, DELETE",
+		);
 	}
-	
+
 	return response;
 }
 
 // Example 8: Database connection with feature gating
 export async function databaseExample() {
-	const { isEnabled } = useFeatureGates();
-	
+	const { isEnabled } = getFeatureGateService();
+
 	if (isEnabled("enableMockData")) {
 		// Use in-memory database for development
 		return createInMemoryDatabase();
 	}
-	
+
 	// Use real database connection
 	const connection = await createDatabaseConnection();
-	
+
 	// Enable query logging in non-production
 	if (isEnabled("enableDetailedLogging")) {
 		connection.enableQueryLogging();
 	}
-	
+
 	return connection;
 }
 
@@ -195,21 +200,21 @@ function stableAction() {
 	devLog("Using stable action");
 }
 
-async function checkRateLimit(request: Request) {
+async function checkRateLimit(_request: Request) {
 	// Rate limiting implementation
 	return { allowed: true };
 }
 
-async function getFromCache(key: string) {
+async function getFromCache(_key: string) {
 	// Cache retrieval implementation
 	return null;
 }
 
-async function setCache(key: string, value: any) {
+async function setCache(_key: string, _value: any) {
 	// Cache storage implementation
 }
 
-async function processRequest(request: Request) {
+async function processRequest(_request: Request) {
 	// Request processing implementation
 	return "processed result";
 }
@@ -219,7 +224,7 @@ async function fetchRealData() {
 	return "real data";
 }
 
-async function recordTelemetry(event: string, data: any) {
+async function recordTelemetry(_event: string, _data: any) {
 	// Telemetry recording implementation
 }
 
@@ -231,6 +236,6 @@ function createInMemoryDatabase() {
 async function createDatabaseConnection() {
 	// Real database connection
 	return {
-		enableQueryLogging: () => devLog("Query logging enabled")
+		enableQueryLogging: () => devLog("Query logging enabled"),
 	};
 }

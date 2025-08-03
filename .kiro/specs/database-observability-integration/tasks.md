@@ -1,169 +1,170 @@
-# Implementation Plan
+# Letta Stateful AI Agents Integration - Implementation Tasks
 
-- [ ] 1. Install Required Dependencies
-  - Add Drizzle ORM and PostgreSQL dependencies (drizzle-orm, drizzle-kit, @neondatabase/serverless)
-  - Add ElectricSQL client dependencies for real-time sync
-  - Add pgvector support for vector search capabilities
-  - Add WASM dependencies for client-side optimization (sql.js, vector search libraries)
-  - _Requirements: 1.1, 1.2, 2.1, 7.1, 8.3_
+> **Current Status**: Core dependencies installed, basic infrastructure in place. Focus on Letta agents with Supabase persistent memory.
 
-- [ ] 2. Database Schema and Migration Setup
-  - Create comprehensive Drizzle ORM schema with all required tables (tasks, environments, agent_executions, observability_events, agent_memory, workflows, workflow_executions, execution_snapshots)
-  - Implement database migration system with validation and rollback capabilities
-  - Set up Neon PostgreSQL serverless database with proper indexing and constraints
-  - Configure vector search capabilities for agent memory with pgvector extension
-  - _Requirements: 1.1, 1.2, 5.1, 5.2, 7.1_
+## ✅ **Already Implemented**
+- Supabase client (@supabase/supabase-js) for PostgreSQL database
+- Drizzle ORM and PostgreSQL dependencies for database operations
+- Vector search dependencies (pgvector) for semantic memory search
+- VibeKit SDK integration (@vibe-kit/sdk) for agent execution
+- Letta service foundation (mock implementation ready for real Letta integration)
+- Basic database configuration and connection management
+- OpenTelemetry observability stack for system monitoring
 
-- [ ] 3. Basic Database Connection and Configuration
-  - Set up Neon PostgreSQL database connection configuration
-  - Create database client initialization with connection pooling
-  - Implement environment-specific database configurations
-  - Add database health check and monitoring endpoints
-  - _Requirements: 1.1, 1.2, 8.3, 8.4_
+## 🎯 **High Priority - Letta Agent System**
 
-- [ ] 4. Task API Routes with Database Integration
-  - Create API routes for task CRUD operations using Drizzle ORM
-  - Replace localStorage-based task operations with database operations
-  - Add comprehensive Zod validation for task data
-  - Implement proper error handling and response formatting
-  - _Requirements: 1.1, 1.2, 5.1, 5.2_
+- [x] 1. Install Required Dependencies
+  - ✅ Letta client dependencies (@letta-ai/letta-client or letta-client for Python)
+  - ✅ Supabase client dependencies for PostgreSQL persistence
+  - ✅ Drizzle ORM for database operations
+  - ✅ Vector search capabilities (pgvector) for semantic memory
+  - ✅ VibeKit SDK for agent execution capabilities
+  - _Requirements: 1.1, 1.2, 2.1, 6.1, 8.1_
 
-- [ ] 5. Environment API Routes with Database Integration
-  - Create API routes for environment CRUD operations using Drizzle ORM
-  - Replace localStorage-based environment operations with database operations
-  - Add environment configuration validation and schema versioning
-  - Implement environment activation/deactivation with proper state management
-  - _Requirements: 1.1, 1.2, 5.1, 5.2_
+- [ ] 2. Letta Agent Database Schema Setup
+  - Create Drizzle ORM schema for Letta agent persistence in Supabase PostgreSQL
+  - Set up database tables: agents, memory_blocks, archival_memory, agent_messages, agent_tools
+  - Configure Supabase Row Level Security (RLS) policies for agent data isolation
+  - Enable pgvector extension for semantic memory search in Supabase
+  - Create database migration system for Letta agent data using Drizzle Kit
+  - _Priority: HIGH - Foundation for stateful agent persistence_
 
-- [ ] 6. Enhanced TanStack Query Integration
-  - Update existing TanStack Query hooks to use database API routes instead of localStorage
-  - Implement optimistic updates with proper rollback mechanisms for all mutations
-  - Set up intelligent caching strategies with stale-while-revalidate patterns
-  - Add error boundaries and retry logic for database operations
-  - _Requirements: 1.3, 2.3, 3.1, 3.2_
+- [ ] 3. Letta Client Integration and Configuration
+  - Install and configure Letta client SDK (@letta-ai/letta-client for Node.js)
+  - Set up Letta server connection (Letta Cloud or self-hosted)
+  - Configure Letta authentication with API keys and environment variables
+  - Implement Letta client initialization with Supabase backend configuration
+  - Add Letta health check and connection monitoring endpoints
+  - _Priority: HIGH - Essential for Letta agent connectivity_
 
-- [ ] 7. Data Migration System Implementation
-  - Create localStorage to database migration API route
-  - Implement data extraction and validation from existing localStorage stores
-  - Build migration progress tracking and user feedback UI components
-  - Set up rollback mechanism for failed migrations with data integrity checks
-  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
+- [ ] 4. Letta Agent Creation and Management
+  - Create API routes for Letta agent CRUD operations using Letta client
+  - Implement agent creation with memory blocks (persona, human, custom blocks)
+  - Set up agent persistence using Supabase PostgreSQL as Letta backend
+  - Add comprehensive Zod validation for agent configuration and memory blocks
+  - Configure agent-level access controls and user isolation
+  - _Priority: HIGH - Core agent management functionality_
 
-- [ ] 8. Update UI Components for Database Integration
-  - Modify task management components to use updated TanStack Query hooks
-  - Update environment management UI to use query/mutation patterns with optimistic updates
-  - Implement proper loading states, error boundaries, and retry mechanisms
-  - Add migration status indicators and progress displays
-  - _Requirements: 2.1, 2.2, 5.3, 5.4_
+- [ ] 5. Memory Block Management System
+  - Implement memory block CRUD operations using Letta memory management tools
+  - Create API routes for memory block updates (core_memory_append, core_memory_replace)
+  - Set up vector embeddings for memory blocks using pgvector in Supabase
+  - Add semantic search capabilities for memory retrieval and context building
+  - Configure memory block versioning and change tracking
+  - _Priority: HIGH - Core agent memory functionality_
 
-- [ ] 9. Enhanced Observability Events System
-  - Resolve OpenTelemetry dependency conflicts and enable telemetry
-  - Create observability events collection and storage system using database schema
-  - Implement agent execution tracking with comprehensive event logging
-  - Set up performance metrics collection and aggregation with OpenTelemetry integration
-  - _Requirements: 3.1, 3.2, 3.3, 8.1, 8.2_
+## 🔧 **Medium Priority - Enhanced Agent Features**
 
-- [ ] 10. Agent Execution Tracking Infrastructure
-  - Create agent_executions table and API routes for execution tracking
-  - Implement observability_events table for detailed event logging
-  - Build real-time event streaming with proper categorization and filtering
-  - Add execution context capture and metadata storage
-  - _Requirements: 3.1, 3.2, 3.3, 4.1, 8.1_
+- [ ] 6. Archival Memory and Long-term Storage
+  - Implement archival memory system for conversation history beyond context limits
+  - Create vector-based semantic search for archival memory using pgvector
+  - Set up automatic memory summarization and archival processes
+  - Add memory retrieval tools for agents to access long-term memories
+  - Configure memory retention policies and cleanup mechanisms
+  - _Priority: MEDIUM - Enables long-term agent memory capabilities_
 
-- [ ] 11. ElectricSQL Real-time Sync Integration
-  - Configure ElectricSQL client for offline-first real-time synchronization
-  - Set up ElectricSQL sync service with proper authentication and authorization
-  - Implement conflict resolution using last-write-wins with conflict detection
-  - Configure real-time subscriptions for tasks, environments, and agent executions
-  - _Requirements: 2.1, 2.2, 2.4, 2.5_
+- [ ] 7. Agent-to-Agent Communication System
+  - Implement message passing between Letta agents with proper routing
+  - Create shared memory blocks for collaborative agent workflows
+  - Set up agent communication logging and debugging tools
+  - Add multi-agent coordination and workflow orchestration
+  - Configure agent discovery and communication protocols
+  - _Priority: MEDIUM - Enables multi-agent system capabilities_
 
-- [ ] 12. WASM Services Layer Implementation
-  - Create WASM availability detection and progressive enhancement system
-  - Implement VectorSearchWASM service for client-side semantic search
-  - Build SQLiteWASMUtils for optimized local database operations
-  - Develop ComputeWASM service for heavy computational tasks
-  - _Requirements: 3.4, 7.2, 8.3_
+- [ ] 8. Agent Dashboard and Memory Visualization
+  - Create agent management dashboard with memory block visualization
+  - Implement conversation history viewer with agent reasoning steps
+  - Add memory modification logs and agent decision traces
+  - Build real-time agent status monitoring and health indicators
+  - Create agent performance metrics and memory usage analytics
+  - _Priority: MEDIUM - Essential for agent monitoring and debugging_
 
-- [ ] 13. Agent Memory and Context System
-  - Implement agent_memory table with vector embeddings support
-  - Create API routes for agent memory storage and retrieval
-  - Build semantic search capabilities for agent context retrieval using vector search
-  - Set up automatic context summarization and archival system
-  - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5_
+- [ ] 9. VibeKit Integration with Letta Agents
+  - Integrate Letta agents with existing VibeKit execution system
+  - Maintain agent memory context throughout VibeKit code execution
+  - Update agent memory with VibeKit execution results and learnings
+  - Provide agent memory context to enhance VibeKit operations
+  - Configure agent tools to access VibeKit capabilities while preserving state
+  - _Priority: MEDIUM - Bridges agent memory with execution capabilities_
 
-- [ ] 14. Time-Travel Debugging Implementation
-  - Create execution_snapshots table for storing execution states
-  - Implement step-by-step execution capture and storage
+- [ ] 10. Enhanced TanStack Query with Letta Integration
+  - Update existing TanStack Query hooks to use Letta agent API routes
+  - Implement optimistic updates for agent memory modifications
+  - Set up intelligent caching strategies for agent conversations and memory
+  - Add error boundaries and retry logic for Letta agent operations
+  - Configure real-time updates for agent state changes and memory modifications
+  - _Priority: MEDIUM - Improves user experience with agent interactions_
+
+## 📊 **Low Priority - Advanced Features**
+
+- [ ] 11. Advanced Memory Management Features
+  - Implement memory summarization and compression algorithms
+  - Create memory importance scoring and automatic archival
+  - Set up memory conflict resolution and merge strategies
+  - Add memory analytics and usage pattern analysis
+  - Configure memory optimization and cleanup processes
+  - _Priority: LOW - Advanced memory management capabilities_
+
+- [ ] 12. Agent Templates and Import/Export
+  - Implement agent template system for reusable agent configurations
+  - Create agent export functionality with memory and configuration backup
+  - Set up agent import system with memory restoration and validation
+  - Add agent cloning and template sharing capabilities
+  - Configure agent versioning and rollback mechanisms
+  - _Priority: LOW - Advanced agent management features_
+
+- [ ] 13. Vector Search and AI Memory System
+  - Implement agent_memory table in Supabase with pgvector embeddings support
+  - Create Supabase API routes for Letta AI memory storage and retrieval
+  - Build semantic search capabilities for agent context retrieval using Supabase vector search
+  - Set up automatic context summarization and archival system with Letta integration
+  - Configure vector similarity search for intelligent memory retrieval
+  - _Priority: LOW - Advanced AI memory capabilities_
+
+- [ ] 14. Time-Travel Debugging for VibeKit Executions
+  - Create execution_snapshots table in Supabase for storing VibeKit execution states
+  - Implement step-by-step VibeKit execution capture and storage
   - Build execution replay functionality with timeline visualization
-  - Create execution comparison tools for debugging failed runs
-  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+  - Create execution comparison tools for debugging failed VibeKit runs
+  - Add time-travel debugging UI components for VibeKit execution analysis
+  - _Priority: LOW - Advanced debugging capabilities_
 
-- [ ] 15. Workflow Orchestration Engine
-  - Create workflows and workflow_executions tables with versioning support
-  - Implement workflow definition storage and management API routes
-  - Build workflow execution engine with pause/resume functionality
-  - Set up checkpoint system for reliable workflow recovery
-  - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
+## 🚀 **Quick Wins (Can be done immediately)**
 
-- [ ] 16. Real-time Updates and Synchronization
-  - Integrate ElectricSQL with TanStack Query for real-time cache invalidation
-  - Implement real-time workflow progress tracking and monitoring
-  - Add offline indicators and sync status displays
-  - Set up real-time agent execution status updates
-  - _Requirements: 2.1, 2.2, 2.3, 6.5_
+- [ ] Install Letta client SDK (@letta-ai/letta-client)
+- [ ] Add Letta environment configuration to Next.js config
+- [ ] Create basic Letta client initialization utility
+- [ ] Set up Letta server connection health check endpoint
+- [ ] Replace existing mock Letta service with real Letta client integration
 
-- [ ] 17. Enhanced Error Handling and Recovery
-  - Implement comprehensive error classes for all system components
-  - Create error recovery strategies with exponential backoff
-  - Build circuit breaker patterns for external service failures
-  - Set up error correlation and distributed tracing
-  - _Requirements: 3.5, 8.4, 8.5_
+## 📋 **Future Enhancements (Deferred)**
 
-- [ ] 18. Vector Search and Embeddings Integration
-  - Implement vector embedding generation for tasks and agent memory
-  - Set up pgvector extension configuration and indexing
-  - Create semantic search API endpoints with WASM optimization
-  - Build vector similarity search UI components
-  - _Requirements: 7.1, 7.2, 7.3, 8.3_
+- [ ] Advanced Error Handling and Recovery
+  - Implement comprehensive error classes for Supabase operations
+  - Create error recovery strategies with exponential backoff for database connections
+  - Build circuit breaker patterns for Supabase service failures
+  - Set up error correlation and distributed tracing with OpenTelemetry
 
-- [ ] 19. Performance Optimization and Monitoring
-  - Implement query optimization with proper indexing strategies
-  - Create performance monitoring dashboards with key metrics
+- [ ] Performance Optimization and Monitoring
+  - Implement Supabase query optimization with proper indexing strategies
+  - Create performance monitoring dashboards with Supabase metrics
   - Set up automated performance alerts and recommendations
-  - Build resource usage optimization for memory and CPU
-  - _Requirements: 8.1, 8.2, 8.3, 8.4, 8.5_
+  - Build resource usage optimization for Supabase connections
 
-- [ ] 20. Complete Time-Travel Debugging UI
-  - Build time-travel debugging dashboard components
-  - Implement execution timeline visualization
-  - Create step-by-step replay controls and state viewer
-  - Add execution comparison and diff visualization
-  - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
+- [ ] Comprehensive Testing Suite
+  - Create unit tests for all Supabase TanStack Query hooks and database operations
+  - Build integration tests for Supabase real-time synchronization
+  - Add end-to-end tests for complete user workflows with Supabase integration
+  - Create performance tests for vector search and AI memory operations
 
-- [ ] 21. Comprehensive Testing Suite
-  - Create unit tests for all TanStack Query hooks and database operations
-  - Build integration tests for ElectricSQL real-time synchronization
-  - Add WASM module testing for vector search and compute functions
-  - Create end-to-end tests for complete user workflows with database integration
-  - _Requirements: 1.3, 2.3, 3.5, 5.4_
+- [ ] Production Supabase Configuration
+  - Configure Supabase with proper security and scaling settings
+  - Set up Supabase connection pooling and optimization
+  - Implement Supabase backup and disaster recovery strategies
+  - Set up monitoring and alerting for Supabase database health
 
-- [ ] 22. Production Database Configuration
-  - Configure Neon PostgreSQL with proper security and scaling settings
-  - Set up database connection pooling and optimization
-  - Implement database backup and disaster recovery
-  - Set up monitoring and alerting for database health
-  - _Requirements: 8.3, 8.4, 8.5_
-
-- [ ] 23. Deployment Configuration and Monitoring
-  - Set up ElectricSQL service deployment with monitoring and alerting
-  - Configure OpenTelemetry exporters for production observability platform
-  - Create deployment scripts and database migration automation
-  - Set up environment-specific configuration management
-  - _Requirements: 8.3, 8.4, 8.5_
-
-- [ ] 24. Documentation and Migration Guides
-  - Write comprehensive documentation for new database architecture and APIs
+- [ ] Documentation and Migration Guides
+  - Write comprehensive documentation for Supabase database architecture and APIs
   - Create migration guide for users upgrading from localStorage-based system
-  - Document observability features and debugging capabilities
-  - Add troubleshooting guide for common sync and database issues
-  - _Requirements: 5.3, 5.5_
+  - Document Letta AI integration and observability features
+  - Add troubleshooting guide for common Supabase sync and database issues

@@ -2,27 +2,29 @@
  * Error handling and monitoring system initialization
  */
 
-import { initializeGlobalErrorHandling } from "./global-handler";
-import { initializeErrorReporting } from "./error-reporting";
-import { initializePerformanceMonitoring } from "../monitoring/performance";
 import { createContextLogger } from "../logging/factory";
+import { initializePerformanceMonitoring } from "../monitoring/performance";
+import { initializeErrorReporting } from "./error-reporting";
+import { initializeGlobalErrorHandling } from "./global-handler";
 
-export * from "./global-handler";
-export * from "./error-reporting";
 export * from "../monitoring/performance";
+export * from "./error-reporting";
+export * from "./global-handler";
 
 /**
  * Initialize comprehensive error handling and monitoring system
  */
 export async function initializeErrorHandlingSystem(): Promise<void> {
 	const logger = createContextLogger("error-system-init");
-	
+
 	try {
-		logger.info("Initializing comprehensive error handling and monitoring system...");
-		
+		logger.info(
+			"Initializing comprehensive error handling and monitoring system...",
+		);
+
 		// Initialize global error handling
 		initializeGlobalErrorHandling();
-		
+
 		// Initialize error reporting
 		initializeErrorReporting({
 			enabled: true,
@@ -30,7 +32,7 @@ export async function initializeErrorHandlingSystem(): Promise<void> {
 			batchSize: 10,
 			flushInterval: 30000,
 		});
-		
+
 		// Initialize performance monitoring
 		initializePerformanceMonitoring({
 			enabled: true,
@@ -44,10 +46,13 @@ export async function initializeErrorHandlingSystem(): Promise<void> {
 				cpuUsage: 80,
 			},
 		});
-		
-		logger.info("Error handling and monitoring system initialized successfully");
-		console.log("🛡️ Error handling and monitoring system initialized successfully");
-		
+
+		logger.info(
+			"Error handling and monitoring system initialized successfully",
+		);
+		console.log(
+			"🛡️ Error handling and monitoring system initialized successfully",
+		);
 	} catch (error) {
 		logger.error("Failed to initialize error handling system", { error });
 		console.error("❌ Failed to initialize error handling system:", error);

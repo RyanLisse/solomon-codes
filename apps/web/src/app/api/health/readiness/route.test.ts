@@ -1,4 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from "vitest";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type Mock,
+	vi,
+} from "vitest";
 import { GET } from "./route";
 
 // Mock dependencies
@@ -46,12 +54,48 @@ describe("/api/health/readiness", () => {
 			endTime: Date.now(),
 			duration: 150,
 			validationSteps: [
-				{ name: "environment", startTime: 0, endTime: 25, duration: 25, success: true },
-				{ name: "configuration", startTime: 25, endTime: 40, duration: 15, success: true },
-				{ name: "database", startTime: 40, endTime: 90, duration: 50, success: true },
-				{ name: "api-connectivity", startTime: 90, endTime: 120, duration: 30, success: true },
-				{ name: "service-dependencies", startTime: 120, endTime: 140, duration: 20, success: true },
-				{ name: "telemetry", startTime: 140, endTime: 150, duration: 10, success: true },
+				{
+					name: "environment",
+					startTime: 0,
+					endTime: 25,
+					duration: 25,
+					success: true,
+				},
+				{
+					name: "configuration",
+					startTime: 25,
+					endTime: 40,
+					duration: 15,
+					success: true,
+				},
+				{
+					name: "database",
+					startTime: 40,
+					endTime: 90,
+					duration: 50,
+					success: true,
+				},
+				{
+					name: "api-connectivity",
+					startTime: 90,
+					endTime: 120,
+					duration: 30,
+					success: true,
+				},
+				{
+					name: "service-dependencies",
+					startTime: 120,
+					endTime: 140,
+					duration: 20,
+					success: true,
+				},
+				{
+					name: "telemetry",
+					startTime: 140,
+					endTime: 150,
+					duration: 10,
+					success: true,
+				},
 			],
 		});
 
@@ -119,11 +163,15 @@ describe("/api/health/readiness", () => {
 			expect(data.ready).toBe(false);
 			expect(data.checks.database).toBe(false);
 			expect(data.message).toBe("Application is not ready to accept traffic");
-			expect(data.details.errors).toContain("Database not ready: Connection timeout, Query failed");
+			expect(data.details.errors).toContain(
+				"Database not ready: Connection timeout, Query failed",
+			);
 		});
 
 		it("should return not ready when database check fails", async () => {
-			(checkDatabaseHealth as Mock).mockRejectedValue(new Error("Database connection failed"));
+			(checkDatabaseHealth as Mock).mockRejectedValue(
+				new Error("Database connection failed"),
+			);
 
 			const response = await GET();
 			const data = await response.json();
@@ -131,7 +179,9 @@ describe("/api/health/readiness", () => {
 			expect(response.status).toBe(503);
 			expect(data.ready).toBe(false);
 			expect(data.checks.database).toBe(false);
-			expect(data.details.errors).toContain("Database readiness check failed: Database connection failed");
+			expect(data.details.errors).toContain(
+				"Database readiness check failed: Database connection failed",
+			);
 		});
 
 		it("should return not ready when critical startup steps fail", async () => {
@@ -143,9 +193,27 @@ describe("/api/health/readiness", () => {
 			mockStartupService.getStartupMetrics.mockReturnValue({
 				...mockStartupService.getStartupMetrics(),
 				validationSteps: [
-					{ name: "environment", startTime: 0, endTime: 25, duration: 25, success: true },
-					{ name: "configuration", startTime: 25, endTime: 40, duration: 15, success: false },
-					{ name: "database", startTime: 40, endTime: 90, duration: 50, success: true },
+					{
+						name: "environment",
+						startTime: 0,
+						endTime: 25,
+						duration: 25,
+						success: true,
+					},
+					{
+						name: "configuration",
+						startTime: 25,
+						endTime: 40,
+						duration: 15,
+						success: false,
+					},
+					{
+						name: "database",
+						startTime: 40,
+						endTime: 90,
+						duration: 50,
+						success: true,
+					},
 				],
 			});
 
@@ -155,18 +223,50 @@ describe("/api/health/readiness", () => {
 			expect(response.status).toBe(503);
 			expect(data.ready).toBe(false);
 			expect(data.checks.startup).toBe(false);
-			expect(data.details.errors).toContain("Critical startup steps failed: configuration");
+			expect(data.details.errors).toContain(
+				"Critical startup steps failed: configuration",
+			);
 		});
 
 		it("should be ready with warnings when non-critical steps fail", async () => {
 			mockStartupService.getStartupMetrics.mockReturnValue({
 				...mockStartupService.getStartupMetrics(),
 				validationSteps: [
-					{ name: "environment", startTime: 0, endTime: 25, duration: 25, success: true },
-					{ name: "configuration", startTime: 25, endTime: 40, duration: 15, success: true },
-					{ name: "database", startTime: 40, endTime: 90, duration: 50, success: true },
-					{ name: "telemetry", startTime: 90, endTime: 100, duration: 10, success: false },
-					{ name: "api-connectivity", startTime: 100, endTime: 120, duration: 20, success: false },
+					{
+						name: "environment",
+						startTime: 0,
+						endTime: 25,
+						duration: 25,
+						success: true,
+					},
+					{
+						name: "configuration",
+						startTime: 25,
+						endTime: 40,
+						duration: 15,
+						success: true,
+					},
+					{
+						name: "database",
+						startTime: 40,
+						endTime: 90,
+						duration: 50,
+						success: true,
+					},
+					{
+						name: "telemetry",
+						startTime: 90,
+						endTime: 100,
+						duration: 10,
+						success: false,
+					},
+					{
+						name: "api-connectivity",
+						startTime: 100,
+						endTime: 120,
+						duration: 20,
+						success: false,
+					},
 				],
 			});
 
@@ -176,7 +276,9 @@ describe("/api/health/readiness", () => {
 			expect(response.status).toBe(200);
 			expect(data.ready).toBe(true);
 			expect(data.message).toBe("Application is ready but with warnings");
-			expect(data.details.warnings).toContain("Non-critical startup steps failed: telemetry, api-connectivity");
+			expect(data.details.warnings).toContain(
+				"Non-critical startup steps failed: telemetry, api-connectivity",
+			);
 		});
 
 		it("should identify critical vs non-critical validation steps correctly", async () => {
@@ -185,9 +287,27 @@ describe("/api/health/readiness", () => {
 			mockStartupService.getStartupMetrics.mockReturnValue({
 				...mockStartupService.getStartupMetrics(),
 				validationSteps: [
-					{ name: "environment", startTime: 0, endTime: 25, duration: 25, success: false },
-					{ name: "configuration", startTime: 25, endTime: 40, duration: 15, success: true },
-					{ name: "telemetry", startTime: 40, endTime: 50, duration: 10, success: false },
+					{
+						name: "environment",
+						startTime: 0,
+						endTime: 25,
+						duration: 25,
+						success: false,
+					},
+					{
+						name: "configuration",
+						startTime: 25,
+						endTime: 40,
+						duration: 15,
+						success: true,
+					},
+					{
+						name: "telemetry",
+						startTime: 40,
+						endTime: 50,
+						duration: 10,
+						success: false,
+					},
 				],
 			});
 
@@ -196,8 +316,12 @@ describe("/api/health/readiness", () => {
 
 			expect(response.status).toBe(503);
 			expect(data.ready).toBe(false);
-			expect(data.details.errors).toContain("Critical startup steps failed: environment");
-			expect(data.details.warnings).toContain("Non-critical startup steps failed: telemetry");
+			expect(data.details.errors).toContain(
+				"Critical startup steps failed: environment",
+			);
+			expect(data.details.warnings).toContain(
+				"Non-critical startup steps failed: telemetry",
+			);
 		});
 
 		it("should handle readiness probe errors gracefully", async () => {
@@ -220,14 +344,16 @@ describe("/api/health/readiness", () => {
 		it("should log readiness probe activity", async () => {
 			await GET();
 
-			expect(mockLogger.debug).toHaveBeenCalledWith("Readiness probe requested");
+			expect(mockLogger.debug).toHaveBeenCalledWith(
+				"Readiness probe requested",
+			);
 			expect(mockLogger.debug).toHaveBeenCalledWith(
 				"Readiness probe completed",
 				expect.objectContaining({
 					ready: true,
 					errors: 0,
 					warnings: 0,
-				})
+				}),
 			);
 		});
 
@@ -244,7 +370,7 @@ describe("/api/health/readiness", () => {
 				expect.objectContaining({
 					ready: false,
 					errors: expect.any(Number),
-				})
+				}),
 			);
 		});
 
@@ -260,7 +386,7 @@ describe("/api/health/readiness", () => {
 				expect.objectContaining({
 					error: "Critical service failure",
 					stack: expect.any(String),
-				})
+				}),
 			);
 		});
 
@@ -270,9 +396,15 @@ describe("/api/health/readiness", () => {
 			const afterTime = new Date().toISOString();
 			const data = await response.json();
 
-			expect(data.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-			expect(data.timestamp).toBeGreaterThanOrEqual(beforeTime);
-			expect(data.timestamp).toBeLessThanOrEqual(afterTime);
+			expect(data.timestamp).toMatch(
+				/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+			);
+			expect(new Date(data.timestamp).getTime()).toBeGreaterThanOrEqual(
+				new Date(beforeTime).getTime(),
+			);
+			expect(new Date(data.timestamp).getTime()).toBeLessThanOrEqual(
+				new Date(afterTime).getTime(),
+			);
 		});
 
 		it("should maintain consistent check structure", async () => {
@@ -298,9 +430,27 @@ describe("/api/health/readiness", () => {
 			mockStartupService.getStartupMetrics.mockReturnValue({
 				...mockStartupService.getStartupMetrics(),
 				validationSteps: [
-					{ name: "environment", startTime: 0, endTime: 25, duration: 25, success: true },
-					{ name: "configuration", startTime: 25, endTime: 40, duration: 15, success: false },
-					{ name: "telemetry", startTime: 40, endTime: 50, duration: 10, success: false }, // This will cause a warning
+					{
+						name: "environment",
+						startTime: 0,
+						endTime: 25,
+						duration: 25,
+						success: true,
+					},
+					{
+						name: "configuration",
+						startTime: 25,
+						endTime: 40,
+						duration: 15,
+						success: false,
+					},
+					{
+						name: "telemetry",
+						startTime: 40,
+						endTime: 50,
+						duration: 10,
+						success: false,
+					}, // This will cause a warning
 				],
 			});
 

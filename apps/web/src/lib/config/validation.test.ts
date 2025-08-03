@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	getEnvironmentRequirements,
 	hasRequiredEnvironmentVariables,
 	printValidationResults,
+	type ValidationResult,
 	validateEnvironment,
 	validateOptionalEnvVars,
 	validateRequiredEnvVars,
-	type ValidationResult,
 } from "./validation";
 
 describe("Environment Validation", () => {
@@ -42,7 +42,9 @@ describe("Environment Validation", () => {
 			expect(result.success).toBe(false);
 			expect(result.environment).toBe("production");
 			expect(result.errors.length).toBeGreaterThan(0);
-			expect(result.errors.some(error => error.includes("OPENAI_API_KEY"))).toBe(true);
+			expect(
+				result.errors.some((error) => error.includes("OPENAI_API_KEY")),
+			).toBe(true);
 		});
 
 		it("should validate production environment with all required vars", () => {
@@ -50,7 +52,8 @@ describe("Environment Validation", () => {
 			process.env.OPENAI_API_KEY = "sk-test-key";
 			process.env.BROWSERBASE_API_KEY = "bb-test-key";
 			process.env.BROWSERBASE_PROJECT_ID = "test-project";
-			process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "https://jaeger.example.com/v1/traces";
+			process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
+				"https://jaeger.example.com/v1/traces";
 
 			const result = validateEnvironment();
 
@@ -64,12 +67,17 @@ describe("Environment Validation", () => {
 			process.env.OPENAI_API_KEY = "sk-test-key";
 			process.env.BROWSERBASE_API_KEY = "bb-test-key";
 			process.env.BROWSERBASE_PROJECT_ID = "test-project";
-			process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://insecure-endpoint.com/v1/traces"; // Should fail HTTPS validation
+			process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
+				"http://insecure-endpoint.com/v1/traces"; // Should fail HTTPS validation
 
 			const result = validateEnvironment();
 
 			expect(result.success).toBe(false);
-			expect(result.errors.some(error => error.includes("OTEL_EXPORTER_OTLP_ENDPOINT"))).toBe(true);
+			expect(
+				result.errors.some((error) =>
+					error.includes("OTEL_EXPORTER_OTLP_ENDPOINT"),
+				),
+			).toBe(true);
 		});
 
 		it("should validate staging environment", () => {
@@ -96,7 +104,11 @@ describe("Environment Validation", () => {
 
 			const result = validateEnvironment();
 
-			expect(result.warnings.some(warning => warning.includes("OTEL_SAMPLING_RATIO"))).toBe(true);
+			expect(
+				result.warnings.some((warning) =>
+					warning.includes("OTEL_SAMPLING_RATIO"),
+				),
+			).toBe(true);
 		});
 	});
 
@@ -112,7 +124,10 @@ describe("Environment Validation", () => {
 		});
 
 		it("should fail when required variables are missing", () => {
-			const result = validateRequiredEnvVars(["MISSING_VAR_1", "MISSING_VAR_2"]);
+			const result = validateRequiredEnvVars([
+				"MISSING_VAR_1",
+				"MISSING_VAR_2",
+			]);
 
 			expect(result.success).toBe(false);
 			expect(result.errors).toHaveLength(2);
@@ -160,22 +175,30 @@ describe("Environment Validation", () => {
 			const requirements = getEnvironmentRequirements("production");
 
 			expect(requirements.length).toBeGreaterThan(0);
-			expect(requirements.some(req => req.name === "OPENAI_API_KEY")).toBe(true);
-			expect(requirements.some(req => req.name === "BROWSERBASE_API_KEY")).toBe(true);
+			expect(requirements.some((req) => req.name === "OPENAI_API_KEY")).toBe(
+				true,
+			);
+			expect(
+				requirements.some((req) => req.name === "BROWSERBASE_API_KEY"),
+			).toBe(true);
 		});
 
 		it("should return staging requirements", () => {
 			const requirements = getEnvironmentRequirements("staging");
 
 			expect(requirements.length).toBeGreaterThan(0);
-			expect(requirements.some(req => req.name === "OPENAI_API_KEY")).toBe(true);
+			expect(requirements.some((req) => req.name === "OPENAI_API_KEY")).toBe(
+				true,
+			);
 		});
 
 		it("should return development requirements", () => {
 			const requirements = getEnvironmentRequirements("development");
 
 			expect(requirements.length).toBeGreaterThan(0);
-			expect(requirements.some(req => req.name === "OPENAI_API_KEY")).toBe(true);
+			expect(requirements.some((req) => req.name === "OPENAI_API_KEY")).toBe(
+				true,
+			);
 		});
 
 		it("should return empty array for unknown environment", () => {
@@ -190,7 +213,9 @@ describe("Environment Validation", () => {
 			const requirements = getEnvironmentRequirements();
 
 			expect(requirements.length).toBeGreaterThan(0);
-			expect(requirements.some(req => req.name === "OPENAI_API_KEY")).toBe(true);
+			expect(requirements.some((req) => req.name === "OPENAI_API_KEY")).toBe(
+				true,
+			);
 		});
 	});
 
@@ -229,7 +254,9 @@ describe("Environment Validation", () => {
 				expect.stringContaining("Environment Validation (development)"),
 			);
 			expect(consoleSpy).toHaveBeenCalledWith(
-				expect.stringContaining("✅ All required environment variables are present"),
+				expect.stringContaining(
+					"✅ All required environment variables are present",
+				),
 			);
 		});
 
@@ -259,7 +286,10 @@ describe("Environment Validation", () => {
 			const result: ValidationResult = {
 				success: true,
 				errors: [],
-				warnings: ["Optional LOG_LEVEL not set", "Optional SERVICE_NAME not set"],
+				warnings: [
+					"Optional LOG_LEVEL not set",
+					"Optional SERVICE_NAME not set",
+				],
 				timestamp: new Date("2024-01-01T00:00:00Z"),
 				environment: "development",
 			};

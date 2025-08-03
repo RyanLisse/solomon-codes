@@ -9,10 +9,10 @@
 		"preview": "astro preview",
 		"astro": "astro",
 		"lint": "echo 'Docs linting skipped - Astro configuration issues'",
-		"check-types": "tsc --noEmit"
+		"check-types": "astro check"
 	},
 	"dependencies": {
-		"@astrojs/starlight": "^0.35.1",
+		"@astrojs/starlight": "^0.35.2",
 		"astro": "^5.6.1",
 		"sharp": "^0.34.2"
 	},

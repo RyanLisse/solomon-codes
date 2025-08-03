@@ -5,20 +5,38 @@
 		"build": {
 			"dependsOn": ["^build", "validate-env", "check-types", "lint"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", ".next/**", "out/**", "bundle-stats.json", "bundle-analyzer-report.html"],
+			"outputs": [
+				"dist/**",
+				".next/**",
+				"out/**",
+				"bundle-stats.json",
+				"bundle-analyzer-report.html"
+			],
 			"env": ["NODE_ENV", "ANALYZE", "NEXT_PUBLIC_*"]
 		},
 		"build:production": {
 			"dependsOn": ["validate-env", "audit", "check-types", "lint", "test:ci"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", ".next/**", "out/**", "bundle-stats.json", "bundle-analyzer-report.html"],
+			"outputs": [
+				"dist/**",
+				".next/**",
+				"out/**",
+				"bundle-stats.json",
+				"bundle-analyzer-report.html"
+			],
 			"env": ["NODE_ENV", "ANALYZE", "NEXT_PUBLIC_*", "CI"],
 			"cache": false
 		},
 		"build:analyze": {
 			"dependsOn": ["validate-env", "check-types"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
-			"outputs": ["dist/**", ".next/**", "out/**", "bundle-stats.json", "bundle-analyzer-report.html"],
+			"outputs": [
+				"dist/**",
+				".next/**",
+				"out/**",
+				"bundle-stats.json",
+				"bundle-analyzer-report.html"
+			],
 			"env": ["NODE_ENV", "ANALYZE=true", "NEXT_PUBLIC_*"]
 		},
 		"validate-env": {
@@ -173,13 +191,7 @@
 			"env": ["NODE_ENV=production", "NEXT_PUBLIC_*"]
 		}
 	},
-	"globalEnv": [
-		"NODE_ENV",
-		"CI",
-		"VERCEL",
-		"CF_PAGES",
-		"RAILWAY_ENVIRONMENT"
-	],
+	"globalEnv": ["NODE_ENV", "CI", "VERCEL", "CF_PAGES", "RAILWAY_ENVIRONMENT"],
 	"globalPassThroughEnv": [
 		"NODE_ENV",
 		"CI",

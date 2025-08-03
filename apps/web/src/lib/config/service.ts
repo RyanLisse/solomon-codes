@@ -1,6 +1,6 @@
+import { createClientLogger } from "../logging/client";
 import { type AppConfig, getConfig } from "./index";
-import { validateEnvironment, printValidationResults } from "./validation";
-import { createContextLogger } from "../logging/factory";
+import { printValidationResults, validateEnvironment } from "./validation";
 
 /**
  * Environment profile definitions
@@ -57,7 +57,8 @@ export const ENVIRONMENT_PROFILES: Record<string, EnvironmentProfile> = {
 	},
 	production: {
 		name: "production",
-		description: "Production environment with security and performance optimizations",
+		description:
+			"Production environment with security and performance optimizations",
 		features: {
 			enableDebugTools: false,
 			enableMockData: false,
@@ -79,7 +80,7 @@ export const ENVIRONMENT_PROFILES: Record<string, EnvironmentProfile> = {
 export class ConfigurationService {
 	private config: AppConfig;
 	private profile: EnvironmentProfile;
-	private logger: ReturnType<typeof createContextLogger> | null = null;
+	private logger: ReturnType<typeof createClientLogger> | null = null;
 
 	constructor() {
 		this.config = getConfig();
@@ -88,7 +89,7 @@ export class ConfigurationService {
 
 	private getLogger() {
 		if (!this.logger) {
-			this.logger = createContextLogger("configuration-service");
+			this.logger = createClientLogger("configuration-service");
 		}
 		return this.logger;
 	}
@@ -131,7 +132,7 @@ export class ConfigurationService {
 	): AppConfig[K] {
 		const configValue = this.config[key];
 		const profileDefault = this.profile.defaults[key] as AppConfig[K];
-		
+
 		return configValue ?? profileDefault ?? fallback;
 	}
 
@@ -140,7 +141,7 @@ export class ConfigurationService {
 	 */
 	validateConfiguration(): boolean {
 		const validationResult = validateEnvironment();
-		
+
 		if (!validationResult.success) {
 			this.getLogger().error("Configuration validation failed", {
 				environment: this.config.nodeEnv,
@@ -152,10 +153,13 @@ export class ConfigurationService {
 		}
 
 		if (validationResult.warnings.length > 0) {
-			this.getLogger().warn("Configuration validation completed with warnings", {
-				environment: this.config.nodeEnv,
-				warnings: validationResult.warnings,
-			});
+			this.getLogger().warn(
+				"Configuration validation completed with warnings",
+				{
+					environment: this.config.nodeEnv,
+					warnings: validationResult.warnings,
+				},
+			);
 			printValidationResults(validationResult);
 		}
 
@@ -178,10 +182,13 @@ export class ConfigurationService {
 	getTelemetryConfig() {
 		const isEnabled = this.isFeatureEnabled("enableTelemetry");
 		const endpoint = this.getEnvironmentValue("otelEndpoint");
-		
+
 		return {
 			isEnabled: isEnabled && Boolean(endpoint),
-			endpoint: endpoint || this.profile.defaults.otelEndpoint || "http://localhost:4318/v1/traces",
+			endpoint:
+				endpoint ||
+				this.profile.defaults.otelEndpoint ||
+				"http://localhost:4318/v1/traces",
 			headers: this.config.otelHeaders,
 			samplingRatio: this.config.otelSamplingRatio,
 			timeout: this.getEnvironmentValue("otelTimeout"),
@@ -217,7 +224,9 @@ export class ConfigurationService {
 			browserbase: {
 				apiKey: this.config.browserbaseApiKey,
 				projectId: this.config.browserbaseProjectId,
-				isConfigured: Boolean(this.config.browserbaseApiKey && this.config.browserbaseProjectId),
+				isConfigured: Boolean(
+					this.config.browserbaseApiKey && this.config.browserbaseProjectId,
+				),
 			},
 			e2b: {
 				apiKey: this.config.e2bApiKey,
@@ -301,25 +310,30 @@ export function resetConfigurationService(): void {
  * Should be called at application startup
  */
 export function initializeConfiguration(): ConfigurationService {
-	const logger = createContextLogger("configuration-init");
+	const logger = createClientLogger("configuration-init");
 	const service = getConfigurationService();
-	
+
 	logger.info("Initializing configuration service", {
 		environment: service.getProfile().name,
 		description: service.getProfile().description,
 	});
-	
+
 	// Keep console output for startup visibility
 	console.log("🔧 Initializing configuration service...");
 	console.log(`📍 Environment: ${service.getProfile().name}`);
 	console.log(`📝 Description: ${service.getProfile().description}`);
-	
+
 	if (!service.validateConfiguration()) {
 		logger.error("Configuration validation failed. Exiting...");
 		console.error("❌ Configuration validation failed. Exiting...");
-		process.exit(1);
+		// Only exit in Node.js environment, not Edge Runtime
+		if (typeof process !== "undefined" && process.exit) {
+			process.exit(1);
+		} else {
+			throw new Error("Configuration validation failed");
+		}
 	}
-	
+
 	logger.info("Configuration service initialized successfully");
 	console.log("✅ Configuration service initialized successfully");
 	return service;

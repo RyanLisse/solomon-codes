@@ -1,7 +1,7 @@
 "use server";
 
-import { getStagehandClient } from "@/lib/stagehand/client";
 import { createServiceLogger } from "@/lib/logging/factory";
+import { getStagehandClient } from "@/lib/stagehand/client";
 import type {
 	AutomationResult,
 	AutomationTask,
@@ -13,10 +13,10 @@ export const createStagehandSession = async (
 	config?: Partial<SessionConfig>,
 ): Promise<{ sessionId: string; success: boolean; error?: string }> => {
 	const logger = createServiceLogger("stagehand-action");
-	
+
 	try {
 		const client = getStagehandClient();
-		
+
 		// Check if Stagehand is configured
 		if (!client.isConfigured()) {
 			logger.warn("Stagehand not configured - missing API key or project ID");
@@ -30,7 +30,9 @@ export const createStagehandSession = async (
 		// Perform health check
 		const healthCheck = await client.healthCheck();
 		if (!healthCheck.healthy) {
-			logger.error("Stagehand health check failed", { details: healthCheck.details });
+			logger.error("Stagehand health check failed", {
+				details: healthCheck.details,
+			});
 			return {
 				sessionId: "",
 				success: false,
@@ -38,9 +40,15 @@ export const createStagehandSession = async (
 			};
 		}
 
-		// Create session
-		const result = await client.createSession(config || {});
-		
+		// Create session with defaults
+		const sessionConfig: SessionConfig = {
+			headless: true,
+			logger: false,
+			viewport: { width: 1280, height: 720 },
+			...config,
+		};
+		const result = await client.createSession(sessionConfig);
+
 		logger.info("Stagehand session created via action", {
 			sessionId: result.sessionId,
 			success: result.success,
@@ -65,7 +73,7 @@ export const runAutomationTask = async (
 	sessionId?: string,
 ): Promise<AutomationResult> => {
 	const logger = createServiceLogger("stagehand-automation");
-	
+
 	try {
 		const validatedTask = AutomationTaskSchema.parse(task);
 		const client = getStagehandClient();
@@ -89,7 +97,7 @@ export const runAutomationTask = async (
 
 		// Run the automation task
 		const result = await client.runAutomationTask(validatedTask, sessionId);
-		
+
 		logger.info("Automation task completed", {
 			success: result.success,
 			hasData: Boolean(result.data),
@@ -107,7 +115,9 @@ export const runAutomationTask = async (
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : "Unknown error",
-			logs: [`Error: ${error instanceof Error ? error.message : "Unknown error"}`],
+			logs: [
+				`Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+			],
 		};
 	}
 };
@@ -118,7 +128,7 @@ export const observePageElements = async (
 	sessionId?: string,
 ): Promise<AutomationResult> => {
 	const logger = createServiceLogger("stagehand-observation");
-	
+
 	try {
 		const client = getStagehandClient();
 
@@ -139,8 +149,12 @@ export const observePageElements = async (
 		}
 
 		// Observe page elements
-		const result = await client.observePageElements(url, instruction, sessionId);
-		
+		const result = await client.observePageElements(
+			url,
+			instruction,
+			sessionId,
+		);
+
 		logger.info("Page observation completed", {
 			success: result.success,
 			hasData: Boolean(result.data),
@@ -159,7 +173,9 @@ export const observePageElements = async (
 		return {
 			success: false,
 			error: error instanceof Error ? error.message : "Unknown error",
-			logs: [`Error: ${error instanceof Error ? error.message : "Unknown error"}`],
+			logs: [
+				`Error: ${error instanceof Error ? error.message : "Unknown error"}`,
+			],
 		};
 	}
 };
@@ -173,11 +189,11 @@ export const getStagehandHealth = async (): Promise<{
 	details?: Record<string, unknown>;
 }> => {
 	const logger = createServiceLogger("stagehand-health");
-	
+
 	try {
 		const client = getStagehandClient();
 		const health = await client.healthCheck();
-		
+
 		logger.info("Stagehand health check completed", {
 			healthy: health.healthy,
 			message: health.message,
@@ -202,16 +218,18 @@ export const getStagehandHealth = async (): Promise<{
 /**
  * Close a Stagehand session
  */
-export const closeStagehandSession = async (sessionId: string): Promise<{
+export const closeStagehandSession = async (
+	sessionId: string,
+): Promise<{
 	success: boolean;
 	error?: string;
 }> => {
 	const logger = createServiceLogger("stagehand-session-close");
-	
+
 	try {
 		const client = getStagehandClient();
 		await client.closeSession(sessionId);
-		
+
 		logger.info("Stagehand session closed", { sessionId });
 
 		return { success: true };
@@ -231,18 +249,20 @@ export const closeStagehandSession = async (sessionId: string): Promise<{
 /**
  * Get active Stagehand sessions
  */
-export const getActiveStagehandSessions = async (): Promise<Array<{
-	id: string;
-	createdAt: Date;
-	lastUsed: Date;
-	isActive: boolean;
-}>> => {
+export const getActiveStagehandSessions = async (): Promise<
+	Array<{
+		id: string;
+		createdAt: Date;
+		lastUsed: Date;
+		isActive: boolean;
+	}>
+> => {
 	const logger = createServiceLogger("stagehand-sessions");
-	
+
 	try {
 		const client = getStagehandClient();
 		const sessions = client.getActiveSessions();
-		
+
 		logger.info("Retrieved active Stagehand sessions", {
 			count: sessions.length,
 		});

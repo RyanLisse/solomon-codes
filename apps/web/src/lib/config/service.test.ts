@@ -1,6 +1,5 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-	ConfigurationService,
 	ENVIRONMENT_PROFILES,
 	getConfigurationService,
 	resetConfigurationService,

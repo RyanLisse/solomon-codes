@@ -43,28 +43,31 @@ export function getOrCreateCorrelationId(request: NextRequest): string {
  */
 export function createRequestContext(request: NextRequest): RequestContext {
 	const correlationId = getOrCreateCorrelationId(request);
-	
+
 	const context: RequestContext = {
 		correlationId,
 		startTime: Date.now(),
 		method: request.method,
 		url: request.url,
 		userAgent: request.headers.get("user-agent") || undefined,
-		ip: request.headers.get("x-forwarded-for") || 
-			request.headers.get("x-real-ip") || 
+		ip:
+			request.headers.get("x-forwarded-for") ||
+			request.headers.get("x-real-ip") ||
 			"unknown",
 	};
 
 	// Store context for later retrieval
 	requestContextMap.set(correlationId, context);
-	
+
 	return context;
 }
 
 /**
  * Get request context by correlation ID
  */
-export function getRequestContext(correlationId: string): RequestContext | undefined {
+export function getRequestContext(
+	correlationId: string,
+): RequestContext | undefined {
 	return requestContextMap.get(correlationId);
 }
 
@@ -86,7 +89,7 @@ export function createLoggingMiddleware() {
 		response: NextResponse,
 	) {
 		const context = createRequestContext(request);
-		
+
 		// Log incoming request
 		logger.info("Incoming request", {
 			correlationId: context.correlationId,
@@ -132,7 +135,7 @@ export function expressLoggingMiddleware(
 
 	// Add correlation ID to request
 	req.correlationId = correlationId;
-	
+
 	// Add correlation ID to response headers
 	res.setHeader(CORRELATION_ID_HEADER, correlationId);
 
@@ -147,9 +150,9 @@ export function expressLoggingMiddleware(
 
 	// Override res.end to log response
 	const originalEnd = res.end;
-	res.end = function(chunk: unknown, encoding?: string) {
+	res.end = function (chunk: unknown, encoding?: string) {
 		const duration = Date.now() - startTime;
-		
+
 		logger.info("Request completed", {
 			correlationId,
 			method: req.method,
@@ -178,7 +181,7 @@ export function getCurrentCorrelationId(): string | undefined {
  */
 export function createCorrelatedLogger(context: string) {
 	const baseLogger = createLogger(context);
-	
+
 	return {
 		debug: (message: string, meta?: object) => {
 			const correlationId = getCurrentCorrelationId();
@@ -215,7 +218,7 @@ export function createPerformanceMiddleware() {
 
 		// Override res.end to measure performance
 		const originalEnd = res.end;
-		res.end = function(chunk: unknown, encoding?: string) {
+		res.end = function (chunk: unknown, encoding?: string) {
 			const endTime = process.hrtime.bigint();
 			const duration = Number(endTime - startTime) / 1000000; // Convert to milliseconds
 
@@ -230,7 +233,8 @@ export function createPerformanceMiddleware() {
 			});
 
 			// Log slow requests
-			if (duration > 1000) { // Slower than 1 second
+			if (duration > 1000) {
+				// Slower than 1 second
 				logger.warn("Slow request detected", {
 					correlationId,
 					method: req.method,

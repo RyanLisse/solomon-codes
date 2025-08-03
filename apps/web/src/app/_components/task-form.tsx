@@ -2,6 +2,10 @@
 import { HardDrive, Split } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	SandboxSelector,
+	useSandboxPreference,
+} from "@/components/sandbox-selector";
 import { Button } from "@/components/ui/button";
 import {
 	Select,
@@ -13,7 +17,6 @@ import {
 import { useGitHubAuth } from "@/hooks/use-github-auth";
 import { useCreateTask } from "@/hooks/use-tasks";
 import { useEnvironmentStore } from "@/stores/environments";
-import { SandboxSelector, useSandboxPreference } from "@/components/sandbox-selector";
 
 export default function TaskForm() {
 	const { environments } = useEnvironmentStore();

@@ -2,10 +2,13 @@
  * Error reporting service for production issue tracking
  */
 
-import { createContextLogger } from "../logging/factory";
 import { getConfigurationService } from "../config/service";
+import { createContextLogger } from "../logging/factory";
 import { getTelemetryService } from "../telemetry";
-import type { ErrorReport, CategorizedError } from "./global-handler";
+import type {
+	CategorizedError as _CategorizedError,
+	ErrorReport,
+} from "./global-handler";
 
 export interface ErrorReportingConfig {
 	enabled: boolean;
@@ -94,9 +97,10 @@ export class ErrorReportingService {
 				batchSize: this.config.batchSize,
 				flushInterval: this.config.flushInterval,
 			});
-
 		} catch (error) {
-			this.getLogger().error("Failed to initialize error reporting service", { error });
+			this.getLogger().error("Failed to initialize error reporting service", {
+				error,
+			});
 		}
 	}
 
@@ -130,7 +134,6 @@ export class ErrorReportingService {
 			if (errorReport.categorization.severity === "critical") {
 				this.flush();
 			}
-
 		} catch (error) {
 			this.getLogger().error("Failed to report error", {
 				originalErrorId: errorReport.id,
@@ -191,7 +194,6 @@ export class ErrorReportingService {
 			this.getLogger().debug("Error buffer flushed successfully", {
 				errorCount: errorsToFlush.length,
 			});
-
 		} catch (error) {
 			this.getLogger().error("Failed to flush error buffer", {
 				errorCount: errorsToFlush.length,
@@ -211,7 +213,7 @@ export class ErrorReportingService {
 	private async sendErrors(errors: ErrorReport[]): Promise<void> {
 		// In a real implementation, this would send to an external service like Sentry
 		const telemetryService = getTelemetryService();
-		
+
 		if (telemetryService.isEnabled()) {
 			// Send to OpenTelemetry
 			for (const error of errors) {
@@ -264,9 +266,12 @@ export class ErrorReportingService {
 	 * Get error metrics for monitoring
 	 */
 	getErrorMetrics(): ErrorMetrics {
-		const totalErrors = Array.from(this.errorCounts.values()).reduce((sum, count) => sum + count, 0);
+		const totalErrors = Array.from(this.errorCounts.values()).reduce(
+			(sum, count) => sum + count,
+			0,
+		);
 		const uniqueErrors = this.errorCounts.size;
-		
+
 		// Calculate error rate (errors per minute)
 		const now = new Date();
 		const oneMinuteAgo = new Date(now.getTime() - 60000);
@@ -283,7 +288,7 @@ export class ErrorReportingService {
 			.sort(([, a], [, b]) => b - a)
 			.slice(0, 10)
 			.map(([message, count]) => ({
-				message: message.split(':')[1] || message, // Extract just the message
+				message: message.split(":")[1] || message, // Extract just the message
 				count,
 			}));
 
@@ -309,13 +314,13 @@ export class ErrorReportingService {
 		for (const [errorKey, count] of this.errorCounts) {
 			const firstSeen = this.errorFirstSeen.get(errorKey) || now.toISOString();
 			const lastSeen = this.errorLastSeen.get(errorKey) || now.toISOString();
-			
+
 			// Simple trend calculation (would be more sophisticated in production)
 			const firstSeenTime = new Date(firstSeen).getTime();
 			const lastSeenTime = new Date(lastSeen).getTime();
 			const timeSpan = lastSeenTime - firstSeenTime;
 			const hoursSinceFirst = timeSpan / (1000 * 60 * 60);
-			
+
 			let trend: "increasing" | "decreasing" | "stable" = "stable";
 			if (hoursSinceFirst > 1) {
 				const rate = count / hoursSinceFirst;
@@ -329,7 +334,7 @@ export class ErrorReportingService {
 			else if (count > 10) severity = "medium";
 
 			trends.push({
-				errorType: errorKey.split(':')[0] || "unknown",
+				errorType: errorKey.split(":")[0] || "unknown",
 				count,
 				firstSeen,
 				lastSeen,
@@ -417,21 +422,22 @@ export function getErrorReportingService(): ErrorReportingService {
 /**
  * Initialize error reporting service
  */
-export function initializeErrorReporting(config?: Partial<ErrorReportingConfig>): void {
+export function initializeErrorReporting(
+	config?: Partial<ErrorReportingConfig>,
+): void {
 	const logger = createContextLogger("error-reporting-init");
-	
+
 	try {
 		logger.info("Initializing error reporting service...");
-		
+
 		const service = getErrorReportingService();
 		if (config) {
 			service.updateConfig(config);
 		}
 		service.initialize();
-		
+
 		logger.info("Error reporting service initialized successfully");
 		console.log("📊 Error reporting service initialized successfully");
-		
 	} catch (error) {
 		logger.error("Failed to initialize error reporting service", { error });
 		console.error("❌ Failed to initialize error reporting service:", error);

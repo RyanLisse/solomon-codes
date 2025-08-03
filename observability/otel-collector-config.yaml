@@ -1,0 +1,55 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+  
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: development
+        action: upsert
+      - key: service.namespace
+        value: vibeX
+        action: upsert
+
+  # Add sampling for high-volume environments
+  probabilistic_sampler:
+    sampling_percentage: 100.0
+
+exporters:
+  jaeger:
+    endpoint: jaeger:14250
+    tls:
+      insecure: true
+
+  # Console exporter for debugging
+  logging:
+    loglevel: debug
+
+  # OTLP exporter for forwarding to other backends
+  otlp:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [resource, batch, probabilistic_sampler]
+      exporters: [jaeger, logging]
+
+  extensions: []
+  
+  telemetry:
+    logs:
+      level: "debug"

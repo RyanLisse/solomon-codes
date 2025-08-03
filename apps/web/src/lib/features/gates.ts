@@ -9,36 +9,36 @@ export interface FeatureGates {
 	isDevelopment: boolean;
 	isStaging: boolean;
 	isProduction: boolean;
-	
+
 	// Development tools
 	enableDebugTools: boolean;
 	enableDevToolbar: boolean;
 	enableReactDevTools: boolean;
 	enableReduxDevTools: boolean;
-	
+
 	// Data and testing
 	enableMockData: boolean;
 	enableTestFixtures: boolean;
 	enableSeedData: boolean;
-	
+
 	// Logging and monitoring
 	enableDetailedLogging: boolean;
 	enablePerformanceMonitoring: boolean;
 	enableErrorReporting: boolean;
 	enableTelemetry: boolean;
-	
+
 	// Security
 	requireSecureEndpoints: boolean;
 	enableCORS: boolean;
 	enableCSRF: boolean;
-	
+
 	// Features
 	enableExperimentalFeatures: boolean;
 	enableBetaFeatures: boolean;
 	enableStagehandIntegration: boolean;
 	enableVibeKitIntegration: boolean;
 	enableGitHubIntegration: boolean;
-	
+
 	// API features
 	enableRateLimiting: boolean;
 	enableCaching: boolean;
@@ -71,36 +71,36 @@ export class FeatureGateService {
 			isDevelopment: config.nodeEnv === "development",
 			isStaging: config.nodeEnv === "staging",
 			isProduction: config.nodeEnv === "production",
-			
+
 			// Development tools
 			enableDebugTools: profile.features.enableDebugTools,
 			enableDevToolbar: config.nodeEnv === "development",
 			enableReactDevTools: config.nodeEnv !== "production",
 			enableReduxDevTools: config.nodeEnv !== "production",
-			
+
 			// Data and testing
 			enableMockData: profile.features.enableMockData,
 			enableTestFixtures: config.nodeEnv === "development",
 			enableSeedData: config.nodeEnv !== "production",
-			
+
 			// Logging and monitoring
 			enableDetailedLogging: profile.features.enableDetailedLogging,
 			enablePerformanceMonitoring: config.nodeEnv !== "development",
 			enableErrorReporting: config.nodeEnv === "production",
 			enableTelemetry: profile.features.enableTelemetry,
-			
+
 			// Security
 			requireSecureEndpoints: profile.features.requireSecureEndpoints,
 			enableCORS: config.nodeEnv !== "production",
 			enableCSRF: config.nodeEnv === "production",
-			
+
 			// Features
 			enableExperimentalFeatures: config.nodeEnv === "development",
 			enableBetaFeatures: config.nodeEnv !== "production",
 			enableStagehandIntegration: apiConfig.browserbase.isConfigured,
 			enableVibeKitIntegration: false, // Temporarily disabled
 			enableGitHubIntegration: true, // Always enabled for now
-			
+
 			// API features
 			enableRateLimiting: config.nodeEnv === "production",
 			enableCaching: config.nodeEnv !== "development",
@@ -137,13 +137,13 @@ export class FeatureGateService {
 	 */
 	getEnabledFeatures(): Partial<FeatureGates> {
 		const enabled: Partial<FeatureGates> = {};
-		
+
 		for (const [key, value] of Object.entries(this.gates)) {
 			if (value) {
 				enabled[key as keyof FeatureGates] = value;
 			}
 		}
-		
+
 		return enabled;
 	}
 
@@ -227,7 +227,7 @@ export class FeatureGateService {
 	} {
 		const allGates = Object.values(this.gates);
 		const enabledCount = allGates.filter(Boolean).length;
-		
+
 		return {
 			environment: this.configService.getConfiguration().nodeEnv,
 			totalGates: allGates.length,
@@ -290,7 +290,8 @@ export const Features = {
 	detailedLogging: () => getFeatureGateService().shouldEnableDetailedLogging(),
 	telemetry: () => getFeatureGateService().shouldEnableTelemetry(),
 	secureEndpoints: () => getFeatureGateService().shouldRequireSecureEndpoints(),
-	experimentalFeatures: () => getFeatureGateService().shouldEnableExperimentalFeatures(),
+	experimentalFeatures: () =>
+		getFeatureGateService().shouldEnableExperimentalFeatures(),
 } as const;
 
 /**
@@ -298,7 +299,7 @@ export const Features = {
  */
 export function useFeatureGates() {
 	const service = getFeatureGateService();
-	
+
 	return {
 		isEnabled: (feature: keyof FeatureGates) => service.isEnabled(feature),
 		getAllGates: () => service.getAllGates(),
@@ -321,11 +322,11 @@ export function withFeatureGate<P extends object>(
 	return function FeatureGatedComponent(Component: React.ComponentType<P>) {
 		return function WrappedComponent(props: P) {
 			const isEnabled = isFeatureEnabled(feature);
-			
+
 			if (!isEnabled) {
 				return fallback ? React.createElement(fallback, props) : null;
 			}
-			
+
 			return React.createElement(Component, props);
 		};
 	};
@@ -344,6 +345,6 @@ export function FeatureGate({
 	fallback?: React.ReactNode;
 }) {
 	const isEnabled = isFeatureEnabled(feature);
-	
+
 	return isEnabled ? children : fallback;
 }

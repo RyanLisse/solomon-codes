@@ -1,15 +1,15 @@
 import { Stagehand } from "@browserbasehq/stagehand";
+import type {
+	AutomationResult,
+	AutomationTask,
+	ExtractedData,
+	ObservationData,
+	SessionConfig,
+} from "../../types/stagehand";
 import { getConfigurationService } from "../config/service";
 import { createServiceLogger } from "../logging/factory";
 import { getMockOrRealData } from "../mock/manager";
 import { mockApiResponses } from "../mock/providers";
-import type {
-	AutomationResult,
-	AutomationTask,
-	SessionConfig,
-	ExtractedData,
-	ObservationData,
-} from "../../types/stagehand";
 
 /**
  * Stagehand client configuration
@@ -288,7 +288,7 @@ export class StagehandClient {
 
 					// Perform automation using the latest Stagehand API
 					logs.push("Executing automation instructions");
-					await session.stagehand.act({
+					await session.stagehand.page.act({
 						action: task.instructions,
 					});
 
@@ -298,7 +298,7 @@ export class StagehandClient {
 					let extractedData: ExtractedData = null;
 					if (task.extractSchema) {
 						logs.push("Extracting data with provided schema");
-						extractedData = await session.stagehand.extract({
+						extractedData = await session.stagehand.page.extract({
 							instruction: "Extract data according to the provided schema",
 							schema: task.extractSchema,
 						});
@@ -419,7 +419,7 @@ export class StagehandClient {
 
 					// Observe page elements using the latest Stagehand API
 					logs.push("Observing page elements");
-					const observations = await session.stagehand.observe({
+					const observations = await session.stagehand.page.observe({
 						instruction,
 					});
 

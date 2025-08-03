@@ -49,7 +49,7 @@ export class EnvironmentService {
 	getEnvironmentConfig() {
 		const env = this.getCurrentEnvironment();
 		const config = this.configService.getConfiguration();
-		
+
 		return {
 			environment: env,
 			version: config.appVersion,
@@ -80,14 +80,16 @@ export class EnvironmentService {
 	shouldEnableFeature(feature: string): boolean {
 		// Development: Enable most features
 		if (this.isDevelopment()) {
-			return !["rateLimiting", "compression", "errorReporting"].includes(feature);
+			return !["rateLimiting", "compression", "errorReporting"].includes(
+				feature,
+			);
 		}
-		
+
 		// Staging: Enable most features except production-only ones
 		if (this.isStaging()) {
 			return !["compression"].includes(feature);
 		}
-		
+
 		// Production: Enable only production-ready features
 		return ![
 			"debugTools",
@@ -103,7 +105,7 @@ export class EnvironmentService {
 	 */
 	getAllowedOrigins(): string[] {
 		const config = this.configService.getConfiguration();
-		
+
 		if (this.isDevelopment()) {
 			return [
 				"http://localhost:3000",
@@ -112,14 +114,14 @@ export class EnvironmentService {
 				"http://127.0.0.1:3001",
 			];
 		}
-		
+
 		if (this.isStaging()) {
 			return [
 				config.serverUrl,
 				"https://staging.solomon-codes.com", // Example staging URL
 			];
 		}
-		
+
 		// Production
 		return [
 			config.serverUrl,
@@ -132,20 +134,21 @@ export class EnvironmentService {
 	 */
 	getSecurityHeaders(): Record<string, string> {
 		const headers: Record<string, string> = {};
-		
+
 		if (this.isProduction()) {
-			headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+			headers["Strict-Transport-Security"] =
+				"max-age=31536000; includeSubDomains";
 			headers["X-Content-Type-Options"] = "nosniff";
 			headers["X-Frame-Options"] = "DENY";
 			headers["X-XSS-Protection"] = "1; mode=block";
 			headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 		}
-		
+
 		if (this.isNonProduction()) {
 			// More permissive headers for development/staging
 			headers["X-Frame-Options"] = "SAMEORIGIN";
 		}
-		
+
 		return headers;
 	}
 
@@ -160,7 +163,7 @@ export class EnvironmentService {
 				max: 1000, // Very high limit for development
 			};
 		}
-		
+
 		if (this.isStaging()) {
 			return {
 				enabled: true,
@@ -168,7 +171,7 @@ export class EnvironmentService {
 				max: 200, // Moderate limit for staging
 			};
 		}
-		
+
 		// Production
 		return {
 			enabled: true,
@@ -188,7 +191,7 @@ export class EnvironmentService {
 				maxSize: 0,
 			};
 		}
-		
+
 		if (this.isStaging()) {
 			return {
 				enabled: true,
@@ -196,7 +199,7 @@ export class EnvironmentService {
 				maxSize: 100,
 			};
 		}
-		
+
 		// Production
 		return {
 			enabled: true,
@@ -239,7 +242,8 @@ export const isNonProduction = () => getEnvironmentService().isNonProduction();
 /**
  * Get current environment string
  */
-export const getCurrentEnvironment = () => getEnvironmentService().getCurrentEnvironment();
+export const getCurrentEnvironment = () =>
+	getEnvironmentService().getCurrentEnvironment();
 
 /**
  * Environment-aware console logging (only in development)
@@ -272,7 +276,7 @@ export const envError = (...args: any[]) => {
  */
 export function useEnvironment() {
 	const service = getEnvironmentService();
-	
+
 	return {
 		environment: service.getCurrentEnvironment(),
 		isDevelopment: service.isDevelopment(),

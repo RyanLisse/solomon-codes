@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { GitHubBranch, GitHubRepository, GitHubUser } from "@/lib/github";
-import { createContextLogger } from "@/lib/logging/factory";
+import { createClientLogger } from "@/lib/logging/client";
 
-const logger = createContextLogger("github-auth-hook");
+const logger = createClientLogger("github-auth-hook");
 
 // Extend Window interface to include cookieStore
 interface WindowWithCookieStore extends Window {
@@ -51,7 +51,9 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 	const [branches, setBranches] = useState<GitHubBranch[]>([]);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [branchesCache, setBranchesCache] = useState<Map<string, GitHubBranch[]>>(new Map());
+	const [branchesCache, setBranchesCache] = useState<
+		Map<string, GitHubBranch[]>
+	>(new Map());
 
 	// Check authentication status on mount
 	useEffect(() => {
@@ -93,7 +95,9 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 					// Ignore abort errors
 					return;
 				}
-				logger.error("Error checking GitHub auth status", { error: error.message });
+				logger.error("Error checking GitHub auth status", {
+					error: error.message,
+				});
 				setIsAuthenticated(false);
 				setUser(null);
 			} finally {
@@ -228,51 +232,56 @@ export function useGitHubAuth(): UseGitHubAuthReturn {
 		}
 	};
 
-	const fetchBranches = useCallback(async (repositoryName: string): Promise<void> => {
-		try {
-			setError(null);
+	const fetchBranches = useCallback(
+		async (repositoryName: string): Promise<void> => {
+			try {
+				setError(null);
 
-			// Check cache first
-			const cachedBranches = branchesCache.get(repositoryName);
-			if (cachedBranches) {
-				setBranches(cachedBranches);
-				return;
+				// Check cache first
+				const cachedBranches = branchesCache.get(repositoryName);
+				if (cachedBranches) {
+					setBranches(cachedBranches);
+					return;
+				}
+
+				setIsLoading(true);
+
+				// Parse repository name to extract owner and repo
+				// Repository name should be in format "owner/repo"
+				const [owner, repo] = repositoryName.split("/");
+
+				if (!owner || !repo) {
+					throw new Error('Repository name must be in format "owner/repo"');
+				}
+
+				const response = await fetch(
+					`/api/auth/github/branches?owner=${encodeURIComponent(
+						owner,
+					)}&repo=${encodeURIComponent(repo)}`,
+				);
+
+				if (!response.ok) {
+					throw new Error("Failed to fetch branches");
+				}
+
+				const data = await response.json();
+				const fetchedBranches = data.branches || [];
+
+				// Update cache and state
+				setBranchesCache((prev) =>
+					new Map(prev).set(repositoryName, fetchedBranches),
+				);
+				setBranches(fetchedBranches);
+			} catch (error) {
+				setError(
+					error instanceof Error ? error.message : "Failed to fetch branches",
+				);
+			} finally {
+				setIsLoading(false);
 			}
-
-			setIsLoading(true);
-
-			// Parse repository name to extract owner and repo
-			// Repository name should be in format "owner/repo"
-			const [owner, repo] = repositoryName.split("/");
-
-			if (!owner || !repo) {
-				throw new Error('Repository name must be in format "owner/repo"');
-			}
-
-			const response = await fetch(
-				`/api/auth/github/branches?owner=${encodeURIComponent(
-					owner,
-				)}&repo=${encodeURIComponent(repo)}`,
-			);
-
-			if (!response.ok) {
-				throw new Error("Failed to fetch branches");
-			}
-
-			const data = await response.json();
-			const fetchedBranches = data.branches || [];
-			
-			// Update cache and state
-			setBranchesCache(prev => new Map(prev).set(repositoryName, fetchedBranches));
-			setBranches(fetchedBranches);
-		} catch (error) {
-			setError(
-				error instanceof Error ? error.message : "Failed to fetch branches",
-			);
-		} finally {
-			setIsLoading(false);
-		}
-	}, [branchesCache]);
+		},
+		[branchesCache],
+	);
 
 	return {
 		isAuthenticated,

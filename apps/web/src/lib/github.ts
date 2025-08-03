@@ -33,11 +33,15 @@ export interface GitHubUser {
 }
 
 export class GitHubAuth {
-	private readonly clientId: string;
-	private readonly clientSecret: string;
-	private readonly redirectUri: string;
+	private clientId: string | null = null;
+	private clientSecret: string | null = null;
+	private redirectUri: string | null = null;
 
-	constructor() {
+	private ensureInitialized() {
+		if (this.clientId && this.clientSecret && this.redirectUri) {
+			return;
+		}
+
 		const clientId = process.env.GITHUB_CLIENT_ID;
 		const clientSecret = process.env.GITHUB_CLIENT_SECRET;
 
@@ -53,15 +57,16 @@ export class GitHubAuth {
 		this.clientSecret = clientSecret;
 		this.redirectUri =
 			process.env.NODE_ENV === "production"
-				? "https://clonedex.vercel.app/api/auth/github/callback"
+				? "https://clonedx.vercel.app/api/auth/github/callback"
 				: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3001"}/api/auth/github/callback`;
 	}
 
 	// Generate GitHub OAuth URL
 	getAuthUrl(state?: string): string {
+		this.ensureInitialized();
 		const params = new URLSearchParams({
-			client_id: this.clientId,
-			redirect_uri: this.redirectUri,
+			client_id: this.clientId!,
+			redirect_uri: this.redirectUri!,
 			scope: "repo user:email",
 			state: state || Math.random().toString(36).substring(7),
 		});
@@ -71,6 +76,7 @@ export class GitHubAuth {
 
 	// Exchange code for access token
 	async exchangeCodeForToken(code: string): Promise<string> {
+		this.ensureInitialized();
 		const response = await fetch(
 			"https://github.com/login/oauth/access_token",
 			{
@@ -80,8 +86,8 @@ export class GitHubAuth {
 					"Content-Type": "application/json",
 				},
 				body: JSON.stringify({
-					client_id: this.clientId,
-					client_secret: this.clientSecret,
+					client_id: this.clientId!,
+					client_secret: this.clientSecret!,
 					code,
 				}),
 			},

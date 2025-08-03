@@ -1,4 +1,4 @@
-import { ENV_VAR_MAP, type AppConfig } from "./schema";
+import type { AppConfig as _AppConfig } from "./schema";
 
 /**
  * Validation result interface
@@ -70,6 +70,10 @@ export const REQUIRED_ENV_VARS: Record<string, EnvVarRequirement[]> = {
 			description: "OpenAI API key (optional in development)",
 		},
 	],
+	test: [
+		// No required environment variables for test environment
+		// All variables are optional and have defaults in .env.test
+	],
 };
 
 /**
@@ -113,17 +117,15 @@ export function validateEnvironment(): ValidationResult {
 	const environment = process.env.NODE_ENV || "development";
 	const errors: string[] = [];
 	const warnings: string[] = [];
-	
+
 	const requiredVars = REQUIRED_ENV_VARS[environment] || [];
-	
+
 	// Check required variables
 	for (const envVar of requiredVars) {
 		const value = process.env[envVar.name];
-		
+
 		if (envVar.required && !value) {
-			errors.push(
-				`Missing required environment variable: ${envVar.name}`,
-			);
+			errors.push(`Missing required environment variable: ${envVar.name}`);
 			if (envVar.description) {
 				errors.push(`  Description: ${envVar.description}`);
 			}
@@ -131,23 +133,19 @@ export function validateEnvironment(): ValidationResult {
 				errors.push(`  Example: ${envVar.name}=${envVar.example}`);
 			}
 		} else if (value && envVar.validator && !envVar.validator(value)) {
-			errors.push(
-				`Invalid value for environment variable: ${envVar.name}`,
-			);
+			errors.push(`Invalid value for environment variable: ${envVar.name}`);
 			if (envVar.description) {
 				errors.push(`  Description: ${envVar.description}`);
 			}
 		}
 	}
-	
+
 	// Check optional variables and provide warnings for missing ones
 	for (const envVar of OPTIONAL_ENV_VARS) {
 		const value = process.env[envVar.name];
-		
+
 		if (!value) {
-			warnings.push(
-				`Optional environment variable not set: ${envVar.name}`,
-			);
+			warnings.push(`Optional environment variable not set: ${envVar.name}`);
 			if (envVar.description) {
 				warnings.push(`  Description: ${envVar.description}`);
 			}
@@ -160,7 +158,7 @@ export function validateEnvironment(): ValidationResult {
 			);
 		}
 	}
-	
+
 	return {
 		success: errors.length === 0,
 		errors,
@@ -176,14 +174,14 @@ export function validateEnvironment(): ValidationResult {
 export function validateRequiredEnvVars(vars: string[]): ValidationResult {
 	const errors: string[] = [];
 	const warnings: string[] = [];
-	
+
 	for (const varName of vars) {
 		const value = process.env[varName];
 		if (!value) {
 			errors.push(`Missing required environment variable: ${varName}`);
 		}
 	}
-	
+
 	return {
 		success: errors.length === 0,
 		errors,
@@ -201,7 +199,7 @@ export function validateOptionalEnvVars(
 ): ValidationResult {
 	const errors: string[] = [];
 	const warnings: string[] = [];
-	
+
 	for (const [varName, defaultValue] of Object.entries(vars)) {
 		const value = process.env[varName];
 		if (!value) {
@@ -210,7 +208,7 @@ export function validateOptionalEnvVars(
 			);
 		}
 	}
-	
+
 	return {
 		success: true, // Optional vars don't cause failures
 		errors,
@@ -242,7 +240,7 @@ export function hasRequiredEnvironmentVariables(): boolean {
  */
 export function printValidationResults(result: ValidationResult): void {
 	console.log(`\n🔍 Environment Validation (${result.environment}):`);
-	
+
 	if (result.success) {
 		console.log("✅ All required environment variables are present");
 	} else {
@@ -251,13 +249,13 @@ export function printValidationResults(result: ValidationResult): void {
 			console.log(`  ${error}`);
 		}
 	}
-	
+
 	if (result.warnings.length > 0) {
 		console.log("\n⚠️  Warnings:");
 		for (const warning of result.warnings) {
 			console.log(`  ${warning}`);
 		}
 	}
-	
+
 	console.log(`\nValidation completed at: ${result.timestamp.toISOString()}\n`);
 }

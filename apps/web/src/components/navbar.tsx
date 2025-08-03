@@ -7,7 +7,7 @@ export default function Navbar() {
 	return (
 		<div className="flex items-center justify-between">
 			<Link href="/" passHref>
-				<h1 className="font-bold text-lg">VibeX</h1>
+				<h1 className="font-bold text-lg">Solomon Codes</h1>
 			</Link>
 			<div className="flex items-center gap-2">
 				<div className="flex items-center gap-0">

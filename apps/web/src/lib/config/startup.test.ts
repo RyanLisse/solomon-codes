@@ -1,25 +1,37 @@
-import { beforeEach, describe, expect, it, vi, afterEach, type Mock } from "vitest";
 import {
-	StartupValidationService,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	type Mock,
+	vi,
+} from "vitest";
+import {
+	createActionableErrorMessage,
 	getStartupValidationService,
 	resetStartupValidationService,
-	validateStartupOrExit,
-	createActionableErrorMessage,
+	StartupValidationService,
 	validateEnvironmentRequirements,
-	type StartupMetrics,
+	validateStartupOrExit,
 } from "./startup";
 
 // Mock dependencies
 vi.mock("../database/connection");
 vi.mock("../telemetry");
 
-import { checkDatabaseHealth, testDatabaseConnection } from "../database/connection";
-import { initializeTelemetry, getTelemetryService } from "../telemetry";
+import {
+	checkDatabaseHealth,
+	testDatabaseConnection,
+} from "../database/connection";
+import { getTelemetryService, initializeTelemetry } from "../telemetry";
 
 describe("StartupValidationService", () => {
 	const originalEnv = process.env;
 	const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-	const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+	const consoleErrorSpy = vi
+		.spyOn(console, "error")
+		.mockImplementation(() => {});
 	const consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
 	beforeEach(() => {
@@ -88,7 +100,7 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("BrowserBase"))).toBe(true);
+			expect(result.warnings.some((w) => w.includes("BrowserBase"))).toBe(true);
 		});
 
 		it("should validate OpenAI API key format", async () => {
@@ -98,7 +110,9 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("OpenAI API key format"))).toBe(true);
+			expect(
+				result.warnings.some((w) => w.includes("OpenAI API key format")),
+			).toBe(true);
 		});
 	});
 
@@ -110,17 +124,22 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("Database URL format"))).toBe(true);
+			expect(
+				result.warnings.some((w) => w.includes("Database URL format")),
+			).toBe(true);
 		});
 
 		it("should validate telemetry endpoint", async () => {
 			process.env.NODE_ENV = "production";
-			process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "http://insecure-endpoint.com/v1/traces";
+			process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
+				"http://insecure-endpoint.com/v1/traces";
 
 			const service = new StartupValidationService();
 			const result = await service.validateStartup();
 
-			expect(result.warnings.some(w => w.includes("HTTPS in production"))).toBe(true);
+			expect(
+				result.warnings.some((w) => w.includes("HTTPS in production")),
+			).toBe(true);
 		});
 
 		it("should fail on invalid telemetry endpoint", async () => {
@@ -130,7 +149,9 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(false);
-			expect(result.errors.some(e => e.includes("Invalid telemetry endpoint"))).toBe(true);
+			expect(
+				result.errors.some((e) => e.includes("Invalid telemetry endpoint")),
+			).toBe(true);
 		});
 	});
 
@@ -159,7 +180,9 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("Database not configured"))).toBe(true);
+			expect(
+				result.warnings.some((w) => w.includes("Database not configured")),
+			).toBe(true);
 		});
 
 		it("should fail when database is not configured in production", async () => {
@@ -170,7 +193,11 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(false);
-			expect(result.errors.some(e => e.includes("Database configuration is required in production"))).toBe(true);
+			expect(
+				result.errors.some((e) =>
+					e.includes("Database configuration is required in production"),
+				),
+			).toBe(true);
 		});
 
 		it("should test database connectivity when configured", async () => {
@@ -196,7 +223,11 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(false);
-			expect(result.errors.some(e => e.includes("Database connectivity failed: Connection refused"))).toBe(true);
+			expect(
+				result.errors.some((e) =>
+					e.includes("Database connectivity failed: Connection refused"),
+				),
+			).toBe(true);
 		});
 
 		it("should handle database connectivity failure in development with warnings", async () => {
@@ -211,7 +242,11 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("Database connectivity failed: Connection timeout"))).toBe(true);
+			expect(
+				result.warnings.some((w) =>
+					w.includes("Database connectivity failed: Connection timeout"),
+				),
+			).toBe(true);
 		});
 
 		it("should handle database health check warnings", async () => {
@@ -226,7 +261,11 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("Database health check failed: Query timeout"))).toBe(true);
+			expect(
+				result.warnings.some((w) =>
+					w.includes("Database health check failed: Query timeout"),
+				),
+			).toBe(true);
 		});
 	});
 
@@ -243,7 +282,7 @@ describe("StartupValidationService", () => {
 			expect(metrics.validationSteps).toHaveLength(6); // env, config, db, api, deps, telemetry
 
 			// Check that all expected validation steps are present
-			const stepNames = metrics.validationSteps.map(step => step.name);
+			const stepNames = metrics.validationSteps.map((step) => step.name);
 			expect(stepNames).toContain("environment");
 			expect(stepNames).toContain("configuration");
 			expect(stepNames).toContain("database");
@@ -271,11 +310,15 @@ describe("StartupValidationService", () => {
 			await service.validateStartup();
 
 			const metrics = service.getStartupMetrics();
-			const dbStep = metrics.validationSteps.find(step => step.name === "database");
+			const dbStep = metrics.validationSteps.find(
+				(step) => step.name === "database",
+			);
 
 			expect(dbStep).toBeDefined();
 			expect(dbStep?.success).toBe(true); // Should still succeed in development with warnings
-			expect(dbStep?.warnings).toContain("Database connectivity failed: Test error (attempts: 1)");
+			expect(dbStep?.warnings).toContain(
+				"Database connectivity failed: Test error (attempts: 1)",
+			);
 		});
 	});
 
@@ -315,9 +358,11 @@ describe("StartupValidationService", () => {
 			const summary = service.getValidationSummary();
 
 			expect(summary.databaseConnectivityValid).toBe(false);
-			expect(summary.validationSteps?.some(step => 
-				step.name === "database" && !step.success
-			)).toBe(true);
+			expect(
+				summary.validationSteps?.some(
+					(step) => step.name === "database" && !step.success,
+				),
+			).toBe(true);
 		});
 	});
 
@@ -329,11 +374,16 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("Telemetry service initialization failed"))).toBe(true);
+			expect(
+				result.warnings.some((w) =>
+					w.includes("Telemetry service initialization failed"),
+				),
+			).toBe(true);
 		});
 
 		it("should validate telemetry service dependencies", async () => {
-			process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "https://api.honeycomb.io/v1/traces";
+			process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
+				"https://api.honeycomb.io/v1/traces";
 
 			const service = new StartupValidationService();
 			const result = await service.validateStartup();
@@ -355,7 +405,11 @@ describe("StartupValidationService", () => {
 			const result = await service.validateStartup();
 
 			expect(result.success).toBe(true);
-			expect(result.warnings.some(w => w.includes("Telemetry is disabled in production"))).toBe(true);
+			expect(
+				result.warnings.some((w) =>
+					w.includes("Telemetry is disabled in production"),
+				),
+			).toBe(true);
 		});
 	});
 
@@ -364,7 +418,9 @@ describe("StartupValidationService", () => {
 			await validateStartupOrExit();
 
 			expect(consoleSpy).toHaveBeenCalledWith(
-				expect.stringContaining("Application startup validation completed successfully"),
+				expect.stringContaining(
+					"Application startup validation completed successfully",
+				),
 			);
 		});
 
@@ -375,7 +431,9 @@ describe("StartupValidationService", () => {
 				throw new Error("Process exit called");
 			});
 
-			await expect(validateStartupOrExit()).rejects.toThrow("Process exit called");
+			await expect(validateStartupOrExit()).rejects.toThrow(
+				"Process exit called",
+			);
 			expect(mockExit).toHaveBeenCalledWith(1);
 			expect(consoleErrorSpy).toHaveBeenCalledWith(
 				expect.stringContaining("Application startup validation failed"),
@@ -393,7 +451,9 @@ describe("StartupValidationService", () => {
 				expect.stringContaining("Startup completed with warnings"),
 			);
 			expect(consoleSpy).toHaveBeenCalledWith(
-				expect.stringContaining("Application startup validation completed successfully"),
+				expect.stringContaining(
+					"Application startup validation completed successfully",
+				),
 			);
 		});
 
@@ -402,7 +462,9 @@ describe("StartupValidationService", () => {
 
 			// Should log startup duration
 			expect(consoleSpy).toHaveBeenCalledWith(
-				expect.stringContaining("Application startup validation completed successfully"),
+				expect.stringContaining(
+					"Application startup validation completed successfully",
+				),
 			);
 		});
 	});
@@ -415,7 +477,9 @@ describe("StartupValidationService", () => {
 				"test-value",
 			);
 
-			expect(message).toContain("Missing required environment variable: TEST_VAR");
+			expect(message).toContain(
+				"Missing required environment variable: TEST_VAR",
+			);
 			expect(message).toContain("Description: Test variable description");
 			expect(message).toContain("Example: TEST_VAR=test-value");
 			expect(message).toContain("Add this to your .env file");
@@ -427,7 +491,9 @@ describe("StartupValidationService", () => {
 				"Test variable description",
 			);
 
-			expect(message).toContain("Missing required environment variable: TEST_VAR");
+			expect(message).toContain(
+				"Missing required environment variable: TEST_VAR",
+			);
 			expect(message).toContain("Description: Test variable description");
 			expect(message).not.toContain("Example:");
 		});

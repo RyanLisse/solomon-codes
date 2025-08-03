@@ -1,57 +1,61 @@
 // Stagehand Client
-export {
-	StagehandClient,
-	getStagehandClient,
-	resetStagehandClient,
-	type StagehandClientConfig,
-	type StagehandSession,
-} from "./client";
 
 // Re-export types from the types directory
 export type {
 	AutomationResult,
 	AutomationTask,
-	SessionConfig,
 	ExtractedData,
-	ObservationData,
 	ExtractSchema,
+	ObservationData,
+	SessionConfig,
 } from "../../types/stagehand";
+export {
+	getStagehandClient,
+	resetStagehandClient,
+	StagehandClient,
+	type StagehandClientConfig,
+	type StagehandSession,
+} from "./client";
 
 // Convenience utilities
 export const StagehandUtils = {
 	// Client management
-	getClient: getStagehandClient,
-	resetClient: resetStagehandClient,
-	
+	getClient() {
+		return getStagehandClient();
+	},
+	resetClient() {
+		return resetStagehandClient();
+	},
+
 	// Health checking
-	checkHealth: async () => {
+	async checkHealth() {
 		const client = getStagehandClient();
 		return client.healthCheck();
 	},
-	
+
 	// Session management
-	createSession: async (config?: any) => {
+	async createSession(config?: any) {
 		const client = getStagehandClient();
 		return client.createSession(config);
 	},
-	
-	closeSession: async (sessionId: string) => {
+
+	async closeSession(sessionId: string) {
 		const client = getStagehandClient();
 		return client.closeSession(sessionId);
 	},
-	
-	getActiveSessions: () => {
+
+	getActiveSessions() {
 		const client = getStagehandClient();
 		return client.getActiveSessions();
 	},
-	
+
 	// Automation
-	runTask: async (task: any, sessionId?: string) => {
+	async runTask(task: any, sessionId?: string) {
 		const client = getStagehandClient();
 		return client.runAutomationTask(task, sessionId);
 	},
-	
-	observePage: async (url: string, instruction: string, sessionId?: string) => {
+
+	async observePage(url: string, instruction: string, sessionId?: string) {
 		const client = getStagehandClient();
 		return client.observePageElements(url, instruction, sessionId);
 	},

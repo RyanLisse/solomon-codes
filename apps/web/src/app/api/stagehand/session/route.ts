@@ -16,7 +16,7 @@ const CreateSessionSchema = z.object({
 
 export async function POST(request: NextRequest) {
 	const logger = createApiLogger("stagehand/session");
-	
+
 	try {
 		const body = await request.json();
 		const config = CreateSessionSchema.parse(body);

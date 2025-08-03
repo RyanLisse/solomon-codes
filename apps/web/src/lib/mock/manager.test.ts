@@ -1,10 +1,11 @@
-import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as featureGates from "../features/gates";
 import {
-	MockDataManager,
 	getMockDataManager,
+	getMockOrRealData,
+	MockDataManager,
 	resetMockDataManager,
 	shouldUseMockData,
-	getMockOrRealData,
 	withMockSupport,
 } from "./manager";
 
@@ -29,9 +30,7 @@ describe("MockDataManager", () => {
 
 	describe("MockDataManager", () => {
 		it("should initialize with mock data enabled in development", () => {
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(true);
 
 			const manager = new MockDataManager();
@@ -40,9 +39,7 @@ describe("MockDataManager", () => {
 		});
 
 		it("should initialize with mock data disabled in production", () => {
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(false);
 
 			const manager = new MockDataManager();
@@ -51,9 +48,7 @@ describe("MockDataManager", () => {
 		});
 
 		it("should return mock data when enabled", async () => {
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(true);
 
 			const manager = new MockDataManager();
@@ -70,9 +65,7 @@ describe("MockDataManager", () => {
 		});
 
 		it("should return real data when mock data is disabled", async () => {
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(false);
 
 			const manager = new MockDataManager();
@@ -89,9 +82,7 @@ describe("MockDataManager", () => {
 		});
 
 		it("should create mock wrapper correctly", () => {
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(true);
 
 			const manager = new MockDataManager();
@@ -115,9 +106,7 @@ describe("MockDataManager", () => {
 
 		it("should validate production safety", () => {
 			process.env.NODE_ENV = "production";
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(true);
 
 			const manager = new MockDataManager();
@@ -129,9 +118,7 @@ describe("MockDataManager", () => {
 
 		it("should not throw in non-production environments", () => {
 			process.env.NODE_ENV = "development";
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(true);
 
 			const manager = new MockDataManager();
@@ -157,9 +144,7 @@ describe("MockDataManager", () => {
 		});
 
 		it("should provide convenience functions", async () => {
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(true);
 
 			const mockData = "mock-data";
@@ -175,9 +160,7 @@ describe("MockDataManager", () => {
 		});
 
 		it("should create mock-aware services", () => {
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(true);
 
 			const realService = {
@@ -196,9 +179,7 @@ describe("MockDataManager", () => {
 	describe("Production safety", () => {
 		it("should not use mock data in production even if feature is enabled", () => {
 			process.env.NODE_ENV = "production";
-			const mockIsFeatureEnabled = vi.mocked(
-				require("../features/gates").isFeatureEnabled,
-			);
+			const mockIsFeatureEnabled = vi.mocked(featureGates.isFeatureEnabled);
 			mockIsFeatureEnabled.mockReturnValue(false); // Feature gates should disable in production
 
 			expect(shouldUseMockData()).toBe(false);

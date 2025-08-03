@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getTelemetryConfig, isTelemetryEnabled } from "./telemetry";
+import * as configService from "./config/service";
+import {
+	getTelemetryConfig,
+	isTelemetryEnabled,
+	resetTelemetryService,
+} from "./telemetry/index";
 
 // Mock the configuration service
 vi.mock("./config/service", () => ({
@@ -20,8 +25,8 @@ vi.mock("./config/service", () => ({
 }));
 
 // Mock the logger
-vi.mock("./logging/factory", () => ({
-	createContextLogger: vi.fn(() => ({
+vi.mock("./logging/server", () => ({
+	createServerLogger: vi.fn(() => ({
 		debug: vi.fn(),
 		info: vi.fn(),
 		warn: vi.fn(),
@@ -33,6 +38,7 @@ describe("Telemetry Configuration Integration", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		delete process.env.HOSTNAME;
+		resetTelemetryService();
 	});
 
 	it("should get telemetry configuration from service", () => {
@@ -62,20 +68,21 @@ describe("Telemetry Configuration Integration", () => {
 
 	it("should include hostname when available", () => {
 		process.env.HOSTNAME = "test-host";
-		
+		resetTelemetryService(); // Reset to pick up new environment variable
+
 		const config = getTelemetryConfig();
 		expect(config.resourceAttributes["service.instance.id"]).toBe("test-host");
 	});
 
 	it("should handle configuration service errors gracefully", () => {
 		// Mock configuration service to throw an error
-		const { getConfigurationService } = vi.mocked(require("./config/service"));
+		const { getConfigurationService } = vi.mocked(configService);
 		getConfigurationService.mockImplementationOnce(() => {
 			throw new Error("Configuration service error");
 		});
 
 		const config = getTelemetryConfig();
-		
+
 		// Should return fallback configuration
 		expect(config.isEnabled).toBe(false);
 		expect(config.endpoint).toBe("http://localhost:4318/v1/traces");

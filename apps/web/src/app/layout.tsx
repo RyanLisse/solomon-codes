@@ -5,6 +5,10 @@ import "./globals.css";
 import "./streaming.css";
 
 import { QueryProvider } from "@/components/providers/query-provider";
+import { InstallBanner } from "@/components/pwa/install-button";
+import { UpdateToast } from "@/components/pwa/update-notification";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { PWAProvider } from "@/lib/pwa/pwa-provider";
 import Container from "./container";
 
 const geistSans = Geist({
@@ -18,9 +22,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "VibeX | An open-source OpenAI Codex clone",
+	title: "Solomon Codes | Advanced Automation Platform",
 	description:
-		"Codex UI is a modern, open-source, and fully customizable UI for OpenAI Codex.",
+		"Solomon Codes is a modern, intelligent automation platform for streamlined task management and execution.",
 };
 
 export default function RootLayout({
@@ -40,7 +44,13 @@ export default function RootLayout({
 						enableSystem
 						disableTransitionOnChange
 					>
-						<Container>{children}</Container>
+						<PWAProvider autoRegister={true} checkUpdateInterval={30000}>
+							<SidebarProvider>
+								<Container>{children}</Container>
+								<UpdateToast />
+								<InstallBanner />
+							</SidebarProvider>
+						</PWAProvider>
 					</ThemeProvider>
 				</QueryProvider>
 			</body>

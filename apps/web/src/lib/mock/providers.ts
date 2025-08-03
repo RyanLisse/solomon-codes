@@ -124,7 +124,11 @@ export const mockApiResponses = excludeFromProduction({
 		automation: {
 			success: true,
 			result: "Mock automation completed",
-			logs: ["Starting mock automation", "Mock step completed", "Automation finished"],
+			logs: [
+				"Starting mock automation",
+				"Mock step completed",
+				"Automation finished",
+			],
 		},
 	},
 	vibekit: {
@@ -198,11 +202,9 @@ export const mockErrors = excludeFromProduction({
 /**
  * Mock delay utility for simulating network latency
  */
-export const mockDelay = excludeFromProduction(
-	(ms: number = 500): Promise<void> => {
-		return new Promise((resolve) => setTimeout(resolve, ms));
-	},
-);
+export const mockDelay = excludeFromProduction((ms = 500): Promise<void> => {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+});
 
 /**
  * Mock data generators
@@ -251,15 +253,15 @@ export const mockGenerators = excludeFromProduction({
 /**
  * Type-safe mock data access
  */
-export type MockDataType = typeof mockUsers | typeof mockTasks | typeof mockEnvironments;
+export type MockDataType =
+	| typeof mockUsers
+	| typeof mockTasks
+	| typeof mockEnvironments;
 
 /**
  * Get mock data by type with fallback
  */
-export function getMockData<T>(
-	mockData: T | undefined,
-	fallback: T,
-): T {
+export function getMockData<T>(mockData: T | undefined, fallback: T): T {
 	if (process.env.NODE_ENV === "production") {
 		return fallback;
 	}

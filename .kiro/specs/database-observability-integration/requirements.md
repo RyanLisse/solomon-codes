@@ -1,103 +1,95 @@
-# Requirements Document
+# Letta Stateful AI Agents Integration Requirements
 
 ## Introduction
 
-This feature transforms the current localStorage-based state management into a comprehensive database-driven architecture with real-time synchronization and multi-agent observability. The system will integrate Drizzle ORM with ElectricSQL for offline-first real-time sync, while adding comprehensive observability for AI agent interactions and workflow orchestration.
+This feature implements stateful AI agents using Letta (formerly MemGPT) integrated with Supabase PostgreSQL for persistent memory storage in solomon_codes. The system will enable AI agents that maintain memory and context across long-running conversations, learn from interactions, and evolve over time without starting from scratch. Letta agents will have persistent memory blocks, archival memory, and the ability to manage their own context through self-editing memory tools.
 
 ## Requirements
 
-### Requirement 1
+### Requirement 1: Letta Agent Creation and Management
 
-**User Story:** As a developer, I want persistent data storage that survives browser sessions and enables collaboration, so that my tasks, environments, and agent interactions are never lost and can be shared across team members.
-
-#### Acceptance Criteria
-
-1. WHEN a user creates or modifies tasks THEN the system SHALL persist data to a PostgreSQL database instead of localStorage
-2. WHEN a user creates or modifies environments THEN the system SHALL store configurations in the database with full audit trail
-3. WHEN the browser is closed and reopened THEN the system SHALL restore all user data from the database
-4. WHEN multiple users access the same workspace THEN the system SHALL sync data in real-time across all clients
-5. IF the database is unavailable THEN the system SHALL continue working offline and sync when connectivity is restored
-
-### Requirement 2
-
-**User Story:** As a developer, I want real-time synchronization across all my devices and team members, so that changes are immediately visible everywhere without manual refresh.
+**User Story:** As a developer, I want to create and manage stateful AI agents using Letta, so that I can build AI systems that maintain memory and context across conversations.
 
 #### Acceptance Criteria
 
-1. WHEN a task status changes on one client THEN all other connected clients SHALL receive the update within 100ms
-2. WHEN an environment configuration is modified THEN the system SHALL broadcast changes to all subscribers immediately
-3. WHEN an agent execution starts or completes THEN all clients SHALL see real-time status updates
-4. IF a client goes offline THEN the system SHALL queue changes locally and sync when reconnected
-5. WHEN conflicts occur during sync THEN the system SHALL resolve them using last-write-wins with conflict detection
+1. WHEN creating a new agent THEN the system SHALL initialize a Letta agent with memory blocks (persona, human, custom blocks)
+2. WHEN an agent is created THEN the system SHALL store all agent state in Supabase PostgreSQL database
+3. WHEN managing agents THEN the system SHALL provide CRUD operations for agent creation, retrieval, updating, and deletion
+4. WHEN agents are listed THEN the system SHALL display agent metadata, memory status, and conversation history
 
-### Requirement 3
+### Requirement 2: Persistent Memory Block Management
 
-**User Story:** As a developer, I want comprehensive observability of all AI agent interactions, so that I can debug issues, optimize performance, and understand agent behavior patterns.
-
-#### Acceptance Criteria
-
-1. WHEN an AI agent executes any action THEN the system SHALL log the event with timestamp, input, output, and metadata
-2. WHEN agent executions fail THEN the system SHALL capture error details, stack traces, and context for debugging
-3. WHEN viewing the observability dashboard THEN the system SHALL display real-time agent activity, performance metrics, and execution timelines
-4. WHEN analyzing agent performance THEN the system SHALL provide aggregated metrics, success rates, and bottleneck identification
-5. IF an agent execution takes longer than expected THEN the system SHALL alert users and provide diagnostic information
-
-### Requirement 4
-
-**User Story:** As a developer, I want time-travel debugging capabilities, so that I can replay agent executions and understand exactly what happened during any workflow.
+**User Story:** As a user, I want AI agents to remember information about me and our conversations, so that interactions become more personalized and contextual over time.
 
 #### Acceptance Criteria
 
-1. WHEN an agent execution completes THEN the system SHALL store a complete execution trace with all intermediate states
-2. WHEN debugging an issue THEN users SHALL be able to replay any past execution step-by-step
-3. WHEN viewing execution history THEN the system SHALL provide a timeline view with the ability to jump to any point in time
-4. WHEN comparing executions THEN the system SHALL highlight differences between successful and failed runs
-5. IF data corruption occurs THEN the system SHALL enable rollback to any previous consistent state
+1. WHEN an agent is created THEN the system SHALL initialize core memory blocks (persona, human) with appropriate descriptions
+2. WHEN memory blocks are updated THEN the system SHALL persist changes to Supabase with vector embeddings for semantic search
+3. WHEN custom memory blocks are created THEN the system SHALL allow structured storage of domain-specific information
+4. WHEN memory blocks are queried THEN the system SHALL provide fast retrieval and semantic search capabilities using pgvector
 
-### Requirement 5
+### Requirement 3: Archival Memory and Long-term Storage
 
-**User Story:** As a developer, I want seamless migration from the current localStorage system, so that no existing data is lost during the upgrade.
-
-#### Acceptance Criteria
-
-1. WHEN the database integration is deployed THEN the system SHALL automatically migrate all existing localStorage data
-2. WHEN migration runs THEN the system SHALL validate data integrity and report any issues
-3. WHEN migration completes THEN the system SHALL continue working with the same user interface and behavior
-4. IF migration fails THEN the system SHALL rollback and continue using localStorage until issues are resolved
-5. WHEN migration is successful THEN the system SHALL remove localStorage data after confirming database persistence
-
-### Requirement 6
-
-**User Story:** As a developer, I want enhanced workflow orchestration with persistent state, so that complex multi-step agent workflows can be reliably executed and monitored.
+**User Story:** As an AI agent, I want to store and retrieve long-term memories beyond my context window, so that I can maintain comprehensive knowledge about users and conversations over time.
 
 #### Acceptance Criteria
 
-1. WHEN a workflow is defined THEN the system SHALL store the definition in the database with versioning
-2. WHEN a workflow executes THEN the system SHALL track each step's state and enable pause/resume functionality
-3. WHEN workflow execution fails THEN the system SHALL enable restart from the last successful checkpoint
-4. WHEN viewing workflow status THEN users SHALL see real-time progress, current step, and estimated completion time
-5. IF a workflow is interrupted THEN the system SHALL preserve state and allow continuation when conditions are restored
+1. WHEN conversation history exceeds context limits THEN the system SHALL store messages in archival memory with vector embeddings
+2. WHEN agents need to recall information THEN the system SHALL provide semantic search across archival memory using vector similarity
+3. WHEN archival memory is queried THEN the system SHALL return relevant memories ranked by semantic similarity and recency
+4. WHEN memory becomes stale THEN the system SHALL provide mechanisms for memory summarization and archival
 
-### Requirement 7
+### Requirement 4: Agent-to-Agent Communication
 
-**User Story:** As a developer, I want agent memory and context sharing, so that agents can learn from previous interactions and maintain context across sessions.
-
-#### Acceptance Criteria
-
-1. WHEN an agent completes a task THEN the system SHALL store learned context and patterns for future use
-2. WHEN an agent starts a new task THEN the system SHALL provide relevant historical context and similar past executions
-3. WHEN agents interact with the same codebase THEN the system SHALL enable knowledge sharing between different agent sessions
-4. WHEN searching agent memory THEN the system SHALL support semantic search using vector embeddings
-5. IF agent context becomes too large THEN the system SHALL automatically summarize and archive older interactions
-
-### Requirement 8
-
-**User Story:** As a system administrator, I want comprehensive telemetry and monitoring, so that I can ensure system health and optimize performance.
+**User Story:** As a system architect, I want multiple AI agents to communicate and collaborate, so that I can build complex multi-agent workflows and systems.
 
 #### Acceptance Criteria
 
-1. WHEN the system operates THEN it SHALL emit OpenTelemetry traces for all database operations and agent interactions
-2. WHEN performance issues occur THEN the system SHALL provide detailed metrics on query performance, sync latency, and agent execution times
-3. WHEN viewing system health THEN administrators SHALL see real-time dashboards with key performance indicators
-4. WHEN errors occur THEN the system SHALL automatically capture context and enable correlation across distributed components
-5. IF system resources are constrained THEN the system SHALL provide alerts and recommendations for optimization
+1. WHEN agents need to communicate THEN the system SHALL provide message passing between agents with proper routing
+2. WHEN multi-agent workflows are executed THEN the system SHALL coordinate agent interactions and maintain conversation context
+3. WHEN agents share information THEN the system SHALL enable shared memory blocks and collaborative knowledge building
+4. WHEN agent communication occurs THEN the system SHALL log interactions for debugging and workflow optimization
+
+### Requirement 5: Self-Editing Memory Tools
+
+**User Story:** As an AI agent, I want to manage my own memory through built-in tools, so that I can update my understanding and knowledge autonomously.
+
+#### Acceptance Criteria
+
+1. WHEN agents need to update memory THEN the system SHALL provide memory editing tools (core_memory_append, core_memory_replace)
+2. WHEN memory tools are used THEN the system SHALL validate changes and update Supabase storage with proper versioning
+3. WHEN memory conflicts occur THEN the system SHALL provide conflict resolution mechanisms and rollback capabilities
+4. WHEN memory tools are executed THEN the system SHALL log all memory modifications for audit and debugging purposes
+
+### Requirement 6: Integration with VibeKit Execution System
+
+**User Story:** As a system architect, I want Letta agents to integrate with the existing VibeKit execution system, so that agents can execute code and perform actions while maintaining memory context.
+
+#### Acceptance Criteria
+
+1. WHEN agents execute code through VibeKit THEN the system SHALL maintain agent memory context throughout execution
+2. WHEN VibeKit operations complete THEN the system SHALL update agent memory with execution results and learnings
+3. WHEN agents need to perform actions THEN they SHALL access VibeKit tools while preserving conversational state
+4. WHEN execution context is needed THEN agents SHALL provide relevant memory context to enhance VibeKit operations
+
+### Requirement 7: Agent Dashboard and Memory Visualization
+
+**User Story:** As a developer, I want visual dashboards to monitor agent memory, conversations, and system state, so that I can understand and debug agent behavior.
+
+#### Acceptance Criteria
+
+1. WHEN accessing the agent dashboard THEN users SHALL see agent memory blocks, conversation history, and system status
+2. WHEN viewing agent memory THEN users SHALL see structured memory blocks with semantic relationships and update history
+3. WHEN monitoring conversations THEN users SHALL access real-time conversation flows and agent reasoning steps
+4. WHEN debugging agents THEN users SHALL have access to memory modification logs and agent decision traces
+
+### Requirement 8: Security and Data Privacy
+
+**User Story:** As a security officer, I want agent memory and conversations to maintain security standards and privacy requirements, so that sensitive user data remains protected.
+
+#### Acceptance Criteria
+
+1. WHEN storing agent memory THEN the system SHALL encrypt sensitive data at rest and in transit using Supabase security features
+2. WHEN accessing agent data THEN the system SHALL enforce role-based access controls and user isolation
+3. WHEN agents process sensitive information THEN the system SHALL provide data sanitization and privacy controls
+4. WHEN audit trails are required THEN the system SHALL maintain comprehensive logs of all agent memory modifications and access

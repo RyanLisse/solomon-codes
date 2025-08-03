@@ -43,7 +43,7 @@ export class TodoTracker {
 		};
 
 		this.todos.set(id, todoItem);
-		
+
 		this.logger.info("TODO registered", {
 			id,
 			type: todo.type,
@@ -86,14 +86,14 @@ export class TodoTracker {
 	 * Get unresolved TODOs
 	 */
 	getUnresolvedTodos(): TodoItem[] {
-		return this.getAllTodos().filter(todo => !todo.resolvedAt);
+		return this.getAllTodos().filter((todo) => !todo.resolvedAt);
 	}
 
 	/**
 	 * Get TODOs by priority
 	 */
 	getTodosByPriority(priority: TodoItem["priority"]): TodoItem[] {
-		return this.getAllTodos().filter(todo => todo.priority === priority);
+		return this.getAllTodos().filter((todo) => todo.priority === priority);
 	}
 
 	/**
@@ -102,7 +102,7 @@ export class TodoTracker {
 	getOverdueTodos(): TodoItem[] {
 		const now = new Date();
 		return this.getUnresolvedTodos().filter(
-			todo => todo.dueDate && todo.dueDate < now
+			(todo) => todo.dueDate && todo.dueDate < now,
 		);
 	}
 
@@ -110,14 +110,14 @@ export class TodoTracker {
 	 * Get TODOs by file
 	 */
 	getTodosByFile(file: string): TodoItem[] {
-		return this.getAllTodos().filter(todo => todo.file === file);
+		return this.getAllTodos().filter((todo) => todo.file === file);
 	}
 
 	/**
 	 * Get TODOs by assignee
 	 */
 	getTodosByAssignee(assignee: string): TodoItem[] {
-		return this.getAllTodos().filter(todo => todo.assignee === assignee);
+		return this.getAllTodos().filter((todo) => todo.assignee === assignee);
 	}
 
 	/**
@@ -140,10 +140,10 @@ export class TodoTracker {
 				low: this.getTodosByPriority("low").length,
 			},
 			byType: {
-				TODO: all.filter(t => t.type === "TODO").length,
-				FIXME: all.filter(t => t.type === "FIXME").length,
-				HACK: all.filter(t => t.type === "HACK").length,
-				NOTE: all.filter(t => t.type === "NOTE").length,
+				TODO: all.filter((t) => t.type === "TODO").length,
+				FIXME: all.filter((t) => t.type === "FIXME").length,
+				HACK: all.filter((t) => t.type === "HACK").length,
+				NOTE: all.filter((t) => t.type === "NOTE").length,
 			},
 		};
 	}
@@ -152,7 +152,9 @@ export class TodoTracker {
 	 * Generate unique ID for TODO item
 	 */
 	private generateId(todo: Omit<TodoItem, "id" | "createdAt">): string {
-		const hash = this.simpleHash(`${todo.file}:${todo.line}:${todo.description}`);
+		const hash = this.simpleHash(
+			`${todo.file}:${todo.line}:${todo.description}`,
+		);
 		return `todo-${hash}`;
 	}
 
@@ -163,7 +165,7 @@ export class TodoTracker {
 		let hash = 0;
 		for (let i = 0; i < str.length; i++) {
 			const char = str.charCodeAt(i);
-			hash = ((hash << 5) - hash) + char;
+			hash = (hash << 5) - hash + char;
 			hash = hash & hash; // Convert to 32-bit integer
 		}
 		return Math.abs(hash).toString(36);
@@ -173,11 +175,15 @@ export class TodoTracker {
 	 * Export TODOs to JSON
 	 */
 	exportToJson(): string {
-		return JSON.stringify({
-			exportedAt: new Date().toISOString(),
-			statistics: this.getStatistics(),
-			todos: this.getAllTodos(),
-		}, null, 2);
+		return JSON.stringify(
+			{
+				exportedAt: new Date().toISOString(),
+				statistics: this.getStatistics(),
+				todos: this.getAllTodos(),
+			},
+			null,
+			2,
+		);
 	}
 
 	/**
@@ -190,7 +196,7 @@ export class TodoTracker {
 
 		let report = "# TODO Report\n\n";
 		report += `Generated: ${new Date().toISOString()}\n\n`;
-		
+
 		report += "## Statistics\n";
 		report += `- Total TODOs: ${stats.total}\n`;
 		report += `- Unresolved: ${stats.unresolved}\n`;
@@ -244,7 +250,8 @@ export function registerKnownTodos(): void {
 	// VibeKit integration TODO
 	todoTracker.registerTodo({
 		type: "TODO",
-		description: "Re-enable VibeKit once OpenTelemetry compatibility is resolved",
+		description:
+			"Re-enable VibeKit once OpenTelemetry compatibility is resolved",
 		file: "apps/web/src/lib/inngest.ts",
 		line: 110,
 		priority: "high",
@@ -266,13 +273,13 @@ export function withTodo(
 		dueDate?: Date;
 		issueUrl?: string;
 		tags?: string[];
-	} = {}
+	} = {},
 ) {
-	return function (
+	return (
 		target: unknown,
 		propertyKey: string,
-		descriptor: PropertyDescriptor
-	) {
+		descriptor: PropertyDescriptor,
+	) => {
 		const fileName = "unknown"; // Would need to be determined at build time
 		const lineNumber = 0; // Would need to be determined at build time
 
@@ -312,7 +319,7 @@ export function generateProductionReadinessReport(): string {
 	report += "## Disabled Features\n";
 	const disabledCount = Object.keys(disabledFeatures).length;
 	report += `- Total Disabled: ${disabledCount}\n`;
-	
+
 	if (disabledCount > 0) {
 		report += "\n### Disabled Features List\n";
 		for (const [feature, info] of Object.entries(disabledFeatures)) {
@@ -334,19 +341,20 @@ export function generateProductionReadinessReport(): string {
 	}
 
 	report += "\n## Recommendations\n";
-	
+
 	if (todoStats.byPriority.critical > 0) {
-		report += "- ⚠️  **Critical TODOs must be resolved before production deployment**\n";
+		report +=
+			"- ⚠️  **Critical TODOs must be resolved before production deployment**\n";
 	}
-	
+
 	if (todoStats.byPriority.high > 0) {
 		report += "- ⚠️  High priority TODOs should be resolved before production\n";
 	}
-	
+
 	if (disabledCount > 0) {
 		report += "- 🔧 Review disabled features and re-enable where appropriate\n";
 	}
-	
+
 	if (readyForReenabling.length > 0) {
 		report += "- ✅ Some features are ready to be re-enabled\n";
 	}
@@ -359,10 +367,10 @@ export function generateProductionReadinessReport(): string {
  */
 export function initializeTodoTracking(): void {
 	registerKnownTodos();
-	
+
 	const logger = createContextLogger("todo-tracker-init");
 	const stats = todoTracker.getStatistics();
-	
+
 	logger.info("TODO tracking initialized", {
 		totalTodos: stats.total,
 		unresolvedTodos: stats.unresolved,

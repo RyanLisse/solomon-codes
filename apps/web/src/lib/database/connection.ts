@@ -1,29 +1,32 @@
 import { neon, Pool } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
-import type { DatabaseConfig, DatabaseHealth } from "./types";
 import * as schema from "./schema";
+import type { DatabaseConfig, DatabaseHealth } from "./types";
 
 /**
  * Get database configuration based on environment variables
  */
 export function getDatabaseConfig(): DatabaseConfig {
 	const environment = process.env.NODE_ENV || "development";
-	
+
 	// Base configuration
 	const config: DatabaseConfig = {
 		connectionString: process.env.DATABASE_URL || "",
 		ssl: environment === "production",
-		maxConnections: parseInt(process.env.DB_MAX_CONNECTIONS || "10", 10),
-		idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT || "30000", 10),
-		connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || "5000", 10),
+		maxConnections: Number.parseInt(process.env.DB_MAX_CONNECTIONS || "10", 10),
+		idleTimeout: Number.parseInt(process.env.DB_IDLE_TIMEOUT || "30000", 10),
+		connectionTimeout: Number.parseInt(
+			process.env.DB_CONNECTION_TIMEOUT || "5000",
+			10,
+		),
 	};
-	
+
 	// Environment-specific overrides
 	if (environment === "test") {
 		config.maxConnections = 5;
 		config.ssl = false;
 	}
-	
+
 	return config;
 }
 
@@ -31,18 +34,20 @@ export function getDatabaseConfig(): DatabaseConfig {
  * Create a database client using Neon serverless
  */
 export function createDatabaseClient(customConfig?: Partial<DatabaseConfig>) {
-	const config = customConfig ? { ...getDatabaseConfig(), ...customConfig } : getDatabaseConfig();
-	
+	const config = customConfig
+		? { ...getDatabaseConfig(), ...customConfig }
+		: getDatabaseConfig();
+
 	if (!config.connectionString) {
 		throw new Error("DATABASE_URL environment variable is required");
 	}
-	
+
 	// Create Neon client
 	const sql = neon(config.connectionString);
-	
+
 	// Create Drizzle client with schema
 	const db = drizzle(sql, { schema });
-	
+
 	return db;
 }
 
@@ -50,12 +55,14 @@ export function createDatabaseClient(customConfig?: Partial<DatabaseConfig>) {
  * Create a connection pool for better performance
  */
 export function createConnectionPool(customConfig?: Partial<DatabaseConfig>) {
-	const config = customConfig ? { ...getDatabaseConfig(), ...customConfig } : getDatabaseConfig();
-	
+	const config = customConfig
+		? { ...getDatabaseConfig(), ...customConfig }
+		: getDatabaseConfig();
+
 	if (!config.connectionString) {
 		throw new Error("DATABASE_URL environment variable is required");
 	}
-	
+
 	// Create connection pool
 	const pool = new Pool({
 		connectionString: config.connectionString,
@@ -64,7 +71,7 @@ export function createConnectionPool(customConfig?: Partial<DatabaseConfig>) {
 		connectionTimeoutMillis: config.connectionTimeout,
 		ssl: config.ssl,
 	});
-	
+
 	return pool;
 }
 
@@ -80,18 +87,18 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
 		lastCheck: new Date(),
 		errors: [],
 	};
-	
+
 	try {
 		const config = getDatabaseConfig();
 		if (!config.connectionString) {
 			throw new Error("DATABASE_URL not configured");
 		}
-		
+
 		const sql = neon(config.connectionString);
-		
+
 		// Simple health check query
 		await sql`SELECT NOW() as now`;
-		
+
 		health.isHealthy = true;
 		health.responseTime = Date.now() - startTime;
 	} catch (error) {
@@ -99,7 +106,7 @@ export async function checkDatabaseHealth(): Promise<DatabaseHealth> {
 		health.errors.push(error instanceof Error ? error.message : String(error));
 		health.responseTime = Date.now() - startTime;
 	}
-	
+
 	return health;
 }
 
@@ -113,11 +120,11 @@ export async function initializeDatabase(): Promise<{
 }> {
 	try {
 		const client = createDatabaseClient();
-		
+
 		// Perform a simple query to verify connection
 		const sql = neon(getDatabaseConfig().connectionString);
 		await sql`SELECT 1 as test`;
-		
+
 		return {
 			success: true,
 			client,
@@ -135,7 +142,7 @@ export async function initializeDatabase(): Promise<{
  */
 export function getDatabaseUrl(environment?: string): string {
 	const env = environment || process.env.NODE_ENV || "development";
-	
+
 	// Environment-specific database URLs
 	switch (env) {
 		case "production":
@@ -156,28 +163,31 @@ export function validateDatabaseConfig(config: DatabaseConfig): {
 	errors: string[];
 } {
 	const errors: string[] = [];
-	
+
 	if (!config.connectionString) {
 		errors.push("Connection string is required");
 	}
-	
+
 	if (config.maxConnections && config.maxConnections < 1) {
 		errors.push("Max connections must be at least 1");
 	}
-	
+
 	if (config.idleTimeout && config.idleTimeout < 1000) {
 		errors.push("Idle timeout must be at least 1000ms");
 	}
-	
+
 	if (config.connectionTimeout && config.connectionTimeout < 1000) {
 		errors.push("Connection timeout must be at least 1000ms");
 	}
-	
+
 	// Validate connection string format
-	if (config.connectionString && !config.connectionString.startsWith("postgresql://")) {
+	if (
+		config.connectionString &&
+		!config.connectionString.startsWith("postgresql://")
+	) {
 		errors.push("Connection string must be a valid PostgreSQL URL");
 	}
-	
+
 	return {
 		isValid: errors.length === 0,
 		errors,
@@ -187,13 +197,17 @@ export function validateDatabaseConfig(config: DatabaseConfig): {
 /**
  * Create database client with logging integration
  */
-export function createDatabaseClientWithLogging(customConfig?: Partial<DatabaseConfig>) {
-	const config = customConfig ? { ...getDatabaseConfig(), ...customConfig } : getDatabaseConfig();
-	
+export function createDatabaseClientWithLogging(
+	customConfig?: Partial<DatabaseConfig>,
+) {
+	const config = customConfig
+		? { ...getDatabaseConfig(), ...customConfig }
+		: getDatabaseConfig();
+
 	if (!config.connectionString) {
 		throw new Error("DATABASE_URL environment variable is required");
 	}
-	
+
 	// Create Neon client with logging
 	const sql = neon(config.connectionString, {
 		onNotice: (notice) => {
@@ -203,13 +217,13 @@ export function createDatabaseClientWithLogging(customConfig?: Partial<DatabaseC
 			console.log("Database notification:", notification);
 		},
 	});
-	
+
 	// Create Drizzle client with schema and logging
-	const db = drizzle(sql, { 
+	const db = drizzle(sql, {
 		schema,
 		logger: process.env.NODE_ENV === "development",
 	});
-	
+
 	return db;
 }
 
@@ -249,30 +263,30 @@ export async function closeDatabaseConnections(): Promise<void> {
  */
 export async function testDatabaseConnection(
 	maxRetries = 3,
-	retryDelay = 1000
+	retryDelay = 1000,
 ): Promise<{ success: boolean; error?: string; attempts: number }> {
 	let attempts = 0;
 	let lastError: Error | null = null;
-	
+
 	while (attempts < maxRetries) {
 		attempts++;
-		
+
 		try {
 			const health = await checkDatabaseHealth();
 			if (health.isHealthy) {
 				return { success: true, attempts };
 			}
-			
+
 			lastError = new Error(health.errors.join(", "));
 		} catch (error) {
 			lastError = error instanceof Error ? error : new Error(String(error));
 		}
-		
+
 		if (attempts < maxRetries) {
-			await new Promise(resolve => setTimeout(resolve, retryDelay));
+			await new Promise((resolve) => setTimeout(resolve, retryDelay));
 		}
 	}
-	
+
 	return {
 		success: false,
 		error: lastError?.message || "Unknown error",

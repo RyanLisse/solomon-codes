@@ -1,16 +1,16 @@
+import { createRequire } from "node:module";
 import type { NextConfig } from "next";
-import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
 
 // Bundle analyzer setup for performance monitoring
-const withBundleAnalyzer = require('@next/bundle-analyzer')({
-	enabled: process.env.ANALYZE === 'true',
+const withBundleAnalyzer = require("@next/bundle-analyzer")({
+	enabled: process.env.ANALYZE === "true",
 });
 
 // Production build optimizations
-const isProduction = process.env.NODE_ENV === 'production';
-const isDevelopment = process.env.NODE_ENV === 'development';
+const isProduction = process.env.NODE_ENV === "production";
+const isDevelopment = process.env.NODE_ENV === "development";
 
 // Production-specific bundle size limits (in bytes)
 const BUNDLE_SIZE_LIMITS = {
@@ -23,11 +23,12 @@ const nextConfig: NextConfig = {
 	// Performance optimizations
 	experimental: {
 		optimizeCss: true,
-		optimizePackageImports: ['lucide-react', '@radix-ui/react-*', 'date-fns'],
+		optimizePackageImports: ["lucide-react", "@radix-ui/react-*", "date-fns"],
 		staleTimes: {
 			dynamic: isProduction ? 60 : 30,
 			static: isProduction ? 300 : 180,
 		},
+
 		// Production-specific optimizations
 		...(isProduction && {
 			webpackBuildWorker: true,
@@ -35,11 +36,11 @@ const nextConfig: NextConfig = {
 			gzipSize: true,
 			// Enable advanced tree shaking
 			modularizeImports: {
-				'@radix-ui/react-icons': {
-					transform: '@radix-ui/react-icons/dist/{{member}}.js',
+				"@radix-ui/react-icons": {
+					transform: "@radix-ui/react-icons/dist/{{member}}.js",
 				},
-				'lucide-react': {
-					transform: 'lucide-react/dist/esm/icons/{{kebabCase member}}',
+				"lucide-react": {
+					transform: "lucide-react/dist/esm/icons/{{kebabCase member}}",
 				},
 			},
 		}),
@@ -47,7 +48,7 @@ const nextConfig: NextConfig = {
 
 	// Compiler optimizations
 	compiler: {
-		removeConsole: isProduction ? { exclude: ['error', 'warn'] } : false,
+		removeConsole: isProduction ? { exclude: ["error", "warn"] } : false,
 		reactRemoveProperties: isProduction,
 		// Production-specific optimizations
 		...(isProduction && {
@@ -58,7 +59,7 @@ const nextConfig: NextConfig = {
 
 	// Enhanced image optimization
 	images: {
-		formats: ['image/avif', 'image/webp'],
+		formats: ["image/avif", "image/webp"],
 		minimumCacheTTL: isProduction ? 31536000 : 60, // 1 year in prod, 1 min in dev
 		remotePatterns: [
 			{
@@ -81,14 +82,14 @@ const nextConfig: NextConfig = {
 		// Exclude problematic packages from bundling
 		config.externals = config.externals || [];
 		if (isServer) {
-			config.externals.push('@vibe-kit/dagger', '@dagger.io/dagger');
+			config.externals.push("@vibe-kit/dagger", "@dagger.io/dagger");
 		}
 
 		// Production-specific optimizations
 		if (!dev && !isServer) {
 			// Enhanced bundle splitting for production
 			config.optimization.splitChunks = {
-				chunks: 'all',
+				chunks: "all",
 				minSize: 20000,
 				maxSize: isProduction ? 250000 : 500000,
 				minChunks: 1,
@@ -104,29 +105,29 @@ const nextConfig: NextConfig = {
 					defaultVendors: false,
 					vendor: {
 						test: /[\\/]node_modules[\\/]/,
-						name: 'vendors',
+						name: "vendors",
 						priority: 10,
-						chunks: 'all',
+						chunks: "all",
 						enforce: true,
 					},
 					react: {
 						test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
-						name: 'react-vendor',
+						name: "react-vendor",
 						priority: 20,
-						chunks: 'all',
+						chunks: "all",
 						enforce: true,
 					},
 					ui: {
 						test: /[\\/]node_modules[\\/](@radix-ui|lucide-react)[\\/]/,
-						name: 'ui-vendor',
+						name: "ui-vendor",
 						priority: 15,
-						chunks: 'all',
+						chunks: "all",
 						enforce: true,
 					},
 					common: {
-						name: 'common',
+						name: "common",
 						minChunks: 2,
-						chunks: 'all',
+						chunks: "all",
 						priority: 5,
 						reuseExistingChunk: true,
 					},
@@ -136,11 +137,13 @@ const nextConfig: NextConfig = {
 			// Production bundle size monitoring
 			if (isProduction) {
 				config.performance = {
-					hints: 'warning',
+					hints: "warning",
 					maxAssetSize: BUNDLE_SIZE_LIMITS.maxAssetSize,
 					maxEntrypointSize: BUNDLE_SIZE_LIMITS.maxEntrypointSize,
-					assetFilter: (assetFilename) => {
-						return assetFilename.endsWith('.js') || assetFilename.endsWith('.css');
+					assetFilter: (assetFilename: string) => {
+						return (
+							assetFilename.endsWith(".js") || assetFilename.endsWith(".css")
+						);
 					},
 				};
 			}
@@ -149,21 +152,23 @@ const nextConfig: NextConfig = {
 			if (isProduction) {
 				config.plugins.push(
 					new webpack.DefinePlugin({
-						'process.env.BUNDLE_ANALYZE': JSON.stringify(process.env.ANALYZE === 'true'),
-						'process.env.BUILD_TIME': JSON.stringify(new Date().toISOString()),
-					})
+						"process.env.BUNDLE_ANALYZE": JSON.stringify(
+							process.env.ANALYZE === "true",
+						),
+						"process.env.BUILD_TIME": JSON.stringify(new Date().toISOString()),
+					}),
 				);
 
 				// Add bundle size analyzer for production builds
-				if (process.env.ANALYZE === 'true') {
-					const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
+				if (process.env.ANALYZE === "true") {
+					const { BundleAnalyzerPlugin } = require("webpack-bundle-analyzer");
 					config.plugins.push(
 						new BundleAnalyzerPlugin({
-							analyzerMode: 'static',
-							reportFilename: '../bundle-analyzer-report.html',
+							analyzerMode: "static",
+							reportFilename: "../bundle-analyzer-report.html",
 							openAnalyzer: false,
 							generateStatsFile: true,
-							statsFilename: '../bundle-stats.json',
+							statsFilename: "../bundle-stats.json",
 							statsOptions: {
 								source: false,
 								reasons: true,
@@ -171,7 +176,7 @@ const nextConfig: NextConfig = {
 								chunkModules: true,
 								children: false,
 							},
-						})
+						}),
 					);
 				}
 			}
@@ -179,7 +184,7 @@ const nextConfig: NextConfig = {
 
 		// Development-specific optimizations
 		if (dev) {
-			config.devtool = 'eval-cheap-module-source-map';
+			config.devtool = "eval-cheap-module-source-map";
 		}
 
 		// Module resolution optimizations
@@ -187,8 +192,8 @@ const nextConfig: NextConfig = {
 			...config.resolve.alias,
 			// Reduce bundle size by aliasing to smaller alternatives
 			...(isProduction && {
-				'react/jsx-runtime': require.resolve('react/jsx-runtime'),
-				'react/jsx-dev-runtime': require.resolve('react/jsx-dev-runtime'),
+				"react/jsx-runtime": require.resolve("react/jsx-runtime"),
+				"react/jsx-dev-runtime": require.resolve("react/jsx-dev-runtime"),
 			}),
 		};
 
@@ -203,7 +208,7 @@ const nextConfig: NextConfig = {
 	compress: true,
 	poweredByHeader: false,
 	generateEtags: isProduction,
-	
+
 	// Enhanced caching for production
 	...(isProduction && {
 		onDemandEntries: {
@@ -213,33 +218,33 @@ const nextConfig: NextConfig = {
 	}),
 
 	// Output configuration for production builds
-	output: isProduction ? 'standalone' : undefined,
-	
+	output: isProduction ? "standalone" : undefined,
+
 	// Enhanced security headers for production
 	...(isProduction && {
 		headers: async () => [
 			{
-				source: '/(.*)',
+				source: "/(.*)",
 				headers: [
 					{
-						key: 'X-Content-Type-Options',
-						value: 'nosniff',
+						key: "X-Content-Type-Options",
+						value: "nosniff",
 					},
 					{
-						key: 'X-Frame-Options',
-						value: 'DENY',
+						key: "X-Frame-Options",
+						value: "DENY",
 					},
 					{
-						key: 'X-XSS-Protection',
-						value: '1; mode=block',
+						key: "X-XSS-Protection",
+						value: "1; mode=block",
 					},
 					{
-						key: 'Referrer-Policy',
-						value: 'strict-origin-when-cross-origin',
+						key: "Referrer-Policy",
+						value: "strict-origin-when-cross-origin",
 					},
 					{
-						key: 'Strict-Transport-Security',
-						value: 'max-age=31536000; includeSubDomains',
+						key: "Strict-Transport-Security",
+						value: "max-age=31536000; includeSubDomains",
 					},
 				],
 			},
@@ -248,25 +253,41 @@ const nextConfig: NextConfig = {
 
 	// External packages for server components
 	serverExternalPackages: [
-		'@electric-sql/pglite',
-		'@neondatabase/serverless',
-		'postgres',
+		"@electric-sql/pglite",
+		"@neondatabase/serverless",
+		"postgres",
+		// Dagger.io packages (server-only)
+		"@dagger.io/dagger",
+		"winston",
 	],
 
 	// Environment-specific redirects
 	redirects: async () => {
 		const redirects = [];
-		
+
 		// Production-specific redirects
 		if (isProduction) {
 			redirects.push({
-				source: '/health',
-				destination: '/api/health',
+				source: "/health",
+				destination: "/api/health",
 				permanent: false,
 			});
 		}
-		
+
 		return redirects;
+	},
+
+	// Turbopack configuration for development
+	turbopack: {
+		rules: {
+			"*.svg": {
+				loaders: ["@svgr/webpack"],
+				as: "*.js",
+			},
+		},
+		resolveAlias: {
+			"@": "./src",
+		},
 	},
 };
 

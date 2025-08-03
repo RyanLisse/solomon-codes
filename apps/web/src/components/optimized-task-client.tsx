@@ -1,7 +1,7 @@
 "use client";
-import { useCallback, useMemo, memo, useState, useEffect } from "react";
 import { useInngestSubscription } from "@inngest/realtime/hooks";
 import { Bot, Loader, Terminal, User } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { fetchRealtimeSubscriptionToken } from "@/app/actions/inngest";
 import { Markdown } from "@/components/markdown";
 import { StreamingIndicator } from "@/components/streaming-indicator";
@@ -42,39 +42,57 @@ interface TaskMessage {
 }
 
 // Memoized message component for performance
-const MessageItem = memo(function MessageItem({ 
-	message, 
-	getOutputForCall 
-}: { 
-	message: TaskMessage; 
-	getOutputForCall: (callId: string) => TaskMessage | undefined; 
+const MessageItem = memo(function MessageItem({
+	message,
+	getOutputForCall,
+}: {
+	message: TaskMessage;
+	getOutputForCall: (callId: string) => TaskMessage | undefined;
 }) {
 	const isUserMessage = message.role === "user";
 	const isAssistantMessage = message.role === "assistant";
 	const isShellCall = message.type === "local_shell_call";
-	const outputMessage = isShellCall && message.data?.call_id ? getOutputForCall(message.data.call_id as string) : null;
+	const outputMessage =
+		isShellCall && message.data?.call_id
+			? getOutputForCall(message.data.call_id as string)
+			: null;
 
 	return (
-		<div className={cn("mb-4 flex", isUserMessage ? "justify-end" : "justify-start")}>
-			<div className={cn("flex max-w-[80%] gap-3", isUserMessage && "flex-row-reverse")}>
+		<div
+			className={cn(
+				"mb-4 flex",
+				isUserMessage ? "justify-end" : "justify-start",
+			)}
+		>
+			<div
+				className={cn(
+					"flex max-w-[80%] gap-3",
+					isUserMessage && "flex-row-reverse",
+				)}
+			>
 				<div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border bg-background shadow">
-					{isUserMessage ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+					{isUserMessage ? (
+						<User className="h-4 w-4" />
+					) : (
+						<Bot className="h-4 w-4" />
+					)}
 				</div>
-				<div className={cn("flex flex-col gap-2 rounded-lg px-3 py-2", 
-					isUserMessage 
-						? "bg-primary text-primary-foreground" 
-						: "bg-muted"
-				)}>
+				<div
+					className={cn(
+						"flex flex-col gap-2 rounded-lg px-3 py-2",
+						isUserMessage ? "bg-primary text-primary-foreground" : "bg-muted",
+					)}
+				>
 					{isShellCall && (
-						<div className="rounded bg-black p-2 text-green-400 font-mono text-sm">
-							<div className="flex items-center gap-2 mb-1">
+						<div className="rounded bg-black p-2 font-mono text-green-400 text-sm">
+							<div className="mb-1 flex items-center gap-2">
 								<Terminal className="h-3 w-3" />
-								<span className="text-xs text-gray-400">Shell Command</span>
+								<span className="text-gray-400 text-xs">Shell Command</span>
 							</div>
 							<div>{message.data?.action?.command?.join(" ")}</div>
 							{outputMessage && (
-								<div className="mt-2 pt-2 border-t border-gray-600">
-									<div className="text-xs text-gray-400 mb-1">Output:</div>
+								<div className="mt-2 border-gray-600 border-t pt-2">
+									<div className="mb-1 text-gray-400 text-xs">Output:</div>
 									<pre className="whitespace-pre-wrap text-xs">
 										{outputMessage.data?.output}
 									</pre>
@@ -93,10 +111,10 @@ const MessageItem = memo(function MessageItem({
 });
 
 // Memoized streaming message component
-const StreamingMessage = memo(function StreamingMessage({ 
-	message 
-}: { 
-	message: StreamingMessage 
+const StreamingMessage = memo(function StreamingMessage({
+	message,
+}: {
+	message: StreamingMessage;
 }) {
 	return (
 		<div className="mb-4 flex justify-start">
@@ -104,7 +122,7 @@ const StreamingMessage = memo(function StreamingMessage({
 				<div className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-md border bg-background shadow">
 					<Bot className="h-4 w-4" />
 				</div>
-				<div className="flex flex-col gap-2 rounded-lg px-3 py-2 bg-muted">
+				<div className="flex flex-col gap-2 rounded-lg bg-muted px-3 py-2">
 					<Markdown>{message.data.text || ""}</Markdown>
 					<StreamingIndicator />
 				</div>
@@ -118,22 +136,35 @@ export default function OptimizedTaskClient({ id }: Props) {
 	const { data: task, isLoading, error } = useTask(id);
 
 	// Memoized output lookup function
-	const getOutputForCall = useCallback((callId: string) => {
-		return task?.messages.find(
-			(message: TaskMessage) =>
-				message.type === "local_shell_call_output" &&
-				message.data?.call_id === callId,
-		);
-	}, [task?.messages]);
+	const getOutputForCall = useCallback(
+		(callId: string) => {
+			return task?.messages.find(
+				(message: TaskMessage) =>
+					message.type === "local_shell_call_output" &&
+					message.data?.call_id === callId,
+			);
+		},
+		[task?.messages],
+	);
 
 	// Memoized sorted messages for performance
 	const sortedMessages = useMemo(() => {
 		if (!task?.messages) return [];
 		return [...task.messages]
-			.filter((message: TaskMessage) => message.type !== "local_shell_call_output")
+			.filter(
+				(message: TaskMessage) => message.type !== "local_shell_call_output",
+			)
 			.sort((a: TaskMessage, b: TaskMessage) => {
-				const aDate = new Date(a.created_at || (a as TaskMessage & { createdAt?: string }).createdAt || '').getTime();
-				const bDate = new Date(b.created_at || (b as TaskMessage & { createdAt?: string }).createdAt || '').getTime();
+				const aDate = new Date(
+					a.created_at ||
+						(a as TaskMessage & { createdAt?: string }).createdAt ||
+						"",
+				).getTime();
+				const bDate = new Date(
+					b.created_at ||
+						(b as TaskMessage & { createdAt?: string }).createdAt ||
+						"",
+				).getTime();
 				return aDate - bDate;
 			});
 	}, [task?.messages]);
@@ -145,23 +176,37 @@ export default function OptimizedTaskClient({ id }: Props) {
 	});
 
 	// State for streaming messages with memory management
-	const [streamingMessages, setStreamingMessages] = useState<Map<string, StreamingMessage>>(new Map());
+	const [streamingMessages, setStreamingMessages] = useState<
+		Map<string, StreamingMessage>
+	>(new Map());
 
 	// Handle streaming messages with proper type checking
 	useEffect(() => {
 		if (latestData?.channel === "tasks" && latestData.topic === "update") {
 			const { taskId, message } = latestData.data;
-			if (taskId === id && message && typeof message === 'object' && 'data' in message) {
+			if (
+				taskId === id &&
+				message &&
+				typeof message === "object" &&
+				"data" in message
+			) {
 				const messageData = message.data as Record<string, unknown>;
-				if (messageData?.isStreaming && messageData.streamId && typeof messageData.streamId === 'string') {
+				if (
+					messageData?.isStreaming &&
+					messageData.streamId &&
+					typeof messageData.streamId === "string"
+				) {
 					const MAX_STREAMING_MESSAGES = 50;
-					setStreamingMessages(prev => {
+					setStreamingMessages((prev) => {
 						const newMap = new Map(prev);
 						if (newMap.size >= MAX_STREAMING_MESSAGES) {
 							const oldestKey = newMap.keys().next().value;
 							if (oldestKey) newMap.delete(oldestKey);
 						}
-						newMap.set(messageData.streamId as string, message as StreamingMessage);
+						newMap.set(
+							messageData.streamId as string,
+							message as StreamingMessage,
+						);
 						return newMap;
 					});
 				}
@@ -184,9 +229,10 @@ export default function OptimizedTaskClient({ id }: Props) {
 		return (
 			<div className="flex h-full items-center justify-center">
 				<div className="text-center">
-					<h2 className="text-lg font-semibold">Task not found</h2>
+					<h2 className="font-semibold text-lg">Task not found</h2>
 					<p className="text-muted-foreground">
-						The task you&apos;re looking for doesn&apos;t exist or has been deleted.
+						The task you&apos;re looking for doesn&apos;t exist or has been
+						deleted.
 					</p>
 				</div>
 			</div>
@@ -198,9 +244,10 @@ export default function OptimizedTaskClient({ id }: Props) {
 			<div className="border-b p-4">
 				<div className="flex items-center justify-between">
 					<div>
-						<h1 className="text-lg font-semibold">{task.title}</h1>
-						<p className="text-sm text-muted-foreground">
-							Created {new Date(task.createdAt || task.created_at).toLocaleDateString()}
+						<h1 className="font-semibold text-lg">{task.title}</h1>
+						<p className="text-muted-foreground text-sm">
+							Created{" "}
+							{new Date(task.createdAt || task.created_at).toLocaleDateString()}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -224,10 +271,7 @@ export default function OptimizedTaskClient({ id }: Props) {
 
 					{/* Render streaming messages */}
 					{Array.from(streamingMessages.values()).map((message) => (
-						<StreamingMessage
-							key={message.data.streamId}
-							message={message}
-						/>
+						<StreamingMessage key={message.data.streamId} message={message} />
 					))}
 				</div>
 			</ScrollArea>
@@ -240,18 +284,19 @@ export default function OptimizedTaskClient({ id }: Props) {
  * Integrates with the global error handling system
  */
 
-import React, { Component, ReactNode, ErrorInfo } from "react";
-import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertTriangle, Bug, Home, RefreshCw } from "lucide-react";
+import React, { Component, type ErrorInfo, type ReactNode } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getGlobalErrorHandler } from "@/lib/logging/transports/opentelemetry";
-import { 
-	BaseApplicationError, 
-	SystemError, 
-	ErrorSeverity, 
-	ErrorCodes 
-} from "@/lib/config";
+import { Button } from "@/components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card";
+import { ErrorCodes, ErrorSeverity, SystemError } from "@/lib/config";
+import { getGlobalClientErrorHandler } from "@/lib/logging/client";
 
 export interface ErrorBoundaryState {
 	hasError: boolean;
@@ -281,7 +326,10 @@ export interface ErrorBoundaryProps {
 /**
  * Enhanced Error Boundary with comprehensive error handling
  */
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+	ErrorBoundaryProps,
+	ErrorBoundaryState
+> {
 	private retryTimeoutId: NodeJS.Timeout | null = null;
 
 	constructor(props: ErrorBoundaryProps) {
@@ -299,7 +347,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 	static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
 		// Generate unique error ID for tracking
 		const errorId = `ui-error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-		
+
 		return {
 			hasError: true,
 			error,
@@ -309,8 +357,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
 	componentDidCatch(error: Error, errorInfo: ErrorInfo) {
 		// Report error to global error handler
-		const globalErrorHandler = getGlobalErrorHandler();
-		
+		const globalErrorHandler = getGlobalClientErrorHandler();
+
 		const structuredError = new SystemError(
 			error.message,
 			ErrorCodes.INTERNAL_ERROR,
@@ -351,7 +399,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
 	private scheduleRetry(): void {
 		const { retryDelay = 2000 } = this.props;
-		const delay = retryDelay * Math.pow(2, this.state.retryCount); // Exponential backoff
+		const delay = retryDelay * 2 ** this.state.retryCount; // Exponential backoff
 
 		this.retryTimeoutId = setTimeout(() => {
 			this.handleRetry();
@@ -359,7 +407,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 	}
 
 	private handleRetry = (): void => {
-		this.setState(prevState => ({
+		this.setState((prevState) => ({
 			hasError: false,
 			error: null,
 			errorInfo: null,
@@ -410,8 +458,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 	}
 
 	private renderErrorUI(): ReactNode {
-		const { level = "component", showErrorDetails = false } = this.props;
-		const { error, errorId, retryCount } = this.state;
+		const { level = "component", showErrorDetails: _showErrorDetails = false } =
+			this.props;
+		const {
+			error: _error,
+			errorId: _errorId,
+			retryCount: _retryCount,
+		} = this.state;
 
 		switch (level) {
 			case "page":
@@ -428,15 +481,16 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 		const canRetry = this.shouldAutoRetry();
 
 		return (
-			<div className="min-h-screen bg-background flex items-center justify-center p-4">
+			<div className="flex min-h-screen items-center justify-center bg-background p-4">
 				<Card className="w-full max-w-lg">
 					<CardHeader className="text-center">
-						<div className="mx-auto mb-4 w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+						<div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
 							<AlertTriangle className="h-6 w-6 text-destructive" />
 						</div>
 						<CardTitle>Something went wrong</CardTitle>
 						<CardDescription>
-							We apologize for the inconvenience. An unexpected error has occurred.
+							We apologize for the inconvenience. An unexpected error has
+							occurred.
 						</CardDescription>
 					</CardHeader>
 					<CardContent className="space-y-4">
@@ -451,35 +505,45 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
 						{retryCount > 0 && (
 							<Alert>
-								<AlertDescription>
-									Retry attempt: {retryCount}
-								</AlertDescription>
+								<AlertDescription>Retry attempt: {retryCount}</AlertDescription>
 							</Alert>
 						)}
 
-						<div className="flex flex-col sm:flex-row gap-2">
+						<div className="flex flex-col gap-2 sm:flex-row">
 							{canRetry && (
-								<Button onClick={this.handleRetry} variant="default" className="flex-1">
-									<RefreshCw className="h-4 w-4 mr-2" />
+								<Button
+									onClick={this.handleRetry}
+									variant="default"
+									className="flex-1"
+								>
+									<RefreshCw className="mr-2 h-4 w-4" />
 									Try Again
 								</Button>
 							)}
-							<Button onClick={this.handleRefresh} variant="outline" className="flex-1">
-								<RefreshCw className="h-4 w-4 mr-2" />
+							<Button
+								onClick={this.handleRefresh}
+								variant="outline"
+								className="flex-1"
+							>
+								<RefreshCw className="mr-2 h-4 w-4" />
 								Refresh Page
 							</Button>
-							<Button onClick={this.handleGoHome} variant="outline" className="flex-1">
-								<Home className="h-4 w-4 mr-2" />
+							<Button
+								onClick={this.handleGoHome}
+								variant="outline"
+								className="flex-1"
+							>
+								<Home className="mr-2 h-4 w-4" />
 								Go Home
 							</Button>
 						</div>
 
 						{this.props.showErrorDetails && error && (
 							<details className="mt-4">
-								<summary className="cursor-pointer text-sm text-muted-foreground">
+								<summary className="cursor-pointer text-muted-foreground text-sm">
 									Error Details
 								</summary>
-								<pre className="mt-2 text-xs bg-muted p-2 rounded overflow-auto max-h-32">
+								<pre className="mt-2 max-h-32 overflow-auto rounded bg-muted p-2 text-xs">
 									{error.stack}
 								</pre>
 							</details>
@@ -491,7 +555,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 							size="sm"
 							className="w-full"
 						>
-							<Bug className="h-4 w-4 mr-2" />
+							<Bug className="mr-2 h-4 w-4" />
 							Report Error
 						</Button>
 					</CardContent>
@@ -501,7 +565,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 	}
 
 	private renderSectionErrorUI(): ReactNode {
-		const { error, errorId } = this.state;
+		const { error: _error, errorId: _errorId } = this.state;
 		const canRetry = this.shouldAutoRetry();
 
 		return (
@@ -512,19 +576,19 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 						<CardTitle className="text-base">Section Error</CardTitle>
 					</div>
 					<CardDescription>
-						This section encountered an error and couldn't load properly.
+						This section encountered an error and couldn&apos;t load properly.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="flex gap-2">
 						{canRetry && (
 							<Button onClick={this.handleRetry} size="sm" variant="outline">
-								<RefreshCw className="h-4 w-4 mr-2" />
+								<RefreshCw className="mr-2 h-4 w-4" />
 								Retry
 							</Button>
 						)}
 						<Button onClick={this.handleReportError} size="sm" variant="ghost">
-							<Bug className="h-4 w-4 mr-2" />
+							<Bug className="mr-2 h-4 w-4" />
 							Report
 						</Button>
 					</div>
@@ -543,7 +607,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 					<span>Component failed to load</span>
 					{canRetry && (
 						<Button onClick={this.handleRetry} size="sm" variant="outline">
-							<RefreshCw className="h-4 w-4 mr-1" />
+							<RefreshCw className="mr-1 h-4 w-4" />
 							Retry
 						</Button>
 					)}
@@ -577,17 +641,20 @@ export function withErrorBoundary<P extends object>(
  * Hook for handling errors in functional components
  */
 export function useErrorHandler() {
-	const handleError = React.useCallback((error: Error, context?: Record<string, unknown>) => {
-		const globalErrorHandler = getGlobalErrorHandler();
-		
-		if (globalErrorHandler) {
-			globalErrorHandler.handleError(error, {
-				component: "functional-component",
-				action: "hook-error",
-				metadata: context,
-			});
-		}
-	}, []);
+	const handleError = React.useCallback(
+		(error: Error, context?: Record<string, unknown>) => {
+			const globalErrorHandler = getGlobalClientErrorHandler();
+
+			if (globalErrorHandler) {
+				globalErrorHandler.handleError(error, {
+					component: "functional-component",
+					action: "hook-error",
+					metadata: context,
+				});
+			}
+		},
+		[],
+	);
 
 	return { handleError };
 }
@@ -599,20 +666,20 @@ export const PageErrorBoundary = (props: Omit<ErrorBoundaryProps, "level">) => (
 	<ErrorBoundary {...props} level="page" />
 );
 
-export const SectionErrorBoundary = (props: Omit<ErrorBoundaryProps, "level">) => (
-	<ErrorBoundary {...props} level="section" />
-);
+export const SectionErrorBoundary = (
+	props: Omit<ErrorBoundaryProps, "level">,
+) => <ErrorBoundary {...props} level="section" />;
 
-export const ComponentErrorBoundary = (props: Omit<ErrorBoundaryProps, "level">) => (
-	<ErrorBoundary {...props} level="component" />
-);
+export const ComponentErrorBoundary = (
+	props: Omit<ErrorBoundaryProps, "level">,
+) => <ErrorBoundary {...props} level="component" />;
 
 /**
  * Async error boundary for handling promise rejections in components
  */
 export function useAsyncError() {
 	const [, setError] = React.useState();
-	
+
 	return React.useCallback((error: Error) => {
 		setError(() => {
 			throw error;
