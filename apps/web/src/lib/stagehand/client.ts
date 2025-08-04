@@ -6,7 +6,7 @@ import type {
 	ExtractedData,
 	ObservationData,
 	SessionConfig,
-} from "../../types/stagehand";
+} from "@/types/stagehand";
 import { getConfigurationService } from "../config/service";
 import { createServiceLogger } from "../logging/factory";
 import { getMockOrRealData } from "../mock/manager";

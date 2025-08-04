@@ -1,0 +1,57 @@
+# Test files and directories
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__/
+test/
+tests/
+test-results/
+test-setup/
+coverage/
+playwright-report/
+storybook-static/
+
+# Development files
+*.log
+*.pid
+dev-server.pid
+server.log
+dev.log
+logs/
+downloads/
+
+# Documentation
+docs/
+*.md
+PRODUCTION_BUILD_SUMMARY.md
+PRODUCTION_READINESS_FINAL_REPORT.md
+RAILWAY_ENVIRONMENT_SETUP.md
+production-readiness-assessment.md
+
+# Development scripts
+scripts/
+audit-todos.js
+test-*.js
+verify-*.js
+
+# Config files not needed for production
+playwright.config.ts
+playwright.test-only.config.ts
+vitest.config.ts
+vitest.*.config.ts
+bunfig.toml
+tsconfig.tsbuildinfo
+
+# Supabase local development
+supabase/
+
+# TypeScript definitions (excluding src/types which are needed for builds)
+# types/
+
+# WASM files (if not needed)
+src/wasm/
+
+# Build cache
+.turbo/
+.next/cache/

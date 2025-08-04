@@ -100,7 +100,7 @@ vi.mock("@/components/ui/input", () => ({
 
 vi.mock("@/components/ui/label", () => ({
 	Label: ({ children, ...props }: MockLabelProps) => (
-		<label data-testid="label" {...props}>
+		<label data-testid="label" htmlFor="mock-input" {...props}>
 			{children}
 		</label>
 	),

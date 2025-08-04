@@ -1,6 +1,11 @@
 "use client";
 
+// React 19 compatibility layer - temporarily disable for working solution
+// import "@/types/react-19-compat";
+
 import { Eye, Globe, Play, Settings } from "lucide-react";
+// Properly typed components for React 19 compatibility
+import type * as React from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	createStagehandSession,
@@ -25,6 +30,40 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+
+type UIComponent<T = Record<string, unknown>> = React.ComponentType<T>;
+
+const TypedLabel = Label as UIComponent<React.ComponentProps<typeof Label>>;
+const TypedSelect = Select as UIComponent<React.ComponentProps<typeof Select>>;
+const TypedSelectTrigger = SelectTrigger as UIComponent<
+	React.ComponentProps<typeof SelectTrigger>
+>;
+const TypedSelectContent = SelectContent as UIComponent<
+	React.ComponentProps<typeof SelectContent>
+>;
+const TypedSelectItem = SelectItem as UIComponent<
+	React.ComponentProps<typeof SelectItem>
+>;
+const TypedSelectValue = SelectValue as UIComponent<
+	React.ComponentProps<typeof SelectValue>
+>;
+const TypedDialog = Dialog as UIComponent<React.ComponentProps<typeof Dialog>>;
+const TypedDialogTrigger = DialogTrigger as UIComponent<
+	React.ComponentProps<typeof DialogTrigger>
+>;
+const TypedDialogContent = DialogContent as UIComponent<
+	React.ComponentProps<typeof DialogContent>
+>;
+const TypedDialogHeader = DialogHeader as UIComponent<
+	React.ComponentProps<"div">
+>;
+const TypedDialogTitle = DialogTitle as UIComponent<
+	React.ComponentProps<typeof DialogTitle>
+>;
+const TypedCheckbox = Checkbox as UIComponent<
+	React.ComponentProps<typeof Checkbox>
+>;
+
 import type {
 	AutomationTask,
 	ExtractedData,
@@ -86,7 +125,7 @@ function UrlInput({
 
 	return (
 		<div className="space-y-2">
-			<Label htmlFor="url">Website URL</Label>
+			<TypedLabel htmlFor="url">Website URL</TypedLabel>
 			<div className="relative">
 				<Globe className="-translate-y-1/2 absolute top-1/2 left-3 h-4 w-4 transform text-muted-foreground" />
 				<Input
@@ -114,29 +153,31 @@ function ModeSelection({
 }) {
 	return (
 		<div className="space-y-2">
-			<Label>Automation Mode</Label>
-			<Select
+			<TypedLabel>Automation Mode</TypedLabel>
+			<TypedSelect
 				value={mode}
-				onValueChange={(value: "action" | "observe") => setMode(value)}
+				onValueChange={(value: string) =>
+					setMode(value as "action" | "observe")
+				}
 			>
-				<SelectTrigger>
-					<SelectValue />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="action">
+				<TypedSelectTrigger>
+					<TypedSelectValue />
+				</TypedSelectTrigger>
+				<TypedSelectContent>
+					<TypedSelectItem value="action">
 						<div className="flex items-center gap-2">
 							<Play className="h-4 w-4" />
 							Action - Perform interactions
 						</div>
-					</SelectItem>
-					<SelectItem value="observe">
+					</TypedSelectItem>
+					<TypedSelectItem value="observe">
 						<div className="flex items-center gap-2">
 							<Eye className="h-4 w-4" />
 							Observe - Analyze page elements
 						</div>
-					</SelectItem>
-				</SelectContent>
-			</Select>
+					</TypedSelectItem>
+				</TypedSelectContent>
+			</TypedSelect>
 		</div>
 	);
 }
@@ -150,13 +191,13 @@ function InstructionsInput({
 	instructions: string;
 	setInstructions: (instructions: string) => void;
 	mode: "action" | "observe";
-	textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+	textareaRef: { current: HTMLTextAreaElement | null };
 }) {
 	return (
 		<div className="space-y-2">
-			<Label htmlFor="instructions">
+			<TypedLabel htmlFor="instructions">
 				{mode === "action" ? "Instructions" : "What to observe"}
-			</Label>
+			</TypedLabel>
 			<textarea
 				ref={textareaRef}
 				id="instructions"
@@ -397,46 +438,46 @@ export default function StagehandForm() {
 					/>
 
 					{/* Advanced Settings */}
-					<Dialog open={showAdvanced} onOpenChange={setShowAdvanced}>
-						<DialogTrigger asChild>
+					<TypedDialog open={showAdvanced} onOpenChange={setShowAdvanced}>
+						<TypedDialogTrigger asChild>
 							<Button variant="outline" className="self-start">
 								<Settings className="mr-2 h-4 w-4" />
 								Advanced Settings
 							</Button>
-						</DialogTrigger>
-						<DialogContent>
-							<DialogHeader>
-								<DialogTitle>Advanced Configuration</DialogTitle>
-							</DialogHeader>
+						</TypedDialogTrigger>
+						<TypedDialogContent>
+							<TypedDialogHeader>
+								<TypedDialogTitle>Advanced Configuration</TypedDialogTitle>
+							</TypedDialogHeader>
 							<div className="space-y-4">
 								{/* Session Config */}
 								<div className="space-y-3">
 									<h4 className="font-medium">Browser Settings</h4>
 									<div className="flex items-center space-x-2">
-										<Checkbox
+										<TypedCheckbox
 											id="headless"
 											checked={sessionConfig.headless}
-											onCheckedChange={(checked) =>
+											onCheckedChange={(checked: boolean) =>
 												setSessionConfig((prev) => ({
 													...prev,
 													headless: !!checked,
 												}))
 											}
 										/>
-										<Label htmlFor="headless">Headless mode</Label>
+										<TypedLabel htmlFor="headless">Headless mode</TypedLabel>
 									</div>
 									<div className="flex items-center space-x-2">
-										<Checkbox
+										<TypedCheckbox
 											id="logger"
 											checked={sessionConfig.logger}
-											onCheckedChange={(checked) =>
+											onCheckedChange={(checked: boolean) =>
 												setSessionConfig((prev) => ({
 													...prev,
 													logger: !!checked,
 												}))
 											}
 										/>
-										<Label htmlFor="logger">Enable logging</Label>
+										<TypedLabel htmlFor="logger">Enable logging</TypedLabel>
 									</div>
 								</div>
 
@@ -445,7 +486,7 @@ export default function StagehandForm() {
 									<h4 className="font-medium">Viewport</h4>
 									<div className="grid grid-cols-2 gap-2">
 										<div>
-											<Label htmlFor="width">Width</Label>
+											<TypedLabel htmlFor="width">Width</TypedLabel>
 											<Input
 												id="width"
 												type="number"
@@ -463,7 +504,7 @@ export default function StagehandForm() {
 											/>
 										</div>
 										<div>
-											<Label htmlFor="height">Height</Label>
+											<TypedLabel htmlFor="height">Height</TypedLabel>
 											<Input
 												id="height"
 												type="number"
@@ -486,9 +527,9 @@ export default function StagehandForm() {
 								{/* Extract Schema */}
 								{mode === "action" && (
 									<div className="space-y-2">
-										<Label htmlFor="schema">
+										<TypedLabel htmlFor="schema">
 											Data Extraction Schema (JSON)
-										</Label>
+										</TypedLabel>
 										<textarea
 											id="schema"
 											value={extractSchema}
@@ -499,8 +540,8 @@ export default function StagehandForm() {
 									</div>
 								)}
 							</div>
-						</DialogContent>
-					</Dialog>
+						</TypedDialogContent>
+					</TypedDialog>
 
 					<SubmitButton
 						onSubmit={handleSubmit}

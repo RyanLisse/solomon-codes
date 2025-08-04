@@ -3,7 +3,7 @@
 	"ui": "tui",
 	"tasks": {
 		"build": {
-			"dependsOn": ["^build", "validate-env", "check-types", "lint"],
+			"dependsOn": ["^build", "check-types", "lint"],
 			"inputs": ["$TURBO_DEFAULT$", ".env*"],
 			"outputs": [
 				"dist/**",

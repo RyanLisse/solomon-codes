@@ -497,7 +497,7 @@ function handleCompletedStreamMessage(
 	setStreamingMessages: React.Dispatch<
 		React.SetStateAction<Map<string, StreamingMessage>>
 	>,
-	task: Task,
+	task: Task | null,
 	id: string,
 	updateTaskInCache: (taskId: string, updates: Partial<Task>) => void,
 ) {
@@ -538,7 +538,7 @@ function handleCompletedStreamMessage(
 // Helper function to handle regular messages
 function handleRegularMessage(
 	message: IncomingMessage,
-	task: Task,
+	task: Task | null,
 	id: string,
 	updateTaskInCache: (taskId: string, updates: Partial<Task>) => void,
 ) {
@@ -552,7 +552,7 @@ function handleRegularMessage(
 // Hook for managing streaming message updates
 function useStreamingMessageHandler(
 	id: string,
-	task: Task,
+	task: Task | null,
 	streamingMessages: Map<string, StreamingMessage>,
 	setStreamingMessages: React.Dispatch<
 		React.SetStateAction<Map<string, StreamingMessage>>
@@ -632,7 +632,7 @@ function useAutoScroll(
 
 // Custom hook for task updates
 function useTaskUpdates(
-	task: Task,
+	task: Task | null,
 	updateTaskInCache: (taskId: string, updates: Partial<Task>) => void,
 ) {
 	useEffect(() => {
@@ -659,13 +659,13 @@ export default function TaskClientPage({ id }: Props) {
 	// Use custom hooks
 	useStreamingMessageHandler(
 		id,
-		task!,
+		task || null,
 		streamingMessages,
 		setStreamingMessages,
 		updateTaskInCache,
 	);
 	useAutoScroll(chatScrollAreaRef);
-	useTaskUpdates(task!, updateTaskInCache);
+	useTaskUpdates(task || null, updateTaskInCache);
 
 	// Cleanup subscription on unmount to prevent stream cancellation errors
 	useEffect(() => {

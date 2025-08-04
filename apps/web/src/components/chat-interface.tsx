@@ -405,8 +405,8 @@ export function ChatInterface({
 									</SelectContent>
 								</Select>
 							) : (
-								<Select disabled>
-									<SelectTrigger className="h-8 w-auto border-0 bg-transparent px-3 text-muted-foreground text-sm">
+								<Select>
+									<SelectTrigger className="pointer-events-none h-8 w-auto border-0 bg-transparent px-3 text-muted-foreground text-sm opacity-50">
 										<div className="flex items-center gap-2">
 											<span>SolomonCodes/main-solver-bot</span>
 										</div>
@@ -417,14 +417,14 @@ export function ChatInterface({
 
 						{/* Branch Selector */}
 						<div className="flex items-center gap-2">
-							<Select
-								value={selectedBranch}
-								onValueChange={setSelectedBranch}
-								disabled={
-									!isAuthenticated || !currentRepository || loadingBranches
-								}
-							>
-								<SelectTrigger className="h-8 w-auto border-0 bg-transparent px-3 text-muted-foreground text-sm">
+							<Select value={selectedBranch} onValueChange={setSelectedBranch}>
+								<SelectTrigger
+									className={`h-8 w-auto border-0 bg-transparent px-3 text-muted-foreground text-sm ${
+										!isAuthenticated || !currentRepository || loadingBranches
+											? "pointer-events-none opacity-50"
+											: ""
+									}`}
+								>
 									<div className="flex items-center gap-2">
 										<GitBranch className="h-4 w-4" />
 										<span>
@@ -447,7 +447,10 @@ export function ChatInterface({
 										</SelectItem>
 									))}
 									{branches.length === 0 && !loadingBranches && (
-										<SelectItem value="main" disabled>
+										<SelectItem
+											value="main"
+											className="pointer-events-none opacity-50"
+										>
 											<div className="flex items-center gap-2">
 												<GitBranch className="h-4 w-4" />
 												<span>No branches found</span>

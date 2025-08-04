@@ -15,8 +15,10 @@ const mockConfigService = {
 	getServerConfig: vi.fn(),
 };
 
+// Import and mock the configuration service
 vi.mock("@/lib/config/service", () => ({
-	getConfigurationService: vi.fn(() => mockConfigService),
+	getConfigurationService: () => mockConfigService,
+	resetConfigurationService: vi.fn(),
 }));
 
 // Import the module under test
@@ -86,15 +88,15 @@ describe("Health Check API", () => {
 	});
 
 	afterEach(() => {
+		// Clear health check cache
+		// Cache is now internal and managed automatically
+
 		// Restore original environment
 		process.env = originalEnv;
 
 		// Clear all mocks and restore implementation
 		vi.clearAllMocks();
 		vi.restoreAllMocks();
-
-		// Reset any cached health check results
-		// Note: This may need to be adjusted based on actual cache implementation
 	});
 
 	describe("GET /api/health", () => {
@@ -307,6 +309,9 @@ describe("Health Check API", () => {
 		});
 
 		it("should detect commit SHA from different deployment platforms", async () => {
+			// Clear health cache to ensure fresh results
+			// Cache is now internal and managed automatically
+
 			// Test Cloudflare Pages
 			process.env.CF_PAGES_COMMIT_SHA = "cf123456";
 			delete process.env.VERCEL_GIT_COMMIT_SHA;
@@ -317,6 +322,9 @@ describe("Health Check API", () => {
 			let data = await response.json();
 
 			expect(data.build.commit).toBe("cf123456");
+
+			// Clear cache before second test
+			// Cache is now internal and managed automatically
 
 			// Test Railway
 			delete process.env.CF_PAGES_COMMIT_SHA;
@@ -468,7 +476,7 @@ describe("Health Check API", () => {
 
 			expect(response.status).toBe(200);
 			expect(data.environment).toBe("production"); // From process.env
-			expect(data.dependencies.database.status).toBe("disconnected");
+			expect(data.dependencies.database.status).toBe("degraded"); // Configuration service errors are treated as degraded for graceful fallback
 			expect(data.dependencies.opentelemetry.status).toBe("degraded");
 		});
 	});

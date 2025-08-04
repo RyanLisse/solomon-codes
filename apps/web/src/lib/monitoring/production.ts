@@ -4,7 +4,11 @@
  */
 
 import * as os from "node:os";
-import { SpanKind, /* SpanStatusCode, */ trace } from "@opentelemetry/api"; // SpanStatusCode unused
+import {
+	type Span,
+	SpanKind,
+	/* SpanStatusCode, */ trace,
+} from "@opentelemetry/api"; // SpanStatusCode unused
 import type { ContextAwareLogger } from "@/lib/logging/factory";
 import { createApiLogger } from "@/lib/logging/factory";
 
@@ -488,10 +492,10 @@ export class ProductionMonitoringService {
 					attributes: {
 						"http.method": request.method,
 						"http.url": request.url,
-						"http.user_agent": request.headers?.["user-agent"] || undefined,
+						"http.user_agent": request.headers?.["user-agent"] || "unknown",
 					},
 				},
-				(span) => {
+				(span: Span) => {
 					// Call next middleware if provided
 					if (next) next();
 

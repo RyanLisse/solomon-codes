@@ -85,10 +85,42 @@ describe("ErrorBoundary", () => {
 
 		// Suppress console.error during tests to avoid noise
 		vi.spyOn(console, "error").mockImplementation(() => {});
+
+		// Handle uncaught errors that might escape the error boundary during testing
+		// This prevents test errors from being treated as uncaught exceptions
+		const originalOnError = window.onerror;
+		window.onerror = (message, source, lineno, colno, error) => {
+			// Only handle errors from our test ThrowError component
+			if (error?.message?.includes("Test error")) {
+				// Suppress these errors as they're expected in error boundary tests
+				return true;
+			}
+			// Let other errors through
+			return originalOnError
+				? originalOnError(message, source, lineno, colno, error)
+				: false;
+		};
+
+		// Handle unhandled promise rejections that might occur during testing
+		const originalOnUnhandledRejection = window.onunhandledrejection;
+		window.onunhandledrejection = (event) => {
+			// Only handle rejections from our test ThrowError component
+			if (event.reason?.message?.includes("Test error")) {
+				event.preventDefault();
+				return;
+			}
+			// Let other rejections through
+			if (originalOnUnhandledRejection) {
+				originalOnUnhandledRejection.call(window, event);
+			}
+		};
 	});
 
 	afterEach(() => {
 		vi.restoreAllMocks();
+		// Reset error handlers to prevent side effects between tests
+		window.onerror = null;
+		window.onunhandledrejection = null;
 	});
 
 	it("should render children when no error occurs", () => {

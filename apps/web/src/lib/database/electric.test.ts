@@ -32,19 +32,19 @@ describe("ElectricSQL Real-time Synchronization", () => {
 
 			expect(config).toBeDefined();
 			expect(config.url).toBeDefined();
-			expect(config.token).toBeDefined();
+			expect(config.debug).toBeDefined();
 		});
 
 		it("should use environment variables for configuration", async () => {
 			process.env.ELECTRIC_URL = "ws://localhost:5133";
-			process.env.ELECTRIC_TOKEN = "test-token-123";
+			process.env.ELECTRIC_DEBUG = "true";
 
 			const { getElectricConfig } = await import("./electric");
 
 			const config = getElectricConfig();
 
 			expect(config.url).toBe("ws://localhost:5133");
-			expect(config.token).toBe("test-token-123");
+			expect(config.debug).toBe(true);
 		});
 
 		it("should provide default configuration values", async () => {
@@ -53,8 +53,8 @@ describe("ElectricSQL Real-time Synchronization", () => {
 			const config = getElectricConfig();
 
 			expect(config.url).toBe("ws://localhost:5133");
-			expect(config.token).toBe("");
 			expect(config.debug).toBe(false);
+			expect(config.retryAttempts).toBe(3);
 		});
 	});
 

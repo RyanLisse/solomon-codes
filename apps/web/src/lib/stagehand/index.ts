@@ -8,7 +8,7 @@ export type {
 	ExtractSchema,
 	ObservationData,
 	SessionConfig,
-} from "../../types/stagehand";
+} from "@/types/stagehand";
 export {
 	StagehandClient,
 	type StagehandClientConfig,
@@ -25,7 +25,7 @@ export const getStagehandClient = _getStagehandClient;
 export const resetStagehandClient = _resetStagehandClient;
 
 // Import types for utility functions
-import type { AutomationTask, SessionConfig } from "../../types/stagehand";
+import type { AutomationTask, SessionConfig } from "@/types/stagehand";
 
 // Convenience utilities
 export const StagehandUtils = {

@@ -79,28 +79,30 @@ export const CodeComponent: React.FC<CodeComponentProps> = ({
 				</div>
 				<ScrollArea className="max-w-full">
 					<div className="px-4 py-2" style={{ maxWidth: "100%" }}>
-						<SyntaxHighlighter
-							language={match[1]}
-							style={theme === "dark" ? oneDark : oneLight}
-							customStyle={{
-								fontSize: "12.5px",
-								backgroundColor: "transparent",
-								padding: "0",
-								margin: "0",
-								background: "none",
-								overflow: "visible",
-							}}
-							wrapLongLines={false}
-							PreTag="div"
-							codeTagProps={{
-								style: {
-									whiteSpace: "pre",
-									display: "block",
-								},
-							}}
-						>
-							{String(children).replace(/\n$/, "")}
-						</SyntaxHighlighter>
+						<div>
+							<SyntaxHighlighter
+								language={match[1]}
+								style={theme === "dark" ? oneDark : oneLight}
+								customStyle={{
+									fontSize: "12.5px",
+									backgroundColor: "transparent",
+									padding: "0",
+									margin: "0",
+									background: "none",
+									overflow: "visible",
+								}}
+								wrapLongLines={false}
+								PreTag="div"
+								codeTagProps={{
+									style: {
+										whiteSpace: "pre",
+										display: "block",
+									},
+								}}
+							>
+								{String(children).replace(/\n$/, "")}
+							</SyntaxHighlighter>
+						</div>
 					</div>
 				</ScrollArea>
 			</div>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as configService from "@/lib/config/service";
 import * as loggingFactory from "@/lib/logging/factory";
 
 // Mock dependencies following London School TDD principles

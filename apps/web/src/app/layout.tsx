@@ -4,6 +4,10 @@ import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import "./streaming.css";
 
+// Force dynamic rendering for all pages to prevent ReactCurrentOwner errors
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 import { QueryProvider } from "@/components/providers/query-provider";
 import { InstallBanner } from "@/components/pwa/install-button";
 import { UpdateToast } from "@/components/pwa/update-notification";

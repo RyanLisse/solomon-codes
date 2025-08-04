@@ -94,3 +94,4 @@ apps/web/verify-*.js
 
 # Development scripts and logs
 apps/web/bunfig.toml
+.vercel

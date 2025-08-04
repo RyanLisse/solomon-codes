@@ -1,14 +1,23 @@
 import type { Environment, Task } from "./types";
 
 /**
- * ElectricSQL configuration
+ * ElectricSQL configuration for the new API
  */
 export interface ElectricConfig {
-	url: string;
-	token: string;
+	url: string; // HTTP URL for the Electric service (e.g., http://localhost:3000)
 	debug: boolean;
 	retryAttempts: number;
 	retryDelay: number;
+}
+
+/**
+ * Shape configuration for ElectricSQL
+ */
+export interface ShapeConfig {
+	table: string;
+	where?: string;
+	columns?: string[];
+	offset?: string;
 }
 
 /**
@@ -70,9 +79,14 @@ let electricClient: ElectricClient | null = null;
  * Get ElectricSQL configuration from environment variables
  */
 export function getElectricConfig(): ElectricConfig {
+	// Use client-side environment variable for browser, server-side for SSR
+	const electricUrl =
+		typeof window !== "undefined"
+			? process.env.NEXT_PUBLIC_ELECTRIC_URL
+			: process.env.ELECTRIC_URL;
+
 	return {
-		url: process.env.ELECTRIC_URL || "ws://localhost:5133",
-		token: process.env.ELECTRIC_TOKEN || "",
+		url: electricUrl || "http://localhost:3000",
 		debug: process.env.NODE_ENV === "development",
 		retryAttempts: Number.parseInt(
 			process.env.ELECTRIC_RETRY_ATTEMPTS || "3",
@@ -217,7 +231,7 @@ export async function subscribeToTableChanges(
 	if (!electricClient) {
 		throw new Error("Electric client not initialized");
 	}
-	
+
 	return await electricClient.subscribe(table, callback);
 }
 
@@ -343,6 +357,97 @@ export async function syncQueuedOperations(): Promise<SyncResult> {
 			error: error instanceof Error ? error.message : String(error),
 		};
 	}
+}
+
+/**
+ * Modern ElectricSQL Shape API functions
+ */
+
+/**
+ * Get Electric authentication headers
+ */
+function getElectricHeaders(): HeadersInit {
+	const electricSecret =
+		typeof window !== "undefined"
+			? process.env.NEXT_PUBLIC_ELECTRIC_SECRET
+			: process.env.ELECTRIC_SECRET;
+
+	const headers: HeadersInit = {
+		"Content-Type": "application/json",
+	};
+
+	if (electricSecret) {
+		headers.Authorization = `Bearer ${electricSecret}`;
+	}
+
+	return headers;
+}
+
+/**
+ * Fetch a shape using the HTTP API
+ */
+export async function fetchShape(config: ShapeConfig): Promise<unknown[]> {
+	const electricConfig = getElectricConfig();
+	const params = new URLSearchParams({
+		table: config.table,
+		offset: config.offset || "-1",
+	});
+
+	if (config.where) {
+		params.append("where", config.where);
+	}
+
+	if (config.columns) {
+		params.append("columns", config.columns.join(","));
+	}
+
+	const url = `${electricConfig.url}/v1/shape?${params.toString()}`;
+
+	try {
+		const response = await fetch(url, {
+			headers: getElectricHeaders(),
+		});
+		if (!response.ok) {
+			throw new Error(`HTTP error! status: ${response.status}`);
+		}
+		return await response.json();
+	} catch (error) {
+		throw new Error(
+			`Failed to fetch shape: ${error instanceof Error ? error.message : String(error)}`,
+		);
+	}
+}
+
+/**
+ * Create a shape stream for real-time updates
+ */
+export function createShapeStream(config: ShapeConfig): EventSource {
+	const electricConfig = getElectricConfig();
+	const params = new URLSearchParams({
+		table: config.table,
+		offset: config.offset || "-1",
+	});
+
+	if (config.where) {
+		params.append("where", config.where);
+	}
+
+	if (config.columns) {
+		params.append("columns", config.columns.join(","));
+	}
+
+	// Add authentication token to URL params since EventSource doesn't support headers
+	const electricSecret =
+		typeof window !== "undefined"
+			? process.env.NEXT_PUBLIC_ELECTRIC_SECRET
+			: process.env.ELECTRIC_SECRET;
+
+	if (electricSecret) {
+		params.append("token", electricSecret);
+	}
+
+	const url = `${electricConfig.url}/v1/shape?${params.toString()}&live=true`;
+	return new EventSource(url);
 }
 
 /**

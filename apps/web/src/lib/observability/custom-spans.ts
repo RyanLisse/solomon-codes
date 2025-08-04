@@ -55,7 +55,7 @@ export async function withSpan<T>(
 	return tracer.startActiveSpan(
 		name,
 		{ kind: SpanKind.INTERNAL },
-		async (span) => {
+		async (span: Span) => {
 			try {
 				// Add custom attributes
 				if (attributes) {

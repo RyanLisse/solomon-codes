@@ -26,6 +26,12 @@ export default defineConfig({
 		],
 		globals: true,
 		css: true,
+		pool: "forks",
+		poolOptions: {
+			forks: {
+				singleFork: true,
+			},
+		},
 		environmentOptions: {
 			jsdom: {
 				pretendToBeVisual: true,
@@ -45,7 +51,5 @@ export default defineConfig({
 			"@": path.resolve(__dirname, "./src"),
 		},
 	},
-	esbuild: {
-		jsx: "automatic",
-	},
+	esbuild: false, // Disable esbuild to avoid service issues
 });

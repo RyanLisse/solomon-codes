@@ -30,6 +30,8 @@ interface HealthCheckResult {
 	uptime: number;
 	version: string;
 	environment: string;
+	serviceName?: string;
+	error?: string;
 	build: {
 		time: string;
 		commit?: string;
@@ -65,6 +67,14 @@ let healthCache: {
 	timestamp: number;
 } | null = null;
 
+// Internal cache management function (not exported to avoid Next.js route handler constraints)
+function _clearHealthCache() {
+	healthCache = null;
+}
+
+// Export cache management utility for testing in a separate module if needed
+// This avoids violating Next.js route handler export constraints
+
 /**
  * Get basic system metrics
  */
@@ -72,6 +82,14 @@ function getSystemMetrics() {
 	const memoryUsage = process.memoryUsage();
 	const totalMemory = memoryUsage.heapTotal + memoryUsage.external;
 	const usedMemory = memoryUsage.heapUsed;
+
+	// Get uptime safely
+	let uptime = 0;
+	try {
+		uptime = Math.round(process.uptime());
+	} catch {
+		uptime = 0; // Fallback if process.uptime() fails
+	}
 
 	return {
 		memory: {
@@ -81,7 +99,7 @@ function getSystemMetrics() {
 		},
 		process: {
 			pid: process.pid,
-			uptime: Math.round(process.uptime()),
+			uptime: uptime,
 			platform: process.platform,
 			nodeVersion: process.version,
 		},
@@ -108,7 +126,7 @@ async function checkDatabaseHealth(): Promise<{
 		const dbConfig = configService.getDatabaseConfig();
 
 		// Basic connection check - we'll implement actual DB ping later
-		if (!dbConfig.isConfigured) {
+		if (!dbConfig?.isConfigured || !dbConfig.url) {
 			return {
 				status: "disconnected",
 				error: "Database configuration not found",
@@ -123,9 +141,17 @@ async function checkDatabaseHealth(): Promise<{
 			responseTime: Date.now() - startTime,
 		};
 	} catch (error) {
+		// If configuration service is unavailable, treat as degraded rather than disconnected
+		// This allows graceful fallback behavior
+		const errorMessage =
+			error instanceof Error ? error.message : "Unknown database error";
+		const isConfigServiceError =
+			errorMessage.includes("Service unavailable") ||
+			errorMessage.includes("Configuration service");
+
 		return {
-			status: "disconnected",
-			error: error instanceof Error ? error.message : "Unknown database error",
+			status: isConfigServiceError ? "degraded" : "disconnected",
+			error: errorMessage,
 			responseTime: Date.now() - startTime,
 		};
 	}
@@ -157,7 +183,7 @@ async function checkOpenTelemetryHealth(): Promise<{
 		}
 
 		// Check if OpenTelemetry endpoint is configured
-		if (!telemetryConfig.endpoint) {
+		if (!telemetryConfig.endpoint || telemetryConfig.endpoint === null) {
 			return {
 				status: "degraded",
 				error: "OpenTelemetry endpoint not configured",
@@ -242,17 +268,39 @@ async function performHealthCheck(): Promise<HealthCheckResult> {
 		process.env.RAILWAY_GIT_COMMIT_SHA ||
 		"unknown";
 
-	// Get environment information
-	let environment = "development";
-	let _serviceName = "solomon-codes-web";
+	// Get environment information with fallback
+	let environment: "development" | "staging" | "production" | "test" =
+		"development";
+	let serviceName = process.env.SERVICE_NAME || "solomon-codes-web";
+
+	// Set initial environment from NODE_ENV with proper type constraints
+	const nodeEnv = process.env.NODE_ENV as
+		| "development"
+		| "staging"
+		| "production"
+		| "test"
+		| undefined;
+	if (
+		nodeEnv === "development" ||
+		nodeEnv === "staging" ||
+		nodeEnv === "production" ||
+		nodeEnv === "test"
+	) {
+		environment = nodeEnv;
+	}
 
 	try {
 		const configService = getConfigurationService();
 		const config = configService.getConfiguration();
-		environment = config.nodeEnv;
-		_serviceName = config.serviceName;
+		const loggingConfig = configService.getLoggingConfig();
+
+		environment = config.nodeEnv || environment;
+		serviceName =
+			loggingConfig.serviceName || config.serviceName || serviceName;
 	} catch {
+		// Use environment variables as fallback
 		environment = process.env.NODE_ENV || "development";
+		serviceName = process.env.SERVICE_NAME || "solomon-codes-web";
 	}
 
 	// Check all dependencies
@@ -308,12 +356,25 @@ async function performHealthCheck(): Promise<HealthCheckResult> {
 	// Get system metrics
 	const metrics = getSystemMetrics();
 
+	// Get system uptime safely
+	let uptime = 0;
+	let systemError: string | undefined;
+	try {
+		uptime = Math.round(process.uptime());
+	} catch (error) {
+		uptime = 0; // Fallback if process.uptime() fails
+		systemError = error instanceof Error ? error.message : "System error";
+		overallStatus = "unhealthy"; // Mark as unhealthy if system calls fail
+	}
+
 	const result: HealthCheckResult = {
 		status: overallStatus,
 		timestamp,
-		uptime: Math.round(process.uptime()),
+		uptime,
 		version,
 		environment,
+		serviceName,
+		...(systemError && { error: systemError }),
 		build: {
 			time: buildTime,
 			commit,
@@ -362,16 +423,8 @@ export async function GET(_request: NextRequest) {
 	try {
 		const healthResult = await getHealthCheckResult();
 
-		// Determine HTTP status code based on health status
-		let statusCode = 200;
-		if (healthResult.status === "degraded") {
-			statusCode = 200; // Still operational but with issues
-		} else if (healthResult.status === "unhealthy") {
-			statusCode = 503; // Service unavailable
-		}
-
 		return NextResponse.json(healthResult, {
-			status: statusCode,
+			status: healthResult.status === "unhealthy" ? 503 : 200,
 			headers: {
 				"Cache-Control": "no-cache, no-store, must-revalidate",
 				"Content-Type": "application/json",
@@ -379,10 +432,17 @@ export async function GET(_request: NextRequest) {
 		});
 	} catch (error) {
 		// Return unhealthy status if health check itself fails
+		let safeUptime = 0;
+		try {
+			safeUptime = Math.round(process.uptime());
+		} catch {
+			safeUptime = 0; // Fallback if process.uptime() fails
+		}
+
 		const errorResult: HealthCheckResult = {
 			status: "unhealthy",
 			timestamp: new Date().toISOString(),
-			uptime: Math.round(process.uptime()),
+			uptime: safeUptime,
 			version: process.env.npm_package_version || "0.1.0",
 			environment: process.env.NODE_ENV || "development",
 			build: {

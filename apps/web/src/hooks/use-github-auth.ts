@@ -12,7 +12,7 @@ interface CookieStore {
 }
 
 // Extend Window interface to include cookieStore
-interface WindowWithCookieStore extends Omit<Window, 'cookieStore'> {
+interface WindowWithCookieStore extends Omit<Window, "cookieStore"> {
 	cookieStore?: CookieStore;
 }
 

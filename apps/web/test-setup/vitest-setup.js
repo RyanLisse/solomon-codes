@@ -97,3 +97,52 @@ afterEach(() => {
 	cleanup();
 	vi.clearAllMocks();
 });
+
+// Add global error handling to suppress expected test errors
+beforeAll(() => {
+	// Store original handlers
+	const originalOnError = global.onerror;
+	const originalOnUnhandledRejection = global.onunhandledrejection;
+
+	// Handle uncaught errors that might escape during testing
+	global.onerror = (message, source, lineno, colno, error) => {
+		// Suppress known test errors from error boundary tests
+		if (
+			error?.message &&
+			(error.message.includes("Test error") ||
+				error.message.includes("Retry test error") ||
+				error.message.includes("Custom error message") ||
+				error.message.includes("Detailed error message") ||
+				error.message.includes("Logging test error") ||
+				error.message.includes("Error in error handler"))
+		) {
+			// These are expected errors from error boundary tests
+			return true;
+		}
+		// Let other errors through
+		return originalOnError
+			? originalOnError(message, source, lineno, colno, error)
+			: false;
+	};
+
+	// Handle unhandled promise rejections
+	global.onunhandledrejection = (event) => {
+		// Suppress known test errors
+		if (
+			event.reason?.message &&
+			(event.reason.message.includes("Test error") ||
+				event.reason.message.includes("Retry test error") ||
+				event.reason.message.includes("Custom error message") ||
+				event.reason.message.includes("Detailed error message") ||
+				event.reason.message.includes("Logging test error") ||
+				event.reason.message.includes("Error in error handler"))
+		) {
+			event.preventDefault();
+			return;
+		}
+		// Let other rejections through
+		if (originalOnUnhandledRejection) {
+			originalOnUnhandledRejection(event);
+		}
+	};
+});
