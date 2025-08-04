@@ -36,9 +36,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: |
-          npm ci --prefer-offline --no-audit
-          cd apps/web && npm ci --prefer-offline --no-audit
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run Biome linting
         run: npm run check
@@ -96,9 +94,7 @@ jobs:
           key: quality-${{ runner.os }}-${{ github.sha }}
 
       - name: Install dependencies
-        run: |
-          npm ci --prefer-offline --no-audit
-          cd apps/web && npm ci --prefer-offline --no-audit
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run unit tests
         run: |
@@ -160,9 +156,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: |
-          npm ci --prefer-offline --no-audit
-          cd apps/web && npm ci --prefer-offline --no-audit
+        run: npm ci --prefer-offline --no-audit
 
       - name: Install Playwright
         run: |
@@ -226,9 +220,7 @@ jobs:
           bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: |
-          npm ci --prefer-offline --no-audit
-          cd apps/web && npm ci --prefer-offline --no-audit
+        run: npm ci --prefer-offline --no-audit
 
       - name: Validate environment configuration
         run: |
@@ -287,9 +279,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: |
-          npm ci --prefer-offline --no-audit
-          cd apps/web && npm ci --prefer-offline --no-audit
+        run: npm ci --prefer-offline --no-audit
 
       - name: Run npm audit
         run: |
