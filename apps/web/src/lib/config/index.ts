@@ -17,7 +17,7 @@ if (isNodeEnvironment) {
 	});
 }
 
-import { z } from "zod";
+import type { z } from "zod";
 import { type AppConfig, configSchema, ENV_VAR_MAP } from "./schema";
 
 /**
@@ -505,8 +505,11 @@ function formatValidationErrors(zodError: z.ZodError): ConfigurationError[] {
 				// Handle union/enum validation errors with available options
 				suggestion = `Set the ${envVar} environment variable to a valid enum value`;
 			} else if (error.code === "invalid_type") {
-				const typeError = error as unknown as { expected?: string; received?: string };
-				suggestion = `Set the ${envVar} environment variable (expected ${typeError.expected || 'valid type'}, got ${typeError.received || 'invalid type'})`;
+				const typeError = error as unknown as {
+					expected?: string;
+					received?: string;
+				};
+				suggestion = `Set the ${envVar} environment variable (expected ${typeError.expected || "valid type"}, got ${typeError.received || "invalid type"})`;
 			} else {
 				suggestion = `Set the ${envVar} environment variable correctly`;
 			}
@@ -520,11 +523,13 @@ function formatValidationErrors(zodError: z.ZodError): ConfigurationError[] {
 					error.code === "invalid_union"
 						? "valid enum value"
 						: error.code === "invalid_type"
-							? (error as unknown as { expected?: string }).expected || "valid type"
+							? (error as unknown as { expected?: string }).expected ||
+								"valid type"
 							: "valid value",
 				received:
 					error.code === "invalid_type"
-						? (error as unknown as { received?: string }).received || "invalid type"
+						? (error as unknown as { received?: string }).received ||
+							"invalid type"
 						: "invalid value",
 				suggestion,
 			},

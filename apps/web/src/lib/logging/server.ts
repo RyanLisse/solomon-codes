@@ -5,173 +5,173 @@
 
 import winston from "winston";
 import {
-  getDefaultLoggerConfig,
-  getTransportConfig,
-  validateLoggerConfig,
+	getDefaultLoggerConfig,
+	getTransportConfig,
+	validateLoggerConfig,
 } from "./config";
 import {
-  createOpenTelemetryFormat,
-  OpenTelemetryTransport,
+	createOpenTelemetryFormat,
+	OpenTelemetryTransport,
 } from "./transports/opentelemetry";
 import type { Logger, LoggerConfig, LogMetadata } from "./types";
 import { createCorrelationMetadata } from "./utils/correlation";
 import {
-  createDevelopmentFormatter,
-  createProductionFormatter,
+	createDevelopmentFormatter,
+	createProductionFormatter,
 } from "./utils/formatters";
 
 /**
  * Create console transport based on environment
  */
 function createConsoleTransport(colorize = false) {
-  const format = colorize
-    ? createDevelopmentFormatter()
-    : createProductionFormatter();
+	const format = colorize
+		? createDevelopmentFormatter()
+		: createProductionFormatter();
 
-  return new winston.transports.Console({
-    format,
-  });
+	return new winston.transports.Console({
+		format,
+	});
 }
 
 /**
  * Create file transport with rotation
  */
 function createFileTransport(
-  filename: string,
-  maxsize = 5242880, // 5MB
-  maxFiles = 5,
+	filename: string,
+	maxsize = 5242880, // 5MB
+	maxFiles = 5,
 ) {
-  return new winston.transports.File({
-    filename,
-    maxsize,
-    maxFiles,
-    tailable: true,
-  });
+	return new winston.transports.File({
+		filename,
+		maxsize,
+		maxFiles,
+		tailable: true,
+	});
 }
 
 /**
  * Create Winston logger with the specified configuration (server-only)
  */
 export function createServerLogger(config?: Partial<LoggerConfig>): Logger {
-  const validatedConfig = validateLoggerConfig(config || {});
-  const transportConfig = getTransportConfig();
+	const validatedConfig = validateLoggerConfig(config || {});
+	const transportConfig = getTransportConfig();
 
-  const transports: winston.transport[] = [];
+	const transports: winston.transport[] = [];
 
-  // Add console transport
-  if (validatedConfig.enableConsole && transportConfig.console?.enabled) {
-    transports.push(createConsoleTransport(transportConfig.console.colorize));
-  }
+	// Add console transport
+	if (validatedConfig.enableConsole && transportConfig.console?.enabled) {
+		transports.push(createConsoleTransport(transportConfig.console.colorize));
+	}
 
-  // Add file transport if enabled
-  if (
-    validatedConfig.enableFile &&
-    transportConfig.file?.enabled &&
-    validatedConfig.filePath
-  ) {
-    transports.push(
-      createFileTransport(
-        validatedConfig.filePath,
-        transportConfig.file.maxsize,
-        transportConfig.file.maxFiles,
-      ),
-    );
-  }
+	// Add file transport if enabled
+	if (
+		validatedConfig.enableFile &&
+		transportConfig.file?.enabled &&
+		validatedConfig.filePath
+	) {
+		transports.push(
+			createFileTransport(
+				validatedConfig.filePath,
+				transportConfig.file.maxsize,
+				transportConfig.file.maxFiles,
+			),
+		);
+	}
 
-  // Add OpenTelemetry transport if enabled
-  if (
-    validatedConfig.enableOpenTelemetry &&
-    transportConfig.opentelemetry?.enabled
-  ) {
-    transports.push(
-      new OpenTelemetryTransport({
-        level: validatedConfig.level,
-        stream: process.stdout,
-      }) as winston.transport,
-    );
-  }
+	// Add OpenTelemetry transport if enabled
+	if (
+		validatedConfig.enableOpenTelemetry &&
+		transportConfig.opentelemetry?.enabled
+	) {
+		transports.push(
+			new OpenTelemetryTransport({
+				level: validatedConfig.level,
+				stream: process.stdout,
+			}) as winston.transport,
+		);
+	}
 
-  const logger = winston.createLogger({
-    level: validatedConfig.level,
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.errors({ stack: true }),
-      createOpenTelemetryFormat(),
-      winston.format.json(),
-    ),
-    defaultMeta: validatedConfig.defaultMeta,
-    transports,
-    // Handle uncaught exceptions and rejections
-    exceptionHandlers: [
-      new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.errors({ stack: true }),
-          winston.format.json(),
-        ),
-      }),
-    ],
-    rejectionHandlers: [
-      new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.timestamp(),
-          winston.format.errors({ stack: true }),
-          winston.format.json(),
-        ),
-      }),
-    ],
-  });
+	const logger = winston.createLogger({
+		level: validatedConfig.level,
+		format: winston.format.combine(
+			winston.format.timestamp(),
+			winston.format.errors({ stack: true }),
+			createOpenTelemetryFormat(),
+			winston.format.json(),
+		),
+		defaultMeta: validatedConfig.defaultMeta,
+		transports,
+		// Handle uncaught exceptions and rejections
+		exceptionHandlers: [
+			new winston.transports.Console({
+				format: winston.format.combine(
+					winston.format.timestamp(),
+					winston.format.errors({ stack: true }),
+					winston.format.json(),
+				),
+			}),
+		],
+		rejectionHandlers: [
+			new winston.transports.Console({
+				format: winston.format.combine(
+					winston.format.timestamp(),
+					winston.format.errors({ stack: true }),
+					winston.format.json(),
+				),
+			}),
+		],
+	});
 
-  // Extend logger with typed methods and correlation ID support
-  const typedLogger = logger as Logger;
+	// Extend logger with typed methods and correlation ID support
+	const typedLogger = logger as Logger;
 
-  // Override methods to automatically include correlation metadata
-  const originalDebug = logger.debug.bind(logger);
-  const originalInfo = logger.info.bind(logger);
-  const originalWarn = logger.warn.bind(logger);
-  const originalError = logger.error.bind(logger);
+	// Override methods to automatically include correlation metadata
+	const originalDebug = logger.debug.bind(logger);
+	const originalInfo = logger.info.bind(logger);
+	const originalWarn = logger.warn.bind(logger);
+	const originalError = logger.error.bind(logger);
 
-  typedLogger.debug = (message: string, meta?: LogMetadata) => {
-    originalDebug(message, { ...createCorrelationMetadata(), ...meta });
-    return typedLogger;
-  };
+	typedLogger.debug = (message: string, meta?: LogMetadata) => {
+		originalDebug(message, { ...createCorrelationMetadata(), ...meta });
+		return typedLogger;
+	};
 
-  typedLogger.info = (message: string, meta?: LogMetadata) => {
-    originalInfo(message, { ...createCorrelationMetadata(), ...meta });
-    return typedLogger;
-  };
+	typedLogger.info = (message: string, meta?: LogMetadata) => {
+		originalInfo(message, { ...createCorrelationMetadata(), ...meta });
+		return typedLogger;
+	};
 
-  typedLogger.warn = (message: string, meta?: LogMetadata) => {
-    originalWarn(message, { ...createCorrelationMetadata(), ...meta });
-    return typedLogger;
-  };
+	typedLogger.warn = (message: string, meta?: LogMetadata) => {
+		originalWarn(message, { ...createCorrelationMetadata(), ...meta });
+		return typedLogger;
+	};
 
-  typedLogger.error = (message: string, meta?: LogMetadata) => {
-    originalError(message, { ...createCorrelationMetadata(), ...meta });
-    return typedLogger;
-  };
+	typedLogger.error = (message: string, meta?: LogMetadata) => {
+		originalError(message, { ...createCorrelationMetadata(), ...meta });
+		return typedLogger;
+	};
 
-  return typedLogger;
+	return typedLogger;
 }
 
 /**
  * Create a context-aware logger with default metadata (server-only)
  */
 export function createContextServerLogger(
-  context: string,
-  defaultMeta?: LogMetadata,
+	context: string,
+	defaultMeta?: LogMetadata,
 ): Logger {
-  const config = getDefaultLoggerConfig();
-  const logger = createServerLogger({
-    ...config,
-    defaultMeta: {
-      ...config.defaultMeta,
-      context,
-      ...defaultMeta,
-    },
-  });
+	const config = getDefaultLoggerConfig();
+	const logger = createServerLogger({
+		...config,
+		defaultMeta: {
+			...config.defaultMeta,
+			context,
+			...defaultMeta,
+		},
+	});
 
-  return logger;
+	return logger;
 }
 
 /**
@@ -183,17 +183,17 @@ let globalLogger: Logger | null = null;
  * Get or create the global logger instance (server-only)
  */
 export function getGlobalServerLogger(): Logger {
-  if (!globalLogger) {
-    globalLogger = createServerLogger();
-  }
-  return globalLogger;
+	if (!globalLogger) {
+		globalLogger = createServerLogger();
+	}
+	return globalLogger;
 }
 
 /**
  * Set the global logger instance (server-only)
  */
 export function setGlobalServerLogger(logger: Logger): void {
-  globalLogger = logger;
+	globalLogger = logger;
 }
 
 // Re-export types for convenience

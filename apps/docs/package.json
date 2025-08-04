@@ -3,13 +3,13 @@
 	"type": "module",
 	"version": "0.0.1",
 	"scripts": {
-		"dev": "astro dev",
-		"start": "astro dev",
-		"build": "echo 'Docs build temporarily skipped due to Starlight/Astro compatibility issue' && exit 0",
-		"preview": "astro preview",
-		"astro": "astro",
-		"lint": "echo 'Docs linting skipped - Astro configuration issues'",
-		"check-types": "astro check"
+		"dev": "bunx astro dev",
+		"start": "bunx astro dev",
+		"build": "bunx astro build",
+		"preview": "bunx astro preview",
+		"astro": "bunx astro",
+		"lint": "bunx astro check",
+		"check-types": "bunx astro check"
 	},
 	"dependencies": {
 		"@astrojs/starlight": "^0.35.2",

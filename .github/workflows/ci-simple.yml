@@ -1,0 +1,104 @@
+name: CI Pipeline (Simple)
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+
+env:
+  NODE_VERSION: "20.18.1"
+
+jobs:
+  # Single job that runs our CI script - single source of truth
+  ci:
+    name: CI Pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Make CI script executable
+        run: chmod +x scripts/ci.sh
+
+      # Run our CI script - same as local development
+      - name: Run CI Pipeline
+        run: npm run ci
+        env:
+          CI: true
+          NODE_ENV: production
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-results
+          path: |
+            apps/web/coverage/
+            apps/web/test-results/
+            apps/web/.next/
+          retention-days: 7
+
+  # Optional: E2E tests (separate job for parallel execution)
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: ci
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --prefer-offline --no-audit
+
+      - name: Install Playwright
+        run: |
+          cd apps/web
+          npx playwright install --with-deps chromium
+
+      - name: Build application
+        run: npm run build
+
+      - name: Start application & run E2E tests
+        run: |
+          cd apps/web
+          npm start &
+          npx wait-on http://localhost:3000 --timeout 60000
+          npx playwright test --project=chromium
+        env:
+          CI: true
+
+      - name: Upload E2E results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results
+          path: |
+            apps/web/playwright-report/
+            apps/web/test-results/
+          retention-days: 7

@@ -10,10 +10,10 @@ describe("ConfigurationService", () => {
 
 	beforeEach(() => {
 		process.env = { ...originalEnv };
-		Object.defineProperty(process.env, 'NODE_ENV', {
-			value: 'development',
+		Object.defineProperty(process.env, "NODE_ENV", {
+			value: "development",
 			writable: true,
-			configurable: true
+			configurable: true,
 		});
 		resetConfigurationService();
 	});

@@ -1,12 +1,27 @@
 {
 	"$schema": "https://railway.com/railway.schema.json",
 	"build": {
-		"command": "npx turbo run build"
+		"command": "npm run validate-env --workspace=apps/web && npm run build --workspace=apps/web"
 	},
 	"deploy": {
 		"startCommand": "cd apps/web && npm start",
-		"healthcheckPath": "/",
-		"healthcheckTimeout": 100,
-		"restartPolicyType": "on_failure"
+		"healthcheckPath": "/api/health",
+		"healthcheckTimeout": 300,
+		"restartPolicyType": "on_failure",
+		"restartPolicyMaxRetries": 5
+	},
+	"environments": {
+		"production": {
+			"variables": {
+				"NODE_ENV": "production",
+				"RAILWAY_ENVIRONMENT": "production"
+			}
+		},
+		"staging": {
+			"variables": {
+				"NODE_ENV": "staging",
+				"RAILWAY_ENVIRONMENT": "staging"
+			}
+		}
 	}
 }

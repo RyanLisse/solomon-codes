@@ -55,7 +55,7 @@ export default function TaskNavbar({ id }: Props) {
 				</Link>
 				<div className="h-8 border-r" />
 				<div className="ml-4 flex flex-col gap-x-2">
-					<h3 className=" font-medium">{task?.title}</h3>
+					<h3 className="font-medium">{task?.title}</h3>
 					<div className="flex items-center gap-x-0">
 						<p className="text-muted-foreground text-sm">
 							{task?.createdAt

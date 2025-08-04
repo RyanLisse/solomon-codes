@@ -10,89 +10,89 @@ import type { VoiceState } from "../types";
 import { VoiceState as VoiceStateEnum } from "../types";
 
 export interface VoiceConversationUIHook {
-  getAriaLabel: () => string;
-  getSizeClasses: () => string;
-  getStateClasses: () => string;
-  handleClick: () => void;
-  handleKeyDown: (event: React.KeyboardEvent) => void;
+	getAriaLabel: () => string;
+	getSizeClasses: () => string;
+	getStateClasses: () => string;
+	handleClick: () => void;
+	handleKeyDown: (event: React.KeyboardEvent) => void;
 }
 
 export const useVoiceConversationUI = (
-  voiceState: VoiceState,
-  isConnecting: boolean,
-  isInConversation: boolean,
-  disabled: boolean,
-  size: "sm" | "md" | "lg",
-  className?: string,
-  startVoiceConversation?: () => Promise<void>,
-  endVoiceConversation?: () => void,
+	voiceState: VoiceState,
+	isConnecting: boolean,
+	isInConversation: boolean,
+	disabled: boolean,
+	size: "sm" | "md" | "lg",
+	className?: string,
+	startVoiceConversation?: () => Promise<void>,
+	endVoiceConversation?: () => void,
 ): VoiceConversationUIHook => {
-  const getAriaLabel = useCallback(() => {
-    if (voiceState === VoiceStateEnum.ERROR) return "Voice conversation error";
-    if (isConnecting) return "Connecting to voice service...";
-    if (voiceState === VoiceStateEnum.SPEAKING) return "AI is speaking";
-    if (isInConversation) return "End voice conversation";
-    return "Start voice conversation";
-  }, [voiceState, isConnecting, isInConversation]);
+	const getAriaLabel = useCallback(() => {
+		if (voiceState === VoiceStateEnum.ERROR) return "Voice conversation error";
+		if (isConnecting) return "Connecting to voice service...";
+		if (voiceState === VoiceStateEnum.SPEAKING) return "AI is speaking";
+		if (isInConversation) return "End voice conversation";
+		return "Start voice conversation";
+	}, [voiceState, isConnecting, isInConversation]);
 
-  const getSizeClasses = useCallback(() => {
-    return COMPONENT_SIZES[size];
-  }, [size]);
+	const getSizeClasses = useCallback(() => {
+		return COMPONENT_SIZES[size];
+	}, [size]);
 
-  const getStateClasses = useCallback(() => {
-    if (disabled) {
-      return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.DISABLED);
-    }
+	const getStateClasses = useCallback(() => {
+		if (disabled) {
+			return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.DISABLED);
+		}
 
-    if (voiceState === VoiceStateEnum.ERROR) {
-      return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.ERROR);
-    }
+		if (voiceState === VoiceStateEnum.ERROR) {
+			return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.ERROR);
+		}
 
-    if (isConnecting) {
-      return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.CONNECTING);
-    }
+		if (isConnecting) {
+			return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.CONNECTING);
+		}
 
-    if (voiceState === VoiceStateEnum.SPEAKING) {
-      return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.SPEAKING);
-    }
+		if (voiceState === VoiceStateEnum.SPEAKING) {
+			return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.SPEAKING);
+		}
 
-    if (isInConversation) {
-      return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.ACTIVE);
-    }
+		if (isInConversation) {
+			return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.ACTIVE);
+		}
 
-    return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.IDLE);
-  }, [voiceState, isConnecting, isInConversation, disabled]);
+		return cn(CSS_CLASSES.BASE_BUTTON, CSS_CLASSES.IDLE);
+	}, [voiceState, isConnecting, isInConversation, disabled]);
 
-  const handleClick = useCallback(() => {
-    if (disabled) return;
+	const handleClick = useCallback(() => {
+		if (disabled) return;
 
-    if (isInConversation) {
-      endVoiceConversation?.();
-    } else {
-      startVoiceConversation?.();
-    }
-  }, [
-    disabled,
-    isInConversation,
-    endVoiceConversation,
-    startVoiceConversation,
-  ]);
+		if (isInConversation) {
+			endVoiceConversation?.();
+		} else {
+			startVoiceConversation?.();
+		}
+	}, [
+		disabled,
+		isInConversation,
+		endVoiceConversation,
+		startVoiceConversation,
+	]);
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        handleClick();
-      }
-    },
-    [handleClick],
-  );
+	const handleKeyDown = useCallback(
+		(event: React.KeyboardEvent) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				handleClick();
+			}
+		},
+		[handleClick],
+	);
 
-  return {
-    getAriaLabel,
-    getSizeClasses,
-    getStateClasses,
-    handleClick,
-    handleKeyDown,
-  };
+	return {
+		getAriaLabel,
+		getSizeClasses,
+		getStateClasses,
+		handleClick,
+		handleKeyDown,
+	};
 };

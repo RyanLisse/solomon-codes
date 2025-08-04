@@ -1,0 +1,11 @@
+# qlty ignore file
+# Ignore large system metrics files that may cause parsing issues
+.claude-flow/metrics/
+# Ignore other generated/temporary files
+node_modules/
+.next/
+.turbo/
+dist/
+build/
+coverage/
+.nyc_output/

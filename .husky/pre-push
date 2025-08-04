@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+
+# Pre-push hook - runs CI script before push
+# This ensures the same checks that run in CI/CD run locally
+
+echo "🔍 Running pre-push checks..."
+npm run ci
