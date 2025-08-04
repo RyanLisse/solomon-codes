@@ -70,6 +70,7 @@ export const configSchema = z.object({
 
 	otelHeaders: z
 		.string()
+		.default("{}")
 		.transform((val, ctx) => {
 			try {
 				return JSON.parse(val);
@@ -81,8 +82,7 @@ export const configSchema = z.object({
 				return {};
 			}
 		})
-		.pipe(z.record(z.string(), z.unknown()))
-		.default({}),
+		.pipe(z.record(z.string(), z.unknown())),
 
 	otelSamplingRatio: z.coerce
 		.number()

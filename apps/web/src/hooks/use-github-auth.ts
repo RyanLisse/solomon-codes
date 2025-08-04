@@ -6,11 +6,14 @@ import { createClientLogger } from "@/lib/logging/client";
 
 const logger = createClientLogger("github-auth-hook");
 
+// Define CookieStore interface if not available
+interface CookieStore {
+	delete: (name: string) => Promise<void>;
+}
+
 // Extend Window interface to include cookieStore
-interface WindowWithCookieStore extends Window {
-	cookieStore?: {
-		delete: (name: string) => Promise<void>;
-	};
+interface WindowWithCookieStore extends Omit<Window, 'cookieStore'> {
+	cookieStore?: CookieStore;
 }
 
 // Helper function to safely delete cookies

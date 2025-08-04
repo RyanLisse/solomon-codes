@@ -44,5 +44,12 @@
 		"@vibe-kit/e2b": "^0.0.2",
 		"e2b": "^1.9.0",
 		"pkce-challenge": "^5.0.0"
+	},
+	"optionalDependencies": {
+		"@next/swc-darwin-arm64": "^15.4.5",
+		"@rollup/rollup-darwin-arm64": "^4.46.2",
+		"@tailwindcss/oxide": "^4.1.11",
+		"@tailwindcss/postcss": "^4.1.11",
+		"lightningcss": "^1.30.1"
 	}
 }

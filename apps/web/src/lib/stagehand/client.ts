@@ -1,4 +1,5 @@
 import { Stagehand } from "@browserbasehq/stagehand";
+import { z } from "zod";
 import type {
 	AutomationResult,
 	AutomationTask,
@@ -358,7 +359,6 @@ export class StagehandClient {
 
 		logs.push("Extracting data with provided schema");
 		// Create a Zod schema from the extract schema
-		const { z } = await import("zod");
 		const schemaShape = Object.entries(task.extractSchema).reduce(
 			(acc, [key, type]) => {
 				switch (type) {
@@ -382,7 +382,7 @@ export class StagehandClient {
 				}
 				return acc;
 			},
-			{} as Record<string, unknown>,
+			{} as Record<string, z.ZodTypeAny>,
 		);
 		const zodSchema = z.object(schemaShape);
 		const extractedData = await session.stagehand.page.extract({

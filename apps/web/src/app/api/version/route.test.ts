@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-// Import modules for mocking
-import * as configService from "@/lib/config/service";
 import * as loggingFactory from "@/lib/logging/factory";
 
 // Mock dependencies following London School TDD principles
@@ -10,7 +8,7 @@ const mockGetEnvironmentInfo = vi.fn();
 const mockGetConfigurationService = vi.fn();
 
 vi.mock("@/lib/config/service", () => ({
-	getConfigurationService: mockGetConfigurationService,
+	getConfigurationService: () => mockGetConfigurationService(),
 }));
 
 vi.mock("@/lib/logging/factory", () => ({

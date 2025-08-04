@@ -214,7 +214,11 @@ export async function subscribeToTableChanges(
 		await createElectricClient();
 	}
 
-	return await electricClient?.subscribe(table, callback);
+	if (!electricClient) {
+		throw new Error("Electric client not initialized");
+	}
+	
+	return await electricClient.subscribe(table, callback);
 }
 
 /**
