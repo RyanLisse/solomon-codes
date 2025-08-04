@@ -34,6 +34,11 @@ vi.mock("@/lib/logging/factory", () => ({
     warn: vi.fn(),
     error: vi.fn(),
   })),
+  createApiLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+  })),
 }));
 
 const mockTrace = vi.mocked(trace);
@@ -50,19 +55,13 @@ import {
 
 describe("ProductionMonitoringService", () => {
   let monitoringService: ProductionMonitoringService;
-  let originalEnv: NodeJS.ProcessEnv;
-  let originalProcess: typeof process;
 
   beforeEach(() => {
-    // Save original environment and process
-    originalEnv = { ...process.env };
-    originalProcess = { ...process };
-
-    // Set up production environment
-    process.env.NODE_ENV = "production";
-    process.env.METRICS_INTERVAL = "1000"; // 1 second for testing
-    process.env.ERROR_RATE_THRESHOLD = "0.05";
-    process.env.RESPONSE_TIME_THRESHOLD = "2000";
+    // Set up production environment using vi.stubEnv for proper mocking
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("METRICS_INTERVAL", "1000"); // 1 second for testing
+    vi.stubEnv("ERROR_RATE_THRESHOLD", "0.05");
+    vi.stubEnv("RESPONSE_TIME_THRESHOLD", "2000");
 
     // Mock process methods
     vi.spyOn(process, "uptime").mockReturnValue(3600); // 1 hour uptime
@@ -88,8 +87,11 @@ describe("ProductionMonitoringService", () => {
       startActiveSpan: vi.fn((_name, _options, callback) => {
         return callback(mockSpan);
       }),
+      startSpan: vi.fn(() => mockSpan),
     };
-    mockTrace.getTracer.mockReturnValue(mockTracer);
+    mockTrace.getTracer.mockReturnValue(
+      mockTracer as unknown as ReturnType<typeof trace.getTracer>,
+    );
 
     // Reset fetch mock
     mockFetch.mockReset();
@@ -99,10 +101,10 @@ describe("ProductionMonitoringService", () => {
   });
 
   afterEach(() => {
-    // Restore original environment and process
-    process.env = originalEnv;
-    Object.assign(process, originalProcess);
+    // Restore environment variables using vi.unstubAllEnvs
+    vi.unstubAllEnvs();
 
+    // Restore mocks
     vi.restoreAllMocks();
   });
 
@@ -118,7 +120,7 @@ describe("ProductionMonitoringService", () => {
     });
 
     it("should disable monitoring for non-production environments", () => {
-      process.env.NODE_ENV = "development";
+      vi.stubEnv("NODE_ENV", "development");
 
       monitoringService = new ProductionMonitoringService();
 
@@ -128,9 +130,9 @@ describe("ProductionMonitoringService", () => {
     });
 
     it("should parse environment variables correctly", () => {
-      process.env.METRICS_INTERVAL = "5000";
-      process.env.ERROR_RATE_THRESHOLD = "0.1";
-      process.env.MEMORY_THRESHOLD = "0.9";
+      vi.stubEnv("METRICS_INTERVAL", "5000");
+      vi.stubEnv("ERROR_RATE_THRESHOLD", "0.1");
+      vi.stubEnv("MEMORY_THRESHOLD", "0.9");
 
       monitoringService = new ProductionMonitoringService();
 
@@ -142,8 +144,8 @@ describe("ProductionMonitoringService", () => {
     });
 
     it("should use default values when environment variables are missing", () => {
-      delete process.env.METRICS_INTERVAL;
-      delete process.env.ERROR_RATE_THRESHOLD;
+      vi.stubEnv("METRICS_INTERVAL", "");
+      vi.stubEnv("ERROR_RATE_THRESHOLD", "");
 
       monitoringService = new ProductionMonitoringService();
 
@@ -216,9 +218,9 @@ describe("ProductionMonitoringService", () => {
 
   describe("Alert System", () => {
     beforeEach(() => {
-      process.env.ALERTING_ENABLED = "true";
-      process.env.ALERT_WEBHOOK = "https://webhook.example.com";
-      process.env.ALERT_SLACK_WEBHOOK = "https://hooks.slack.com/webhook";
+      vi.stubEnv("ALERTING_ENABLED", "true");
+      vi.stubEnv("ALERT_WEBHOOK", "https://webhook.example.com");
+      vi.stubEnv("ALERT_SLACK_WEBHOOK", "https://hooks.slack.com/webhook");
 
       monitoringService = new ProductionMonitoringService();
     });
@@ -265,11 +267,7 @@ describe("ProductionMonitoringService", () => {
       };
 
       // Trigger alert check directly
-      const privateService =
-        monitoringService as ProductionMonitoringService & {
-          checkAlertThresholds: (metrics: unknown) => Promise<void>;
-        };
-      await privateService.checkAlertThresholds(mockMetrics);
+      await monitoringService.testCheckAlertThresholds(mockMetrics);
 
       const dashboardData = monitoringService.getDashboardData();
 
@@ -298,10 +296,7 @@ describe("ProductionMonitoringService", () => {
       };
 
       // Send alert directly
-      const privateService = monitoringService as {
-        sendAlert(alert: unknown): Promise<void>;
-      };
-      await privateService.sendAlert(mockAlert);
+      await monitoringService.testSendAlert(mockAlert);
 
       expect(mockFetch).toHaveBeenCalledWith(
         "https://webhook.example.com",
@@ -331,10 +326,7 @@ describe("ProductionMonitoringService", () => {
       };
 
       // Send alert directly
-      const privateService = monitoringService as {
-        sendAlert(alert: unknown): Promise<void>;
-      };
-      await privateService.sendAlert(mockAlert);
+      await monitoringService.testSendAlert(mockAlert);
 
       expect(mockFetch).toHaveBeenCalledWith(
         "https://hooks.slack.com/webhook",
@@ -360,11 +352,8 @@ describe("ProductionMonitoringService", () => {
       };
 
       // Should not throw error
-      const privateService = monitoringService as {
-        sendAlert(alert: unknown): Promise<void>;
-      };
       await expect(
-        privateService.sendAlert(mockAlert),
+        monitoringService.testSendAlert(mockAlert),
       ).resolves.toBeUndefined();
     });
 
@@ -439,13 +428,17 @@ describe("ProductionMonitoringService", () => {
         headers: { "user-agent": "test-agent" },
       } as { method: string; url: string; headers: Record<string, string> };
 
-      let endCallback: (...args: unknown[]) => void;
+      let endCallback: (...args: unknown[]) => void = () => {};
       const mockResponse = {
         statusCode: 201,
-        end: vi.fn().mockImplementation((callback) => {
-          endCallback = callback;
-          return mockResponse;
-        }),
+        end: vi
+          .fn()
+          .mockImplementation((callback?: (...args: unknown[]) => void) => {
+            if (callback) {
+              endCallback = callback;
+            }
+            return mockResponse;
+          }),
       } as { statusCode: number; end: ReturnType<typeof vi.fn> };
 
       const mockNext = vi.fn();
@@ -453,9 +446,7 @@ describe("ProductionMonitoringService", () => {
       await middleware(mockRequest, mockResponse, mockNext);
 
       // Simulate response ending
-      if (endCallback) {
-        endCallback();
-      }
+      endCallback();
 
       expect(mockResponse.end).toHaveBeenCalled();
     });
@@ -482,13 +473,13 @@ describe("ProductionMonitoringService", () => {
     });
 
     it("should skip middleware when monitoring is disabled", async () => {
-      process.env.NODE_ENV = "development";
+      vi.stubEnv("NODE_ENV", "development");
       const devService = new ProductionMonitoringService();
 
       const middleware = devService.createApiMiddleware();
 
-      const mockRequest = {} as Record<string, unknown>;
-      const mockResponse = {} as Record<string, unknown>;
+      const mockRequest = { method: 'GET', url: '/test' } as { method: string; url: string; headers?: Record<string, string> };
+      const mockResponse = { statusCode: 200 } as { statusCode: number; end?: ReturnType<typeof vi.fn> };
       const mockNext = vi.fn();
 
       await middleware(mockRequest, mockResponse, mockNext);
@@ -540,7 +531,7 @@ describe("ProductionMonitoringService", () => {
 
     it("should cleanup old metrics based on retention period", async () => {
       // Set short retention period for testing
-      process.env.METRICS_RETENTION = "1000"; // 1 second
+      vi.stubEnv("METRICS_RETENTION", "1000"); // 1 second
 
       const testService = new ProductionMonitoringService();
 
@@ -551,8 +542,7 @@ describe("ProductionMonitoringService", () => {
       await new Promise((resolve) => setTimeout(resolve, 1100));
 
       // Trigger cleanup
-      const privateService = testService as { cleanupOldMetrics(): void };
-      privateService.cleanupOldMetrics();
+      testService.testCleanupOldMetrics();
 
       const dashboardData = testService.getDashboardData();
 
@@ -561,12 +551,8 @@ describe("ProductionMonitoringService", () => {
     });
 
     it("should handle graceful shutdown", () => {
-      const privateService = monitoringService as {
-        sendAlert(alert: unknown): Promise<void>;
-      };
-
       // Should not throw error
-      expect(() => privateService.shutdown()).not.toThrow();
+      expect(() => monitoringService.testShutdown()).not.toThrow();
     });
 
     it("should register process event handlers", () => {
@@ -585,34 +571,26 @@ describe("ProductionMonitoringService", () => {
     });
 
     it("should calculate percentiles correctly", () => {
-      const privateService = monitoringService as {
-        sendAlert(alert: unknown): Promise<void>;
-      };
-
       const values = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000];
 
-      expect(privateService.calculatePercentile(values, 0.5)).toBe(500); // 50th percentile
-      expect(privateService.calculatePercentile(values, 0.95)).toBe(950); // 95th percentile
-      expect(privateService.calculatePercentile(values, 0.99)).toBe(990); // 99th percentile
+      expect(monitoringService.testCalculatePercentile(values, 0.5)).toBe(500); // 50th percentile
+      expect(monitoringService.testCalculatePercentile(values, 0.95)).toBe(
+        1000,
+      ); // 95th percentile (index 9.5 -> 10th element)
+      expect(monitoringService.testCalculatePercentile(values, 0.99)).toBe(
+        1000,
+      ); // 99th percentile (index 9.9 -> 10th element)
     });
 
     it("should calculate average correctly", () => {
-      const privateService = monitoringService as {
-        sendAlert(alert: unknown): Promise<void>;
-      };
-
       const values = [100, 200, 300, 400, 500];
 
-      expect(privateService.calculateAverage(values)).toBe(300);
+      expect(monitoringService.testCalculateAverage(values)).toBe(300);
     });
 
     it("should handle empty arrays in calculations", () => {
-      const privateService = monitoringService as {
-        sendAlert(alert: unknown): Promise<void>;
-      };
-
-      expect(privateService.calculateAverage([])).toBe(0);
-      expect(privateService.calculatePercentile([], 0.95)).toBe(0);
+      expect(monitoringService.testCalculateAverage([])).toBe(0);
+      expect(monitoringService.testCalculatePercentile([], 0.95)).toBe(0);
     });
   });
 });

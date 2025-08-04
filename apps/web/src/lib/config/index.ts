@@ -17,6 +17,7 @@ if (isNodeEnvironment) {
 	});
 }
 
+import { z } from "zod";
 import { type AppConfig, configSchema, ENV_VAR_MAP } from "./schema";
 
 /**
@@ -473,16 +474,9 @@ function extractEnvironmentVariables(): Record<string, string | undefined> {
 /**
  * Format validation errors into user-friendly messages
  */
-function formatValidationErrors(zodError?: {
-	errors?: Array<{
-		path?: string[];
-		message: string;
-		code: string;
-		[key: string]: unknown;
-	}>;
-}): ConfigurationError[] {
+function formatValidationErrors(zodError: z.ZodError): ConfigurationError[] {
 	// Handle case where ZodError is passed directly
-	const errors = zodError?.errors;
+	const errors = zodError.issues;
 
 	if (!errors || !Array.isArray(errors) || errors.length === 0) {
 		console.error(
@@ -507,22 +501,14 @@ function formatValidationErrors(zodError?: {
 
 		let suggestion = "";
 		if (envVar) {
-			if (
-				error.code === "invalid_enum_value" ||
-				error.code === "invalid_value"
-			) {
-				// Handle enum validation errors with available options
-				const values = error.values || error.expected;
-				if (Array.isArray(values)) {
-					suggestion = `Set ${envVar} to one of: ${values.map((v) => `"${v}"`).join(", ")}`;
-				} else {
-					suggestion = `Set the ${envVar} environment variable correctly`;
-				}
+			if (error.code === "invalid_union") {
+				// Handle union/enum validation errors with available options
+				suggestion = `Set the ${envVar} environment variable to a valid enum value`;
+			} else if (error.code === "invalid_type") {
+				const typeError = error as unknown as { expected?: string; received?: string };
+				suggestion = `Set the ${envVar} environment variable (expected ${typeError.expected || 'valid type'}, got ${typeError.received || 'invalid type'})`;
 			} else {
-				suggestion = `Set the ${envVar} environment variable`;
-				if (error.expected) {
-					suggestion += ` to ${error.expected}`;
-				}
+				suggestion = `Set the ${envVar} environment variable correctly`;
 			}
 		}
 
@@ -530,10 +516,16 @@ function formatValidationErrors(zodError?: {
 			`Configuration validation failed for '${path}': ${error.message}`,
 			{
 				variable: envVar,
-				expected: Array.isArray(error.values)
-					? error.values.join("|")
-					: error.expected,
-				received: error.received,
+				expected:
+					error.code === "invalid_union"
+						? "valid enum value"
+						: error.code === "invalid_type"
+							? (error as unknown as { expected?: string }).expected || "valid type"
+							: "valid value",
+				received:
+					error.code === "invalid_type"
+						? (error as unknown as { received?: string }).received || "invalid type"
+						: "invalid value",
 				suggestion,
 			},
 		);

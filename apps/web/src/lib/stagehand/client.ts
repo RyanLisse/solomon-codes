@@ -95,7 +95,6 @@ export class StagehandClient {
     try {
       // Create a test session to verify connectivity
       const testSession = await this.createSession({
-        headless: true,
         viewport: { width: 1280, height: 720 },
       });
 
@@ -153,7 +152,7 @@ export class StagehandClient {
   /**
    * Create a new Stagehand session
    */
-  async createSession(config: SessionConfig = {}): Promise<{
+  async createSession(config: Partial<SessionConfig> = {}): Promise<{
     sessionId: string;
     success: boolean;
     error?: string;
@@ -182,10 +181,6 @@ export class StagehandClient {
           env: "BROWSERBASE",
           apiKey: this.config.apiKey,
           projectId: this.config.projectId,
-          browserbaseSessionCreateParams: {
-            headless: config.headless ?? true,
-            viewport: config.viewport,
-          },
           verbose: this.config.enableLogging ? 2 : 0,
         });
 
@@ -262,15 +257,16 @@ export class StagehandClient {
   ): Promise<AutomationResult> {
     return getMockOrRealData(
       // Mock implementation
-      async () => {
+      async (): Promise<AutomationResult> => {
         this.logger.info("Running mock automation task", { task });
         await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate delay
 
         return {
           success: true,
-          data:
-            mockApiResponses?.stagehand?.automation?.result ||
-            "Mock automation completed",
+          data: (mockApiResponses?.stagehand?.automation
+            ?.result as unknown as ExtractedData) ?? {
+            mockResult: "Mock automation completed",
+          },
           sessionId: sessionId || "mock-session",
           logs: mockApiResponses?.stagehand?.automation?.logs || [
             "Mock automation started",
@@ -334,33 +330,6 @@ export class StagehandClient {
   }
 
   /**
-   * Get existing session or create new one
-   */
-  private async getOrCreateSession(
-    sessionId?: string,
-  ): Promise<{ session: StagehandSession; shouldClose: boolean }> {
-    if (sessionId) {
-      const session = this.getSession(sessionId);
-      if (!session) {
-        throw new Error(`Session ${sessionId} not found`);
-      }
-      return { session, shouldClose: false };
-    }
-
-    const sessionResult = await this.createSession();
-    if (!sessionResult.success) {
-      throw new Error(sessionResult.error || "Failed to create session");
-    }
-
-    const session = this.getSession(sessionResult.sessionId);
-    if (!session) {
-      throw new Error("Failed to get session");
-    }
-
-    return { session, shouldClose: true };
-  }
-
-  /**
    * Perform automation instructions
    */
   private async performAutomation(
@@ -389,34 +358,37 @@ export class StagehandClient {
 
     logs.push("Extracting data with provided schema");
     // Create a Zod schema from the extract schema
-    const { z } = await import('zod');
-    const zodSchema = z.object(
-      Object.entries(task.extractSchema).reduce((acc, [key, type]) => {
+    const { z } = await import("zod");
+    const schemaShape = Object.entries(task.extractSchema).reduce(
+      (acc, [key, type]) => {
         switch (type) {
-          case 'string':
+          case "string":
             acc[key] = z.string();
             break;
-          case 'number':
+          case "number":
             acc[key] = z.number();
             break;
-          case 'boolean':
+          case "boolean":
             acc[key] = z.boolean();
             break;
-          case 'array':
+          case "array":
             acc[key] = z.array(z.unknown());
             break;
-          case 'object':
-            acc[key] = z.record(z.unknown());
+          case "object":
+            acc[key] = z.record(z.string(), z.unknown());
             break;
           default:
             acc[key] = z.unknown();
         }
         return acc;
-      }, {} as Record<string, any>)
+      },
+      {} as Record<string, unknown>,
     );
+    const zodSchema = z.object(schemaShape);
     const extractedData = await session.stagehand.page.extract({
       instruction: "Extract data according to the provided schema",
-      schema: zodSchema,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      schema: zodSchema as any,
     });
     logs.push("Data extraction completed");
     return extractedData;
@@ -478,7 +450,7 @@ export class StagehandClient {
   ): Promise<AutomationResult> {
     return getMockOrRealData(
       // Mock implementation
-      async () => {
+      async (): Promise<AutomationResult> => {
         this.logger.info("Running mock page observation", { url, instruction });
         await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate delay
 
@@ -526,70 +498,98 @@ export class StagehandClient {
       logs.push(`Using session: ${session.id}`);
       logs.push(`Navigating to: ${url}`);
 
-          // Navigate to URL
-          await session.stagehand.page.goto(url, {
-            waitUntil: "networkidle",
-            timeout: this.config.timeout,
-          });
+      // Navigate to URL
+      await session.stagehand.page.goto(url, {
+        waitUntil: "networkidle",
+        timeout: this.config.timeout,
+      });
 
-          logs.push("Page loaded successfully");
+      logs.push("Page loaded successfully");
 
-          // Observe page elements using the latest Stagehand API
-          logs.push("Observing page elements");
-          const observations = await session.stagehand.page.observe({
-            instruction,
-          });
+      // Perform observation
+      const observationData = await this.performObservation(
+        session,
+        instruction,
+        logs,
+      );
 
-          logs.push("Page observation completed");
+      return {
+        success: true,
+        data: observationData,
+        sessionId: session.id,
+        logs,
+      };
+    } catch (error) {
+      return this.handleObservationError(
+        error,
+        session,
+        logs,
+        url,
+        instruction,
+        sessionId,
+      );
+    } finally {
+      await this.cleanupSessionIfNeeded(shouldCloseSession, session, logs);
+    }
+  }
 
-          // Ensure observations match our expected structure
-          const observationData: ObservationData = observations
-            ? {
-                elements: observations.elements || [],
-                links: observations.links || [],
-                forms: observations.forms || [],
-              }
-            : null;
+  /**
+   * Perform page observation
+   */
+  private async performObservation(
+    session: StagehandSession,
+    instruction: string,
+    logs: string[],
+  ): Promise<ObservationData> {
+    logs.push("Observing page elements");
+    const observations = await session.stagehand.page.observe({
+      instruction,
+    });
+    logs.push("Page observation completed");
 
-          return {
-            success: true,
-            data: observationData,
-            sessionId: session.id,
-            logs,
-          };
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error ? error.message : String(error);
-          logs.push(`Error: ${errorMessage}`);
-
-          this.logger.error("Page observation failed", {
-            error: errorMessage,
-            stack: error instanceof Error ? error.stack : undefined,
-            url,
-            instruction,
-            sessionId,
-          });
-
-          return {
-            success: false,
-            error: errorMessage,
-            sessionId: session?.id,
-            logs,
-          };
-        } finally {
-          // Clean up session if we created it
-          if (shouldCloseSession && session) {
-            try {
-              await this.closeSession(session.id);
-              logs.push("Session closed");
-            } catch (closeError) {
-              logs.push(`Warning: Failed to close session: ${closeError}`);
-            }
-          }
+    // Transform Stagehand ObserveResult[] to our ObservationData format
+    return observations && observations.length > 0
+      ? {
+          elements: observations.map((obs) => ({
+            tag: obs.selector?.split(" ")[0] || "unknown",
+            text: obs.description,
+            attributes: {},
+            selector: obs.selector,
+          })),
+          links: [],
+          forms: [],
         }
-      },
-      "stagehand-page-observation",
-    );
+      : null;
+  }
+
+  /**
+   * Handle observation errors
+   */
+  private handleObservationError(
+    error: unknown,
+    session: StagehandSession | null,
+    logs: string[],
+    url: string,
+    instruction: string,
+    sessionId?: string,
+  ): AutomationResult {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logs.push(`Error: ${errorMessage}`);
+
+    this.logger.error("Page observation failed", {
+      error: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined,
+      url,
+      instruction,
+      sessionId,
+    });
+
+    return {
+      success: false,
+      error: errorMessage,
+      sessionId: session?.id,
+      logs,
+    };
   }
 
   /**

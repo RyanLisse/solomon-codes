@@ -2,63 +2,75 @@
 
 // Build-time Exclusion
 export {
-	assertNotProduction,
-	conditionalImport,
-	createMockWrapper,
-	devLog,
-	devOnly,
-	devWarn,
-	excludeFromProduction,
-	excludeMockFilesFromBuild,
-	getRegisteredMockData,
-	loadMockData,
-	MockDataWrapper,
-	mockDataRegistry,
-	mockFileExclusionPattern,
-	registerMockData,
-	validateMockDataStructure,
+  assertNotProduction,
+  conditionalImport,
+  createMockWrapper,
+  devLog,
+  devOnly,
+  devWarn,
+  excludeFromProduction,
+  excludeMockFilesFromBuild,
+  getRegisteredMockData,
+  loadMockData,
+  MockDataWrapper,
+  mockDataRegistry,
+  mockFileExclusionPattern,
+  registerMockData,
+  validateMockDataStructure,
 } from "./build-exclusion";
 export {
-	getMockDataManager,
-	getMockOrRealData,
-	MockDataManager,
-	mockAware,
-	resetMockDataManager,
-	shouldUseMockData,
-	validateMockDataUsage,
-	withMockSupport,
+  getMockDataManager,
+  getMockOrRealData,
+  MockDataManager,
+  mockAware,
+  resetMockDataManager,
+  shouldUseMockData,
+  validateMockDataUsage,
+  withMockSupport,
 } from "./manager";
 // Mock Data Providers
 export {
-	getMockData,
-	type MockDataType,
-	mockApiResponses,
-	mockConfig,
-	mockDelay,
-	mockEnvironments,
-	mockErrors,
-	mockGenerators,
-	mockTasks,
-	mockTelemetry,
-	mockUsers,
+  getMockData,
+  type MockDataType,
+  mockApiResponses,
+  mockConfig,
+  mockDelay,
+  mockEnvironments,
+  mockErrors,
+  mockGenerators,
+  mockTasks,
+  mockTelemetry,
+  mockUsers,
 } from "./providers";
 
-// Re-export commonly used utilities
+import {
+  assertNotProduction,
+  devOnly,
+  excludeFromProduction,
+} from "./build-exclusion";
+// Re-export commonly used utilities - import the functions first
+import {
+  getMockOrRealData,
+  shouldUseMockData,
+  validateMockDataUsage,
+  withMockSupport,
+} from "./manager";
+
 export const MockUtils = {
-	// Environment checks
-	shouldUseMock: shouldUseMockData,
+  // Environment checks
+  shouldUseMock: shouldUseMockData,
 
-	// Data access
-	getMockOrReal: getMockOrRealData,
+  // Data access
+  getMockOrReal: getMockOrRealData,
 
-	// Service wrapping
-	withMock: withMockSupport,
+  // Service wrapping
+  withMock: withMockSupport,
 
-	// Build-time exclusion
-	excludeFromProd: excludeFromProduction,
-	devOnly,
+  // Build-time exclusion
+  excludeFromProd: excludeFromProduction,
+  devOnly,
 
-	// Validation
-	validate: validateMockDataUsage,
-	assertNotProd: assertNotProduction,
+  // Validation
+  validate: validateMockDataUsage,
+  assertNotProd: assertNotProduction,
 } as const;

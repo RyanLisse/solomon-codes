@@ -25,10 +25,7 @@
           "outputFile": "playwright-report/results.json"
         }
       ],
-      [
-        "line",
-        null
-      ]
+      ["line", null]
     ],
     "reportSlowTests": {
       "max": 5,
@@ -45,9 +42,7 @@
         "name": "chromium",
         "testDir": "/Users/neo/Developer/experiments/solomon_codes/apps/web/src/test/e2e",
         "testIgnore": [],
-        "testMatch": [
-          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
-        ],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
         "timeout": 120000
       }
     ],

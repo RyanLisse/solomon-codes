@@ -11,22 +11,21 @@ import {
 
 describe("Environment Validation", () => {
 	const originalEnv = process.env;
-	const consoleSpy = vi
-		.spyOn(console, "log")
-		.mockImplementation((): void => {});
+	let consoleSpy: ReturnType<typeof vi.spyOn>;
 
 	beforeEach(() => {
 		process.env = { ...originalEnv };
-		consoleSpy.mockClear();
+		consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 	});
 
 	afterEach(() => {
 		process.env = originalEnv;
+		consoleSpy.mockRestore();
 	});
 
 	describe("validateEnvironment", () => {
 		it("should validate development environment successfully", () => {
-			process.env.NODE_ENV = "development";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "development";
 
 			const result = validateEnvironment();
 
@@ -37,7 +36,12 @@ describe("Environment Validation", () => {
 		});
 
 		it("should fail validation for production without required vars", () => {
-			process.env.NODE_ENV = "production";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "production";
+			// Clear required production environment variables
+			delete process.env.OPENAI_API_KEY;
+			delete process.env.BROWSERBASE_API_KEY;
+			delete process.env.BROWSERBASE_PROJECT_ID;
+			delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
 			const result = validateEnvironment();
 
@@ -50,7 +54,7 @@ describe("Environment Validation", () => {
 		});
 
 		it("should validate production environment with all required vars", () => {
-			process.env.NODE_ENV = "production";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "production";
 			process.env.OPENAI_API_KEY = "sk-test-key";
 			process.env.BROWSERBASE_API_KEY = "bb-test-key";
 			process.env.BROWSERBASE_PROJECT_ID = "test-project";
@@ -65,7 +69,7 @@ describe("Environment Validation", () => {
 		});
 
 		it("should validate custom validators", () => {
-			process.env.NODE_ENV = "production";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "production";
 			process.env.OPENAI_API_KEY = "sk-test-key";
 			process.env.BROWSERBASE_API_KEY = "bb-test-key";
 			process.env.BROWSERBASE_PROJECT_ID = "test-project";
@@ -83,7 +87,7 @@ describe("Environment Validation", () => {
 		});
 
 		it("should validate staging environment", () => {
-			process.env.NODE_ENV = "staging";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "staging";
 			process.env.OPENAI_API_KEY = "sk-test-key";
 
 			const result = validateEnvironment();
@@ -93,7 +97,7 @@ describe("Environment Validation", () => {
 		});
 
 		it("should handle unknown environment as development", () => {
-			process.env.NODE_ENV = "unknown";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "unknown";
 
 			const result = validateEnvironment();
 
@@ -210,7 +214,7 @@ describe("Environment Validation", () => {
 		});
 
 		it("should use NODE_ENV when no environment specified", () => {
-			process.env.NODE_ENV = "production";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "production";
 
 			const requirements = getEnvironmentRequirements();
 
@@ -223,7 +227,7 @@ describe("Environment Validation", () => {
 
 	describe("hasRequiredEnvironmentVariables", () => {
 		it("should return true when all required variables are present", () => {
-			process.env.NODE_ENV = "development";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "development";
 
 			const result = hasRequiredEnvironmentVariables();
 
@@ -231,7 +235,7 @@ describe("Environment Validation", () => {
 		});
 
 		it("should return false when required variables are missing", () => {
-			process.env.NODE_ENV = "production";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "production";
 			// Don't set required production variables
 
 			const result = hasRequiredEnvironmentVariables();
@@ -250,8 +254,12 @@ describe("Environment Validation", () => {
 				environment: "development",
 			};
 
+			// Clear the spy before the test
+			consoleSpy.mockClear();
+
 			printValidationResults(result);
 
+			expect(consoleSpy).toHaveBeenCalled();
 			expect(consoleSpy).toHaveBeenCalledWith(
 				expect.stringContaining("Environment Validation (development)"),
 			);
@@ -271,8 +279,12 @@ describe("Environment Validation", () => {
 				environment: "production",
 			};
 
+			// Clear the spy before the test
+			consoleSpy.mockClear();
+
 			printValidationResults(result);
 
+			expect(consoleSpy).toHaveBeenCalled();
 			expect(consoleSpy).toHaveBeenCalledWith(
 				expect.stringContaining("❌ Environment validation failed"),
 			);
@@ -296,8 +308,12 @@ describe("Environment Validation", () => {
 				environment: "development",
 			};
 
+			// Clear the spy before the test
+			consoleSpy.mockClear();
+
 			printValidationResults(result);
 
+			expect(consoleSpy).toHaveBeenCalled();
 			expect(consoleSpy).toHaveBeenCalledWith(
 				expect.stringContaining("⚠️  Warnings:"),
 			);
@@ -315,8 +331,12 @@ describe("Environment Validation", () => {
 				environment: "development",
 			};
 
+			// Clear the spy before the test
+			consoleSpy.mockClear();
+
 			printValidationResults(result);
 
+			expect(consoleSpy).toHaveBeenCalled();
 			expect(consoleSpy).toHaveBeenCalledWith(
 				expect.stringContaining("2024-01-01T12:00:00.000Z"),
 			);

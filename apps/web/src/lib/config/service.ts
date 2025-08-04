@@ -133,7 +133,13 @@ export class ConfigurationService {
 		const configValue = this.config[key];
 		const profileDefault = this.profile.defaults[key] as AppConfig[K];
 
-		return configValue ?? profileDefault ?? fallback;
+		const result = configValue ?? profileDefault ?? fallback;
+		if (result === undefined) {
+			throw new Error(
+				`Configuration value for '${String(key)}' is undefined and no fallback provided`,
+			);
+		}
+		return result;
 	}
 
 	/**

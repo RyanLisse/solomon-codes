@@ -40,7 +40,7 @@ describe("StartupValidationService", () => {
 
 	beforeEach(() => {
 		process.env = { ...originalEnv };
-		process.env.NODE_ENV = "development";
+		vi.stubEnv("NODE_ENV", "development");
 		resetStartupValidationService();
 		vi.clearAllMocks();
 
@@ -134,7 +134,7 @@ describe("StartupValidationService", () => {
 		});
 
 		it("should validate telemetry endpoint", async () => {
-			process.env.NODE_ENV = "production";
+			vi.stubEnv("NODE_ENV", "production");
 			process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
 				"http://insecure-endpoint.com/v1/traces";
 
@@ -190,7 +190,7 @@ describe("StartupValidationService", () => {
 		});
 
 		it("should fail when database is not configured in production", async () => {
-			process.env.NODE_ENV = "production";
+			vi.stubEnv("NODE_ENV", "production");
 			process.env.DATABASE_URL = "";
 
 			const service = new StartupValidationService();
@@ -215,7 +215,7 @@ describe("StartupValidationService", () => {
 		});
 
 		it("should handle database connectivity failure in production", async () => {
-			process.env.NODE_ENV = "production";
+			vi.stubEnv("NODE_ENV", "production");
 			process.env.DATABASE_URL = "postgresql://localhost:5432/test";
 			(testDatabaseConnection as Mock).mockResolvedValue({
 				success: false,
@@ -353,7 +353,7 @@ describe("StartupValidationService", () => {
 		});
 
 		it("should reflect failed validations in summary", async () => {
-			process.env.NODE_ENV = "production";
+			vi.stubEnv("NODE_ENV", "production");
 			process.env.DATABASE_URL = "";
 
 			const service = new StartupValidationService();
@@ -397,7 +397,7 @@ describe("StartupValidationService", () => {
 		});
 
 		it("should warn about telemetry disabled in production", async () => {
-			process.env.NODE_ENV = "production";
+			vi.stubEnv("NODE_ENV", "production");
 			(getTelemetryService as Mock).mockReturnValue({
 				isEnabled: () => false,
 				getConfig: () => ({

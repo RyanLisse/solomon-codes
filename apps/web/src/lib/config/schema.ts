@@ -46,7 +46,7 @@ export const configSchema = z.object({
 	otelEndpoint: z
 		.string()
 		.optional()
-		.refine((val, ctx) => {
+		.refine((val) => {
 			// Allow empty string for test environment
 			const nodeEnv = process.env.NODE_ENV;
 			if (nodeEnv === "test" && (!val || val === "")) {
@@ -58,19 +58,11 @@ export const configSchema = z.object({
 					new URL(val);
 					return true;
 				} catch {
-					ctx.addIssue({
-						code: z.ZodIssueCode.custom,
-						message: "OTEL_EXPORTER_OTLP_ENDPOINT must be a valid URL",
-					});
 					return false;
 				}
 			}
 			// Required in production
 			if (nodeEnv === "production" && !val) {
-				ctx.addIssue({
-					code: z.ZodIssueCode.custom,
-					message: "OTEL_EXPORTER_OTLP_ENDPOINT is required in production",
-				});
 				return false;
 			}
 			return true;
@@ -89,7 +81,7 @@ export const configSchema = z.object({
 				return {};
 			}
 		})
-		.pipe(z.record(z.string()))
+		.pipe(z.record(z.string(), z.unknown()))
 		.default({}),
 
 	otelSamplingRatio: z.coerce

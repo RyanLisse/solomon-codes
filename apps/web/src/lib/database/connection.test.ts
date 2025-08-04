@@ -31,7 +31,7 @@ describe("Database Connection", () => {
 		vi.clearAllMocks();
 		// Reset environment variables
 		delete process.env.DATABASE_URL;
-		delete process.env.NODE_ENV;
+		delete (process.env as { NODE_ENV?: string }).NODE_ENV;
 	});
 
 	describe("Database Configuration", () => {
@@ -63,7 +63,7 @@ describe("Database Connection", () => {
 		});
 
 		it("should enable SSL in production", async () => {
-			process.env.NODE_ENV = "production";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "production";
 
 			const { getDatabaseConfig } = await import("./connection");
 
@@ -73,7 +73,7 @@ describe("Database Connection", () => {
 		});
 
 		it("should disable SSL in development", async () => {
-			process.env.NODE_ENV = "development";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "development";
 
 			const { getDatabaseConfig } = await import("./connection");
 
@@ -219,7 +219,7 @@ describe("Database Connection", () => {
 
 	describe("Environment-specific Configuration", () => {
 		it("should use development configuration", async () => {
-			process.env.NODE_ENV = "development";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "development";
 			process.env.DATABASE_URL = "postgresql://dev:dev@localhost:5432/devdb";
 
 			const { getDatabaseConfig } = await import("./connection");
@@ -231,7 +231,7 @@ describe("Database Connection", () => {
 		});
 
 		it("should use production configuration", async () => {
-			process.env.NODE_ENV = "production";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "production";
 			process.env.DATABASE_URL = "postgresql://prod:prod@prod.host:5432/proddb";
 
 			const { getDatabaseConfig } = await import("./connection");
@@ -243,7 +243,7 @@ describe("Database Connection", () => {
 		});
 
 		it("should use test configuration", async () => {
-			process.env.NODE_ENV = "test";
+			(process.env as { NODE_ENV?: string }).NODE_ENV = "test";
 			process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/testdb";
 
 			const { getDatabaseConfig } = await import("./connection");

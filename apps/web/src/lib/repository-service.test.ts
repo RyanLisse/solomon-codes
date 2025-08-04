@@ -6,6 +6,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { GitHubRepository } from "./github";
 import { RepositoryService, type RepositoryTask } from "./repository-service";
 
+// Interface to access private methods for testing
+interface RepositoryServiceForTesting {
+  getUserRepositories(accessToken: string): Promise<GitHubRepository[]>;
+  getRepositoryTasks(accessToken: string, owner: string, repo: string, limit?: number): Promise<RepositoryTask[]>;
+  getAllRepositoryTasks(accessToken: string, repositories: GitHubRepository[], limit?: number): Promise<RepositoryTask[]>;
+  truncateMessage(message: string): string;
+  inferStatusFromMessage(message: string): "completed" | "failed" | "running";
+  formatTimeAgo(date: Date): string;
+  parseTimeAgo(timeAgo: string): number;
+}
+
 // Mock the GitHubAuth class
 vi.mock("./github", () => ({
   GitHubAuth: class MockGitHubAuth {
@@ -25,11 +36,11 @@ vi.mock("./github", () => ({
 }));
 
 describe("RepositoryService", () => {
-  let service: RepositoryService;
+  let service: RepositoryServiceForTesting;
   let mockFetch: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
-    service = new RepositoryService();
+    service = new RepositoryService() as unknown as RepositoryServiceForTesting;
     mockFetch = vi.fn();
     global.fetch = mockFetch;
     vi.useFakeTimers();
@@ -244,7 +255,7 @@ describe("RepositoryService", () => {
     beforeEach(() => {
       // Spy on getRepositoryTasks method
       vi.spyOn(service, "getRepositoryTasks").mockImplementation(
-        async (_accessToken, owner, repo) => {
+        async (_accessToken: string, owner: string, repo: string) => {
           if (repo === "repo1") {
             return [
               {
@@ -328,9 +339,7 @@ describe("RepositoryService", () => {
     it("should truncate long commit messages", () => {
       const longMessage = "a".repeat(100);
       const result = (
-        service as RepositoryService & {
-          truncateMessage: (message: string) => string;
-        }
+        service
       ).truncateMessage(longMessage);
 
       expect(result).toBe(`${"a".repeat(77)}...`);
@@ -340,9 +349,7 @@ describe("RepositoryService", () => {
     it("should not truncate short messages", () => {
       const shortMessage = "Short commit message";
       const result = (
-        service as RepositoryService & {
-          truncateMessage: (message: string) => string;
-        }
+        service
       ).truncateMessage(shortMessage);
 
       expect(result).toBe(shortMessage);
@@ -351,9 +358,7 @@ describe("RepositoryService", () => {
     it("should only use first line of multiline messages", () => {
       const multilineMessage = "First line\nSecond line\nThird line";
       const result = (
-        service as RepositoryService & {
-          truncateMessage: (message: string) => string;
-        }
+        service
       ).truncateMessage(multilineMessage);
 
       expect(result).toBe("First line");
@@ -385,11 +390,7 @@ describe("RepositoryService", () => {
     testCases.forEach(({ message, expected }) => {
       it(`should infer "${expected}" status from message: "${message}"`, () => {
         const result = (
-          service as RepositoryService & {
-            inferStatusFromMessage: (
-              message: string,
-            ) => "completed" | "failed" | "running";
-          }
+          service
         ).inferStatusFromMessage(message);
         expect(result).toBe(expected);
       });
@@ -400,7 +401,7 @@ describe("RepositoryService", () => {
     it("should format minutes ago", () => {
       const date = new Date("2024-01-15T11:45:00Z"); // 15 minutes ago
       const result = (
-        service as RepositoryService & { formatTimeAgo: (date: Date) => string }
+        service
       ).formatTimeAgo(date);
       expect(result).toBe("15 minutes ago");
     });
@@ -408,7 +409,7 @@ describe("RepositoryService", () => {
     it("should format single minute ago", () => {
       const date = new Date("2024-01-15T11:59:00Z"); // 1 minute ago
       const result = (
-        service as RepositoryService & { formatTimeAgo: (date: Date) => string }
+        service
       ).formatTimeAgo(date);
       expect(result).toBe("1 minute ago");
     });
@@ -416,7 +417,7 @@ describe("RepositoryService", () => {
     it("should format hours ago", () => {
       const date = new Date("2024-01-15T09:00:00Z"); // 3 hours ago
       const result = (
-        service as RepositoryService & { formatTimeAgo: (date: Date) => string }
+        service
       ).formatTimeAgo(date);
       expect(result).toBe("3 hours ago");
     });
@@ -424,7 +425,7 @@ describe("RepositoryService", () => {
     it("should format single hour ago", () => {
       const date = new Date("2024-01-15T11:00:00Z"); // 1 hour ago
       const result = (
-        service as RepositoryService & { formatTimeAgo: (date: Date) => string }
+        service
       ).formatTimeAgo(date);
       expect(result).toBe("1 hour ago");
     });
@@ -432,7 +433,7 @@ describe("RepositoryService", () => {
     it("should format days ago", () => {
       const date = new Date("2024-01-13T12:00:00Z"); // 2 days ago
       const result = (
-        service as RepositoryService & { formatTimeAgo: (date: Date) => string }
+        service
       ).formatTimeAgo(date);
       expect(result).toBe("2 days ago");
     });
@@ -440,7 +441,7 @@ describe("RepositoryService", () => {
     it("should format single day ago", () => {
       const date = new Date("2024-01-14T12:00:00Z"); // 1 day ago
       const result = (
-        service as RepositoryService & { formatTimeAgo: (date: Date) => string }
+        service
       ).formatTimeAgo(date);
       expect(result).toBe("1 day ago");
     });
@@ -449,45 +450,35 @@ describe("RepositoryService", () => {
   describe("parseTimeAgo", () => {
     it("should parse minutes correctly", () => {
       const result = (
-        service as RepositoryService & {
-          parseTimeAgo: (timeAgo: string) => number;
-        }
+        service
       ).parseTimeAgo("15 minutes ago");
       expect(result).toBe(15);
     });
 
     it("should parse hours correctly", () => {
       const result = (
-        service as RepositoryService & {
-          parseTimeAgo: (timeAgo: string) => number;
-        }
+        service
       ).parseTimeAgo("3 hours ago");
       expect(result).toBe(180); // 3 * 60
     });
 
     it("should parse days correctly", () => {
       const result = (
-        service as RepositoryService & {
-          parseTimeAgo: (timeAgo: string) => number;
-        }
+        service
       ).parseTimeAgo("2 days ago");
       expect(result).toBe(2880); // 2 * 60 * 24
     });
 
     it("should handle invalid format", () => {
       const result = (
-        service as RepositoryService & {
-          parseTimeAgo: (timeAgo: string) => number;
-        }
+        service
       ).parseTimeAgo("invalid format");
       expect(result).toBe(0);
     });
 
     it("should handle unknown units", () => {
       const result = (
-        service as RepositoryService & {
-          parseTimeAgo: (timeAgo: string) => number;
-        }
+        service
       ).parseTimeAgo("5 weeks ago");
       expect(result).toBe(0);
     });

@@ -19,9 +19,9 @@ export class SecurityConfigError extends Error {
 // API key validation patterns
 const API_KEY_PATTERNS = {
 	openai: /^sk-[a-zA-Z0-9]{48}$/,
-	e2b: /^e2b_[a-zA-Z0-9]{40}$/,  // E2B keys are 44 chars total (e2b_ + 40 chars)
+	e2b: /^e2b_[a-zA-Z0-9]{40}$/, // E2B keys are 44 chars total (e2b_ + 40 chars)
 	github: /^gh[ops]_[a-zA-Z0-9]{36}$/,
-	browserbase: /^bb_live_[a-zA-Z0-9_]+$/,  // Browserbase uses bb_live_ prefix with underscores
+	browserbase: /^bb_live_[a-zA-Z0-9_]+$/, // Browserbase uses bb_live_ prefix with underscores
 } as const;
 
 // Secure configuration schema

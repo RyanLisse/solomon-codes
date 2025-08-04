@@ -167,7 +167,10 @@ export class StartupValidationService {
 							"Telemetry service initialization failed - continuing without telemetry",
 						],
 						timestamp: new Date(),
-						environment: this.configService.getConfiguration().nodeEnv,
+						environment:
+							this.configService?.getConfiguration().nodeEnv ??
+							process.env.NODE_ENV ??
+							"development",
 					};
 				}
 				return {
@@ -175,7 +178,10 @@ export class StartupValidationService {
 					errors: [],
 					warnings: [],
 					timestamp: new Date(),
-					environment: this.configService.getConfiguration().nodeEnv,
+					environment:
+						this.configService?.getConfiguration().nodeEnv ??
+						process.env.NODE_ENV ??
+						"development",
 				};
 			},
 		);
@@ -246,7 +252,10 @@ export class StartupValidationService {
 				errors: [errorMessage],
 				warnings: [],
 				timestamp: new Date(),
-				environment: this.configService.getConfiguration().nodeEnv,
+				environment:
+					this.configService?.getConfiguration().nodeEnv ??
+					process.env.NODE_ENV ??
+					"development",
 			};
 		}
 	}

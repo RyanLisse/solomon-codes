@@ -97,6 +97,19 @@ export const EnhancedVoiceConversationButton: React.FC<
       return stream;
     } catch (error) {
       console.warn("Audio monitoring initialization failed:", error);
+      // Convert getUserMedia errors to proper VoiceError format
+      if (
+        error instanceof Error &&
+        error.message.includes("Permission denied")
+      ) {
+        const voiceError: VoiceError = {
+          code: VoiceErrorCode.MICROPHONE_ACCESS_DENIED,
+          message: "Failed to access microphone access - permission denied",
+          recoverable: true,
+          details: { originalError: error },
+        };
+        throw voiceError;
+      }
       throw error;
     }
   }, [isActive]);
@@ -171,9 +184,15 @@ export const EnhancedVoiceConversationButton: React.FC<
 
     realtimeServiceRef.current.on("error", (event) => {
       console.error("Realtime API error:", event);
-      const errorData = event as { code?: string; message?: string; recoverable?: boolean; details?: unknown };
+      const errorData = event as {
+        code?: string;
+        message?: string;
+        recoverable?: boolean;
+        details?: unknown;
+      };
       const voiceError: VoiceError = {
-        code: (errorData.code as VoiceErrorCode) || VoiceErrorCode.NETWORK_ERROR,
+        code:
+          (errorData.code as VoiceErrorCode) || VoiceErrorCode.NETWORK_ERROR,
         message: errorData.message || "Realtime API error",
         recoverable: errorData.recoverable ?? true,
         details: errorData.details as Record<string, unknown>,
@@ -213,13 +232,26 @@ export const EnhancedVoiceConversationButton: React.FC<
       onConversationStart?.();
     } catch (error) {
       console.error("Failed to start conversation:", error);
-      const voiceError: VoiceError = {
-        code: VoiceErrorCode.NETWORK_ERROR,
-        message: "Failed to start voice conversation",
-        recoverable: true,
-        details: { error },
-      };
-      onError?.(voiceError);
+
+      // If error is already a VoiceError, pass it through
+      if (
+        error &&
+        typeof error === "object" &&
+        "code" in error &&
+        "message" in error
+      ) {
+        onError?.(error as VoiceError);
+      } else {
+        // Otherwise, wrap in a generic VoiceError
+        const voiceError: VoiceError = {
+          code: VoiceErrorCode.NETWORK_ERROR,
+          message: "Failed to start voice conversation",
+          recoverable: true,
+          details: { error },
+        };
+        onError?.(voiceError);
+      }
+
       setVoiceState(VoiceState.ERROR);
       setConnectionStatus("error");
       setIsConnecting(false);
@@ -268,7 +300,7 @@ export const EnhancedVoiceConversationButton: React.FC<
     return () => {
       if (realtimeServiceRef.current) {
         // Check if disconnect method exists and is a function
-        if (typeof realtimeServiceRef.current.disconnect === 'function') {
+        if (typeof realtimeServiceRef.current.disconnect === "function") {
           realtimeServiceRef.current.disconnect();
         }
       }
@@ -309,7 +341,7 @@ export const EnhancedVoiceConversationButton: React.FC<
       case "sm":
         return "h-8 w-8";
       case "lg":
-        return "h-12 w-12";
+        return "h-14 w-14";
       default:
         return "h-10 w-10";
     }
@@ -353,14 +385,16 @@ export const EnhancedVoiceConversationButton: React.FC<
 
   const renderIcon = () => {
     if (isConnecting) {
-      return <Loader2 className="h-5 w-5 animate-spin" />;
+      return (
+        <Loader2 className="h-5 w-5 animate-spin" data-testid="loader-icon" />
+      );
     }
 
     if (isActive) {
-      return <PhoneOff className="h-5 w-5" />;
+      return <PhoneOff className="h-5 w-5" data-testid="phone-off-icon" />;
     }
 
-    return <Phone className="h-5 w-5" />;
+    return <Phone className="h-5 w-5" data-testid="phone-icon" />;
   };
 
   const getConnectionStatusText = () => {
@@ -386,6 +420,7 @@ export const EnhancedVoiceConversationButton: React.FC<
         onKeyDown={handleKeyDown}
         disabled={disabled}
         aria-label={getAriaLabel()}
+        aria-pressed={isActive}
         className={cn(getSizeClasses(), getStateClasses(), className)}
         data-testid="enhanced-voice-conversation-button"
       >

@@ -343,10 +343,11 @@ test.describe("Storage and State Management Interactions", () => {
       ).triggerStorageFailure = () => {
         shouldFail = true;
       };
-      (window as unknown as Window & { restoreStorage: () => void }).restoreStorage =
-        () => {
-          shouldFail = false;
-        };
+      (
+        window as unknown as Window & { restoreStorage: () => void }
+      ).restoreStorage = () => {
+        shouldFail = false;
+      };
 
       localStorage.setItem = function (key, value) {
         if (shouldFail) {
@@ -382,7 +383,9 @@ test.describe("Storage and State Management Interactions", () => {
 
     // Restore storage and verify recovery
     await page.evaluate(() =>
-      (window as unknown as Window & { restoreStorage: () => void }).restoreStorage(),
+      (
+        window as unknown as Window & { restoreStorage: () => void }
+      ).restoreStorage(),
     );
     await page.click('[data-testid="openai-save-button"]');
 
