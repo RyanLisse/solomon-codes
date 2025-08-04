@@ -127,7 +127,7 @@ export async function connectElectric(): Promise<ConnectionResult> {
 			await createElectricClient();
 		}
 
-		await electricClient!.connect();
+		await electricClient?.connect();
 
 		return { success: true };
 	} catch (error) {
@@ -172,7 +172,7 @@ export async function startTaskSync(): Promise<SyncResult> {
 			await createElectricClient();
 		}
 
-		await electricClient!.sync("tasks");
+		await electricClient?.sync("tasks");
 
 		return { success: true };
 	} catch (error) {
@@ -192,7 +192,7 @@ export async function startEnvironmentSync(): Promise<SyncResult> {
 			await createElectricClient();
 		}
 
-		await electricClient!.sync("environments");
+		await electricClient?.sync("environments");
 
 		return { success: true };
 	} catch (error) {
@@ -214,7 +214,7 @@ export async function subscribeToTableChanges(
 		await createElectricClient();
 	}
 
-	return await electricClient!.subscribe(table, callback);
+	return await electricClient?.subscribe(table, callback);
 }
 
 /**
@@ -227,7 +227,7 @@ export async function unsubscribeFromTableChanges(
 		return false;
 	}
 
-	return await electricClient!.unsubscribe(subscriptionId);
+	return await electricClient?.unsubscribe(subscriptionId);
 }
 
 /**

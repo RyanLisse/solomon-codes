@@ -173,10 +173,8 @@ describe("ThemeProvider", () => {
 	it("should handle React fragments as children", () => {
 		render(
 			<ThemeProvider>
-				<>
-					<div data-testid="fragment-1">Fragment 1</div>
-					<div data-testid="fragment-2">Fragment 2</div>
-				</>
+				<div data-testid="fragment-1">Fragment 1</div>
+				<div data-testid="fragment-2">Fragment 2</div>
 			</ThemeProvider>,
 		);
 

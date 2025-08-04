@@ -115,10 +115,8 @@ describe("Providers", () => {
 	it("should handle React fragments as children", () => {
 		render(
 			<Providers>
-				<>
-					<div data-testid="fragment-child-1">Fragment Child 1</div>
-					<div data-testid="fragment-child-2">Fragment Child 2</div>
-				</>
+				<div data-testid="fragment-child-1">Fragment Child 1</div>
+				<div data-testid="fragment-child-2">Fragment Child 2</div>
 			</Providers>,
 		);
 

@@ -23,7 +23,7 @@ export const useVoiceConversationUI = (
 	isInConversation: boolean,
 	disabled: boolean,
 	size: "sm" | "md" | "lg",
-	className?: string,
+	_className?: string,
 	startVoiceConversation?: () => Promise<void>,
 	endVoiceConversation?: () => void,
 ): VoiceConversationUIHook => {
