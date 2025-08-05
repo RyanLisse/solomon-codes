@@ -325,7 +325,7 @@ export async function withRetry<T>(
       error.recoverable && error.severity !== "critical",
   } = options;
 
-  let lastError: AppError;
+  let lastError: AppError | undefined;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
@@ -349,8 +349,6 @@ export async function withRetry<T>(
     }
   }
 
-  if (lastError) {
-    throw lastError;
-  }
-  throw new Error("All retry attempts failed");
+  // This should never happen if maxAttempts > 0, but handle edge case
+  throw lastError || new Error("All retry attempts failed");
 }

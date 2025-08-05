@@ -1,9 +1,18 @@
 interface OpenCodeIconProps {
 	size?: number;
 	className?: string;
+	/** Accessible label for screen readers. Defaults to "OpenCode logo" */
+	ariaLabel?: string;
+	/** Additional props to pass to the SVG element */
+	[key: string]: unknown;
 }
 
-export function OpenCodeIcon({ size = 24, className }: OpenCodeIconProps) {
+export function OpenCodeIcon({ 
+	size = 24, 
+	className, 
+	ariaLabel = "OpenCode logo",
+	...props
+}: OpenCodeIconProps) {
 	return (
 		<svg
 			width={size}
@@ -12,6 +21,9 @@ export function OpenCodeIcon({ size = 24, className }: OpenCodeIconProps) {
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 			className={className}
+			role="img"
+			aria-label={ariaLabel}
+			{...props}
 		>
 			<title>OpenCode logo</title>
 			<rect width="600" height="600" fill="black" />
