@@ -1,6 +1,7 @@
 import { createClientLogger } from "../logging/client";
 import { type AppConfig, getConfig } from "./index";
 import { printValidationResults, validateEnvironment } from "./validation";
+import { safeProcessExit } from "../utils/runtime";
 
 /**
  * Environment profile definitions
@@ -333,11 +334,7 @@ export function initializeConfiguration(): ConfigurationService {
 		logger.error("Configuration validation failed. Exiting...");
 		console.error("❌ Configuration validation failed. Exiting...");
 		// Only exit in Node.js environment, not Edge Runtime
-		if (typeof process !== "undefined" && process.exit) {
-			process.exit(1);
-		} else {
-			throw new Error("Configuration validation failed");
-		}
+		safeProcessExit(1);
 	}
 
 	logger.info("Configuration service initialized successfully");

@@ -35,7 +35,7 @@ export function getLogLevel(): LogLevel {
 		return loggingConfig.level as LogLevel;
 	} catch {
 		// Fallback to environment variable
-		const envLogLevel = process.env.LOG_LEVEL as LogLevel;
+		const envLogLevel = process.env.LOG_LEVEL?.toLowerCase() as LogLevel;
 		const validLevels: LogLevel[] = ["error", "warn", "info", "debug", "trace"];
 
 		if (envLogLevel && validLevels.includes(envLogLevel)) {
