@@ -77,6 +77,14 @@ export const createConsensusEngineDouble = (overrides?: Partial<ConsensusEngineC
     givenConsensusResult: (result: ConsensusResult) => {
       double.calculateConsensus.mockReturnValue(result);
     },
+    givenConsensusReturns: (result: Partial<ConsensusResult>) => {
+      double.calculateConsensus.mockReturnValue({
+        result: result.result || 'approved',
+        confidence: result.confidence || 0.85,
+        voteSummary: result.voteSummary || { approve: result.votes || 3, reject: 1, abstain: 0 },
+        quorumReached: result.quorumReached !== undefined ? result.quorumReached : true,
+      } as ConsensusResult);
+    },
     givenMaliciousAgents: (agentIds: string[]) => {
       double.detectMaliciousAgents.mockReturnValue(agentIds);
     },
