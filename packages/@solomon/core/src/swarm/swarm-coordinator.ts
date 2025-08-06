@@ -3,18 +3,18 @@
  * Implements Claude Flow's hive-mind coordination with LangGraph
  */
 
-import { StateGraph } from '@langchain/langgraph';
-import { v4 as uuid } from 'uuid';
-import type { HiveMindState } from '../state/unified-state';
-import type { 
-  QueenAgentCapabilities,
-  WorkerAgentCapabilities,
+import type { StateGraph } from "@langchain/langgraph";
+import { v4 as uuid } from "uuid";
+import type { HiveMindState } from "../state/unified-state";
+import type {
   ConsensusEngineCapabilities,
-  TopologyManagerCapabilities,
-  SwarmTopology,
-  WorkerInstance,
   ConsensusResult,
-} from '../types/swarm-types';
+  QueenAgentCapabilities,
+  SwarmTopology,
+  TopologyManagerCapabilities,
+  WorkerAgentCapabilities,
+  WorkerInstance,
+} from "../types/swarm-types";
 
 export interface SwarmCoordinatorConfig {
   stateGraph?: StateGraph<HiveMindState>;
@@ -42,14 +42,15 @@ export interface Decision {
 }
 
 export class SwarmCoordinator {
-  private queenAgent: QueenAgentCapabilities;
-  private workerAgent: WorkerAgentCapabilities;
-  private consensusEngine: ConsensusEngineCapabilities;
-  private topologyManager: TopologyManagerCapabilities;
-  private stateGraph?: StateGraph<HiveMindState>;
-  private maxAgents: number;
-  private activeWorkers: Map<string, WorkerInstance> = new Map();
+  private readonly queenAgent: QueenAgentCapabilities;
+  private readonly workerAgent: WorkerAgentCapabilities;
+  private readonly consensusEngine: ConsensusEngineCapabilities;
+  private readonly topologyManager: TopologyManagerCapabilities;
+  private readonly stateGraph?: StateGraph<HiveMindState>;
+  private readonly maxAgents: number;
+  private readonly activeWorkers: Map<string, WorkerInstance> = new Map();
   private initialized = false;
+  private spawnLock = Promise.resolve(); // Serialize spawning operations
 
   constructor(config: SwarmCoordinatorConfig) {
     this.queenAgent = config.queenAgent;
@@ -60,7 +61,7 @@ export class SwarmCoordinator {
     this.maxAgents = config.maxAgents || 8;
 
     // Initialize with default topology
-    this.topologyManager.setTopology('hierarchical');
+    this.topologyManager.setTopology("hierarchical");
   }
 
   /**
@@ -71,8 +72,8 @@ export class SwarmCoordinator {
 
     // Register queen agent as primary coordinator
     this.queenAgent.register({
-      id: 'queen-001',
-      role: 'coordinator',
+      id: "queen-001",
+      role: "coordinator",
     });
 
     this.initialized = true;
@@ -93,7 +94,7 @@ export class SwarmCoordinator {
       await this.topologyManager.switchTopology(topology);
     } catch (error) {
       // Handle topology switching failures gracefully
-      console.error('Failed to switch topology:', error);
+      console.error("Failed to switch topology:", error);
       // Keep current topology
     }
   }
@@ -102,39 +103,44 @@ export class SwarmCoordinator {
    * Spawn agents for a specific task
    */
   async spawnAgentsForTask(task: Task): Promise<WorkerInstance[]> {
-    // Queen analyzes the task
-    const analysis = await this.queenAgent.analyzeTask(task);
-    const { agentCount, agentTypes } = analysis;
+    // Serialize spawning operations to prevent race conditions
+    this.spawnLock = this.spawnLock.then(async () => {
+      // Queen analyzes the task
+      const analysis = await this.queenAgent.analyzeTask(task);
+      const { agentCount, agentTypes } = analysis;
 
-    // Check agent limits
-    const currentAgentCount = this.activeWorkers.size;
-    const availableSlots = this.maxAgents - currentAgentCount;
-    
-    // If no slots available, return empty array
-    if (availableSlots <= 0) {
-      return [];
-    }
-    
-    const agentsToSpawn = Math.min(agentCount, availableSlots);
+      // Check agent limits
+      const currentAgentCount = this.activeWorkers.size;
+      const availableSlots = this.maxAgents - currentAgentCount;
 
-    const spawnedAgents: WorkerInstance[] = [];
+      // If no slots available, return empty array
+      if (availableSlots <= 0) {
+        return [];
+      }
 
-    // Spawn workers based on analysis
-    for (let i = 0; i < agentsToSpawn; i++) {
-      const agentType = agentTypes[i % agentTypes.length];
-      const agentId = `worker-${uuid()}`;
-      
-      const worker = await this.workerAgent.spawn({
-        id: agentId,
-        type: agentType,
-        capabilities: this.getCapabilitiesForType(agentType),
-      });
+      const agentsToSpawn = Math.min(agentCount, availableSlots);
 
-      this.activeWorkers.set(agentId, worker);
-      spawnedAgents.push(worker);
-    }
+      const spawnedAgents: WorkerInstance[] = [];
 
-    return spawnedAgents;
+      // Spawn workers based on analysis
+      for (let i = 0; i < agentsToSpawn; i++) {
+        const agentType = agentTypes[i % agentTypes.length];
+        const agentId = `worker-${uuid()}`;
+
+        const worker = await this.workerAgent.spawn({
+          id: agentId,
+          type: agentType,
+          capabilities: this.getCapabilitiesForType(agentType),
+        });
+
+        this.activeWorkers.set(agentId, worker);
+        spawnedAgents.push(worker);
+      }
+
+      return spawnedAgents;
+    });
+
+    return await this.spawnLock;
   }
 
   /**
@@ -155,10 +161,10 @@ export class SwarmCoordinator {
 
     // Collect votes from agents
     const votes = await this.consensusEngine.collectVotes(decision);
-    
+
     // Calculate consensus
     const result = this.consensusEngine.calculateConsensus(votes);
-    
+
     // Record decision with queen
     this.queenAgent.recordDecision({
       decision,
@@ -188,7 +194,7 @@ export class SwarmCoordinator {
     const failedAgent = this.activeWorkers.get(agentId);
     if (failedAgent) {
       this.activeWorkers.delete(agentId);
-      
+
       // Spawn replacement if under limit
       if (this.activeWorkers.size < this.maxAgents) {
         await this.workerAgent.spawn({
@@ -219,13 +225,13 @@ export class SwarmCoordinator {
    */
   private getCapabilitiesForType(type: string): string[] {
     const capabilityMap: Record<string, string[]> = {
-      programmer: ['coding', 'debugging', 'refactoring'],
-      tester: ['testing', 'test-design', 'test-automation'],
-      reviewer: ['code-review', 'quality-assurance'],
-      planner: ['planning', 'architecture', 'design'],
+      programmer: ["coding", "debugging", "refactoring"],
+      tester: ["testing", "test-design", "test-automation"],
+      reviewer: ["code-review", "quality-assurance"],
+      planner: ["planning", "architecture", "design"],
     };
 
-    return capabilityMap[type] || ['general'];
+    return capabilityMap[type] || ["general"];
   }
 
   /**
@@ -233,7 +239,7 @@ export class SwarmCoordinator {
    */
   async shutdown(): Promise<void> {
     // Terminate all workers
-    for (const [id, worker] of this.activeWorkers) {
+    for (const [_id, worker] of this.activeWorkers) {
       await worker.terminate();
     }
     this.activeWorkers.clear();

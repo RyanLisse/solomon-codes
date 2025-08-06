@@ -9,6 +9,19 @@
 			"command": "npx",
 			"args": ["ruv-swarm@latest", "mcp", "start"],
 			"type": "stdio"
+		},
+		"langgraph-docs-mcp": {
+			"command": "uvx",
+			"args": [
+				"--from",
+				"mcpdoc",
+				"mcpdoc",
+				"--urls",
+				"LangGraph:https://langchain-ai.github.io/langgraph/llms.txt LangGraphJS:https://langchain-ai.github.io/langgraphjs/llms.txt LangChain:https://python.langchain.com/llms.txt LangChainJS:https://js.langchain.com/llms.txt",
+				"--transport",
+				"stdio"
+			],
+			"type": "stdio"
 		}
 	}
 }
