@@ -1,0 +1,282 @@
+compdef:153: _comps: assignment to invalid subscript range
+$ turbo dev
+turbo 2.5.5
+
+• Packages in scope: docs, web
+• Running dev in 2 packages
+• Remote caching disabled
+web:dev: cache bypass, force executing ad54ce3c5b6e7edc
+docs:dev: cache bypass, force executing 25b88d0069b53331
+web:dev: $ next dev --turbopack --port=3001
+docs:dev: $ bunx astro dev
+web:dev:    ▲ Next.js 15.1.3 (Turbopack)
+web:dev:    - Local:        http://localhost:3001
+web:dev:    - Network:      http://192.168.1.20:3001
+web:dev:    - Environments: .env.local, .env
+web:dev:    - Experiments (use with caution):
+web:dev:      · staleTimes
+web:dev:      · optimizeCss
+web:dev: 
+web:dev:  ✓ Starting...
+docs:dev: 13:57:47 [types] Generated 0ms
+docs:dev: 
+docs:dev: Auto-generating collections for folders in "src/content/" that are not defined as collections.
+docs:dev: This is deprecated, so you should define these collections yourself in "src/content.config.ts".
+docs:dev: The following collections have been auto-generated: docs
+docs:dev: 
+docs:dev: 13:57:47 [content] Syncing content
+docs:dev: 13:57:47 [content] Synced content
+docs:dev: 
+docs:dev:  astro  v5.12.3 ready in 678 ms
+docs:dev: 
+docs:dev: ┃ Local    http://localhost:4321/
+docs:dev: ┃ Network  use --host to expose
+docs:dev: 
+docs:dev: 13:57:47 watching for file changes...
+web:dev: {"context":{"component":"telemetry-init"},"level":"info","message":"Initializing telemetry service...","service.instance.id":"unknown","timestamp":"2025-08-05T11:57:47.607Z"}
+web:dev: {"context":{"component":"telemetry-service"},"level":"info","message":"Telemetry is disabled, skipping initialization","service.instance.id":"unknown","timestamp":"2025-08-05T11:57:47.608Z"}
+web:dev: {"context":{"component":"telemetry-init"},"level":"info","message":"Telemetry service initialized successfully","service.instance.id":"unknown","timestamp":"2025-08-05T11:57:47.608Z"}
+web:dev: 📊 Telemetry service initialized successfully
+web:dev:  ✓ Ready in 1247ms
+web:dev:  ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+web:dev:  ⚠ See instructions if you need to configure Turbopack:
+web:dev:   https://nextjs.org/docs/app/api-reference/next-config-js/turbo
+web:dev: 
+web:dev:  ○ Compiling / ...
+web:dev:  ✓ Compiled / in 10.9s
+web:dev:  HEAD / 200 in 13322ms
+web:dev:  GET / 200 in 1349ms
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:16:15
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 14 |[39m 		[36mtry[39m {[0m
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:fs' at line 16) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:17:17
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m [90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: [0m [90m 20 |[39m 		}[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:path' at line 17) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ○ Compiling /api/auth/github/status ...
+web:dev:  ✓ Compiled /api/auth/github/status in 10.3s
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:16:15
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 14 |[39m 		[36mtry[39m {[0m
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:fs' at line 16) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:17:17
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m [90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: [0m [90m 20 |[39m 		}[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:path' at line 17) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  GET /api/auth/github/status 200 in 10423ms
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:16:15
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 14 |[39m 		[36mtry[39m {[0m
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:fs' at line 16) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:17:17
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m [90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: [0m [90m 20 |[39m 		}[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:path' at line 17) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  GET /api/auth/github/status 200 in 3107ms
+web:dev:  ⨯ Error: fetch failed
+web:dev:     at async fetchRealtimeSubscriptionToken (apps/web/src/app/actions/inngest.ts:61:15)
+web:dev:   59 |
+web:dev:   60 | export async function fetchRealtimeSubscriptionToken(): Promise<TaskChannelToken> {
+web:dev: > 61 | 	const token = await getSubscriptionToken(getInngestApp(), {
+web:dev:      | 	             ^
+web:dev:   62 | 		channel: taskChannel(),
+web:dev:   63 | 		topics: ["status", "update"],
+web:dev:   64 | 	}); {
+web:dev:   digest: '2943596509'
+web:dev: }
+web:dev:  GET / 200 in 14020ms
+web:dev:  GET /manifest.json 404 in 14000ms
+web:dev:  POST / 500 in 14087ms
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:16:15
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 14 |[39m 		[36mtry[39m {[0m
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:fs' at line 16) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:17:17
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m [90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: [0m [90m 20 |[39m 		}[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:path' at line 17) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  GET /api/auth/github/status 200 in 597ms
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:16:15
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 14 |[39m 		[36mtry[39m {[0m
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:fs' at line 16) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:17:17
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m [90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: [0m [90m 20 |[39m 		}[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:path' at line 17) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  GET /api/auth/github/status 200 in 26ms
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:16:15
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 14 |[39m 		[36mtry[39m {[0m
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:fs' at line 16) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:17:17
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m [90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: [0m [90m 20 |[39m 		}[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:path' at line 17) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  GET /api/auth/github/status 200 in 32ms
+web:dev:  ✓ Compiled /api/auth/github/url in 134ms
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:16:15
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 14 |[39m 		[36mtry[39m {[0m
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			           [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:fs' at line 16) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  ⚠ ./apps/web/src/lib/config/index.ts:17:17
+web:dev: Ecmascript file had an error
+web:dev: [0m [90m 15 |[39m 			[90m// Use dynamic imports for Node.js modules[39m[0m
+web:dev: [0m [90m 16 |[39m 			fs [33m=[39m [36mawait[39m [36mimport[39m([32m"node:fs"[39m)[33m;[39m[0m
+web:dev: [0m[31m[1m>[22m[39m[90m 17 |[39m 			path [33m=[39m [36mawait[39m [36mimport[39m([32m"node:path"[39m)[33m;[39m[0m
+web:dev: [0m [90m    |[39m 			             [31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[31m[1m^[22m[39m[0m
+web:dev: [0m [90m 18 |[39m 		} [36mcatch[39m (error) {[0m
+web:dev: [0m [90m 19 |[39m 			console[33m.[39mwarn([32m"Failed to load Node.js modules:"[39m[33m,[39m error)[33m;[39m[0m
+web:dev: [0m [90m 20 |[39m 		}[0m
+web:dev: 
+web:dev: A Node.js module is loaded ('node:path' at line 17) which is not supported in the Edge Runtime.
+web:dev: Learn More: https://nextjs.org/docs/messages/node-module-in-edge-runtime
+web:dev: 
+web:dev: 
+web:dev:  GET /api/auth/github/url 200 in 151ms
+web:dev:  ✓ Compiled in 182ms
+web:dev:  ✓ Compiled in 108ms
+web:dev:  ✓ Compiled in 118ms
+error: script "dev" was terminated by signal SIGTERM (Polite quit request)
+docs:dev: error: script "dev" exited with code 143
+docs:dev: ERROR: command finished with error: command (/Users/neo/Developer/experiments/solomon_codes/apps/docs) /Users/neo/.bun/bin/bun run dev exited (143)
+web:dev: [?25h
+docs#dev: command (/Users/neo/Developer/experiments/solomon_codes/apps/docs) /Users/neo/.bun/bin/bun run dev exited (143)
+
+ Tasks:    0 successful, 2 total
+Cached:    0 cached, 2 total
+  Time:    3m30.956s 
+Failed:    docs#dev
+
+ ERROR  run failed: command  exited (143)

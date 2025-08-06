@@ -36,7 +36,7 @@ type VibeKitGenerateCodeResult = {
  */
 async function createSandboxProvider(
 	config: ReturnType<typeof secureConfig.getConfig>,
-	githubToken: string,
+	_githubToken: string,
 	useLocal = false,
 ) {
 	const isDevelopment = config.app.environment === "development";
@@ -50,7 +50,6 @@ async function createSandboxProvider(
 			// Dynamic import to avoid build-time dependency issues
 			const { createLocalProvider } = await import("@vibe-kit/dagger");
 			return createLocalProvider({
-				githubToken,
 				preferRegistryImages: true,
 			});
 		} catch (error) {
@@ -325,11 +324,20 @@ export const generateCodeAction = async ({
 			},
 		);
 	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		const errorStack = error instanceof Error ? error.stack : undefined;
+
 		logger.error("VibeKit code generation failed", {
-			error: error instanceof Error ? error.message : String(error),
+			error: errorMessage,
+			stack: errorStack,
 			taskId: task.id,
+			useLocal,
+			githubTokenExists: !!githubToken,
+			agentConfig,
 		});
-		throw new Error("Failed to generate code with VibeKit");
+
+		// Throw more specific error message
+		throw new Error(`VibeKit generation failed: ${errorMessage}`);
 	}
 };
 

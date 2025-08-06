@@ -60,6 +60,12 @@ export default function TaskForm() {
 				repository: findRepositoryForEnvironment(),
 				mode,
 				useLocalSandbox: useLocal,
+				// Required properties for Task interface
+				projectId: "default", // Default project ID
+				labels: [], // Empty labels array
+				priority: "medium" as const, // Default priority
+				versions: [], // Empty versions array
+				reviewStatus: "pending" as const, // Default review status
 			};
 		},
 		[value, selectedBranch, findRepositoryForEnvironment, useLocal],

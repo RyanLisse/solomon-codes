@@ -7,9 +7,9 @@ interface OpenCodeIconProps {
 	[key: string]: unknown;
 }
 
-export function OpenCodeIcon({ 
-	size = 24, 
-	className, 
+export function OpenCodeIcon({
+	size = 24,
+	className,
 	ariaLabel = "OpenCode logo",
 	...props
 }: OpenCodeIconProps) {

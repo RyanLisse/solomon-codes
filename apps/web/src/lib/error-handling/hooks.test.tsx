@@ -1166,7 +1166,9 @@ describe("Hook Integration Tests", () => {
 
 		// Test manual error handling
 		act(() => {
-			result.current.errorHandler.handleError(result.current.apiCall.error!);
+			if (result.current.apiCall.error) {
+				result.current.errorHandler.handleError(result.current.apiCall.error);
+			}
 		});
 
 		expect(result.current.errorHandler.hasError).toBe(true);

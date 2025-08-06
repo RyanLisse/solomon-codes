@@ -21,11 +21,11 @@ describe("Configuration System", () => {
 	});
 
 	describe("validateConfig", () => {
-		it("should validate configuration with default values", () => {
+		it("should validate configuration with default values", async () => {
 			// Set minimal required environment
 			vi.stubEnv("NODE_ENV", "development");
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config).toBeDefined();
 			expect(config.nodeEnv).toBe("development");
@@ -35,7 +35,7 @@ describe("Configuration System", () => {
 			expect(config.otelSamplingRatio).toBe(1.0);
 		});
 
-		it("should load configuration from environment variables", () => {
+		it("should load configuration from environment variables", async () => {
 			vi.stubEnv("NODE_ENV", "production");
 			process.env.NEXT_PUBLIC_SERVER_URL = "https://example.com";
 			process.env.PORT = "8080";
@@ -43,7 +43,7 @@ describe("Configuration System", () => {
 			process.env.LOG_LEVEL = "warn";
 			process.env.OTEL_SAMPLING_RATIO = "0.5";
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config.nodeEnv).toBe("production");
 			expect(config.serverUrl).toBe("https://example.com");
@@ -53,11 +53,11 @@ describe("Configuration System", () => {
 			expect(config.otelSamplingRatio).toBe(0.5);
 		});
 
-		it("should parse OTEL headers as JSON", () => {
+		it("should parse OTEL headers as JSON", async () => {
 			process.env.OTEL_EXPORTER_OTLP_HEADERS =
 				'{"Authorization":"Bearer token"}';
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config.otelHeaders).toEqual({ Authorization: "Bearer token" });
 		});
@@ -92,18 +92,18 @@ describe("Configuration System", () => {
 			expect(() => validateConfig()).toThrow(ConfigurationError);
 		});
 
-		it("should load app version from environment or default to unknown", () => {
+		it("should load app version from environment or default to unknown", async () => {
 			process.env.APP_VERSION = "2.1.0";
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config.appVersion).toBe("2.1.0");
 		});
 
-		it("should use unknown version when not provided", () => {
+		it("should use unknown version when not provided", async () => {
 			delete process.env.APP_VERSION;
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config.appVersion).toBe("unknown");
 		});
@@ -130,21 +130,21 @@ describe("Configuration System", () => {
 	});
 
 	describe("getConfig", () => {
-		it("should return the same configuration instance", () => {
-			const config1 = getConfig();
-			const config2 = getConfig();
+		it("should return the same configuration instance", async () => {
+			const config1 = await getConfig();
+			const config2 = await getConfig();
 
 			expect(config1).toBe(config2);
 			expect(isConfigLoaded()).toBe(true);
 		});
 
-		it("should reload configuration after reset", () => {
-			const config1 = getConfig();
+		it("should reload configuration after reset", async () => {
+			const config1 = await getConfig();
 			resetConfig();
 
 			expect(isConfigLoaded()).toBe(false);
 
-			const config2 = getConfig();
+			const config2 = await getConfig();
 
 			expect(config1).not.toBe(config2);
 			expect(isConfigLoaded()).toBe(true);
@@ -178,28 +178,28 @@ describe("Configuration System", () => {
 	});
 
 	describe("Environment-specific validation", () => {
-		it("should handle development environment", () => {
+		it("should handle development environment", async () => {
 			vi.stubEnv("NODE_ENV", "development");
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config.nodeEnv).toBe("development");
 			// OpenAI API key is optional in development
 			expect(config.openaiApiKey).toBeUndefined();
 		});
 
-		it("should handle staging environment", () => {
+		it("should handle staging environment", async () => {
 			vi.stubEnv("NODE_ENV", "staging");
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config.nodeEnv).toBe("staging");
 		});
 
-		it("should handle production environment", () => {
+		it("should handle production environment", async () => {
 			vi.stubEnv("NODE_ENV", "production");
 
-			const config = validateConfig();
+			const config = await validateConfig();
 
 			expect(config.nodeEnv).toBe("production");
 		});

@@ -93,7 +93,7 @@ test.describe("Claude OAuth Authentication Flow", () => {
 		);
 		expect(storedTokens).toBeTruthy();
 
-		const tokenData = JSON.parse(storedTokens!);
+		const tokenData = JSON.parse(storedTokens as string);
 		expect(tokenData.authMethod).toBe("oauth");
 		expect(tokenData.accessToken).toContain("mock-claude-access-token");
 		expect(tokenData.refreshToken).toContain("mock-claude-refresh-token");

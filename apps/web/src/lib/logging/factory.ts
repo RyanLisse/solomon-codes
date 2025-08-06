@@ -158,7 +158,8 @@ class ContextAwareLoggerImpl {
  */
 export class LoggerFactory {
 	private static instance: LoggerFactory | null = null;
-	private readonly configService = getConfigurationService();
+	private configService: ReturnType<typeof getConfigurationService> | null =
+		null;
 
 	/**
 	 * Get singleton instance
@@ -171,6 +172,16 @@ export class LoggerFactory {
 	}
 
 	/**
+	 * Get configuration service, lazy-loaded to avoid initialization issues
+	 */
+	private getConfigService() {
+		if (!this.configService) {
+			this.configService = getConfigurationService();
+		}
+		return this.configService;
+	}
+
+	/**
 	 * Create a context-aware logger
 	 */
 	createLogger(
@@ -179,10 +190,24 @@ export class LoggerFactory {
 	): ContextAwareLogger {
 		const baseLogger = createWinstonLogger({ serviceName: component });
 
+		// Try to get configuration, but provide fallbacks if not available
+		let environment = "development";
+		let version = "unknown";
+
+		try {
+			const config = this.getConfigService().getConfiguration();
+			environment = config.nodeEnv;
+			version = config.appVersion;
+		} catch {
+			// Configuration not available during build time - use fallbacks
+			environment = process.env.NODE_ENV || "development";
+			version = process.env.npm_package_version || "unknown";
+		}
+
 		const context: LoggerContext = {
 			component,
-			environment: this.configService.getConfiguration().nodeEnv,
-			version: this.configService.getConfiguration().appVersion,
+			environment,
+			version,
 			...initialContext,
 		};
 

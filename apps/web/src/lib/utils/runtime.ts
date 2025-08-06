@@ -33,7 +33,7 @@ export function getCwd(): string {
 	if (isNodeRuntime()) {
 		// Dynamic access to avoid Edge Runtime static analysis
 		const proc = (globalThis as { process?: NodeJS.Process }).process;
-		if (proc && typeof proc.cwd === 'function') {
+		if (proc && typeof proc.cwd === "function") {
 			return proc.cwd();
 		}
 	}
@@ -43,7 +43,9 @@ export function getCwd(): string {
 /**
  * Safely access process.stdout with Edge Runtime fallback
  */
-export function getStdout(): NodeJS.WriteStream | { write: (chunk: string) => void } {
+export function getStdout():
+	| NodeJS.WriteStream
+	| { write: (chunk: string) => void } {
 	if (isNodeRuntime()) {
 		// Dynamic access to avoid Edge Runtime static analysis
 		const proc = (globalThis as { process?: NodeJS.Process }).process;
@@ -52,18 +54,18 @@ export function getStdout(): NodeJS.WriteStream | { write: (chunk: string) => vo
 		}
 	}
 	return {
-		write: (chunk: string) => console.log(chunk.replace(/\n$/, '')),
+		write: (chunk: string) => console.log(chunk.replace(/\n$/, "")),
 	};
 }
 
 /**
  * Safely exit process in Node.js environment only
  */
-export function safeProcessExit(code: number = 0): void {
+export function safeProcessExit(code = 0): void {
 	if (isNodeRuntime()) {
 		// Dynamic access to avoid Edge Runtime static analysis
 		const proc = (globalThis as { process?: NodeJS.Process }).process;
-		if (proc && typeof proc.exit === 'function') {
+		if (proc && typeof proc.exit === "function") {
 			proc.exit(code);
 			return;
 		}
@@ -75,23 +77,23 @@ export function safeProcessExit(code: number = 0): void {
  * Get runtime information
  */
 export function getRuntimeInfo(): {
-	type: 'node' | 'edge' | 'unknown';
+	type: "node" | "edge" | "unknown";
 	version?: string;
 	platform?: string;
 } {
 	if (isEdgeRuntime()) {
-		return { type: 'edge' };
+		return { type: "edge" };
 	}
-	
+
 	if (isNodeRuntime()) {
 		// Dynamic access to avoid Edge Runtime static analysis
 		const proc = (globalThis as { process?: NodeJS.Process }).process;
 		return {
-			type: 'node',
-			version: proc?.version || 'unknown',
-			platform: proc?.platform || 'unknown',
+			type: "node",
+			version: proc?.version || "unknown",
+			platform: proc?.platform || "unknown",
 		};
 	}
-	
-	return { type: 'unknown' };
+
+	return { type: "unknown" };
 }

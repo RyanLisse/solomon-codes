@@ -620,7 +620,7 @@ export class ProductionMonitoringService {
 	 * @internal
 	 */
 	public testCleanupOldMetrics(): void {
-		return this.cleanupOldMetrics();
+		this.cleanupOldMetrics();
 	}
 
 	/**
@@ -652,7 +652,7 @@ export class ProductionMonitoringService {
 	 * @internal
 	 */
 	public testShutdown(): void {
-		return this.shutdown();
+		this.shutdown();
 	}
 }
 

@@ -17,9 +17,13 @@ export default function AuthSuccessPage() {
 	return (
 		<div className="flex min-h-screen items-center justify-center">
 			<div className="text-center">
-				<h1 className="text-2xl font-bold mb-4">Authentication Successful</h1>
-				<p className="text-gray-600">You have successfully connected to GitHub.</p>
-				<p className="text-sm text-gray-500 mt-2">This window will close automatically...</p>
+				<h1 className="mb-4 font-bold text-2xl">Authentication Successful</h1>
+				<p className="text-gray-600">
+					You have successfully connected to GitHub.
+				</p>
+				<p className="mt-2 text-gray-500 text-sm">
+					This window will close automatically...
+				</p>
 			</div>
 		</div>
 	);

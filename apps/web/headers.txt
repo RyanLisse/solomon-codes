@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+Vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch, Accept-Encoding
+link: </_next/static/media/gyByhwUxId8gMEwcGFWNOITd-s.p.da1ebef7.woff2>; rel=preload; as="font"; crossorigin=""; type="font/woff2", </_next/static/media/or3nQ6H_1_WfwkMZI_qYFrcdmhHkjko-s.p.be19f591.woff2>; rel=preload; as="font"; crossorigin=""; type="font/woff2"
+Cache-Control: no-store, must-revalidate
+Content-Type: text/html; charset=utf-8
+Date: Tue, 05 Aug 2025 10:08:20 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+

@@ -111,8 +111,11 @@ export class SecureConfigService {
 					version: process.env.APP_VERSION || "unknown",
 					serviceName: process.env.SERVICE_NAME || "solomon-codes-web",
 					logLevel:
-						(process.env.LOG_LEVEL as "error" | "warn" | "info" | "debug") ||
-						"info",
+						(process.env.LOG_LEVEL?.toLowerCase() as
+							| "error"
+							| "warn"
+							| "info"
+							| "debug") || "info",
 				},
 				telemetry: {
 					endpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,

@@ -1,7 +1,7 @@
 import { createClientLogger } from "../logging/client";
-import { type AppConfig, getConfig } from "./index";
-import { printValidationResults, validateEnvironment } from "./validation";
 import { safeProcessExit } from "../utils/runtime";
+import { type AppConfig, getConfigSync } from "./index";
+import { printValidationResults, validateEnvironment } from "./validation";
 
 /**
  * Environment profile definitions
@@ -84,7 +84,7 @@ export class ConfigurationService {
 	private logger: ReturnType<typeof createClientLogger> | null = null;
 
 	constructor() {
-		this.config = getConfig();
+		this.config = getConfigSync();
 		this.profile = this.getEnvironmentProfile();
 	}
 

@@ -70,6 +70,11 @@ const mockActiveTasks: Task[] = [
 		updatedAt: "2024-01-15T11:00:00Z",
 		isArchived: false,
 		useLocalSandbox: true,
+		projectId: "default",
+		labels: ["authentication", "security"],
+		priority: "high",
+		versions: [],
+		reviewStatus: "pending",
 	},
 	{
 		id: "task-2",
@@ -86,6 +91,11 @@ const mockActiveTasks: Task[] = [
 		updatedAt: "2024-01-15T09:00:00Z",
 		isArchived: false,
 		useLocalSandbox: false,
+		projectId: "default",
+		labels: ["ui", "responsive"],
+		priority: "medium",
+		versions: [],
+		reviewStatus: "approved",
 	},
 	{
 		id: "task-3",
@@ -102,6 +112,11 @@ const mockActiveTasks: Task[] = [
 		updatedAt: "2024-01-13T12:00:00Z",
 		isArchived: false,
 		useLocalSandbox: true,
+		projectId: "default",
+		labels: ["testing", "api"],
+		priority: "medium",
+		versions: [],
+		reviewStatus: "pending",
 	},
 ];
 
@@ -121,6 +136,11 @@ const mockArchivedTasks: Task[] = [
 		updatedAt: "2024-01-10T18:00:00Z",
 		isArchived: true,
 		useLocalSandbox: false,
+		projectId: "default",
+		labels: ["devops", "cicd"],
+		priority: "high",
+		versions: [],
+		reviewStatus: "approved",
 	},
 ];
 

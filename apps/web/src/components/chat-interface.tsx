@@ -192,6 +192,12 @@ export function ChatInterface({
 				updatedAt: new Date().toISOString(),
 				isArchived: false,
 				hasChanges: false,
+				// Required properties for Task interface
+				projectId: "default",
+				labels: [],
+				priority: "medium" as const,
+				versions: [],
+				reviewStatus: "pending" as const,
 			};
 
 			// Get agent and model configuration

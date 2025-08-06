@@ -68,7 +68,7 @@ test.describe("Storage and State Management Interactions", () => {
 		);
 		expect(storedTokens).toBeTruthy();
 
-		const tokenData = JSON.parse(storedTokens!);
+		const tokenData = JSON.parse(storedTokens as string);
 		expect(tokenData.authMethod).toBe("oauth");
 		expect(tokenData.accessToken).toContain("mock-claude-access-token");
 		expect(tokenData.userId).toBeTruthy();
@@ -238,7 +238,7 @@ test.describe("Storage and State Management Interactions", () => {
 			localStorage.getItem("claude_tokens"),
 		);
 		expect(claudeTokens).toBeTruthy();
-		const tokenData = JSON.parse(claudeTokens!);
+		const tokenData = JSON.parse(claudeTokens as string);
 		expect(tokenData.authMethod).toBe("oauth");
 
 		// 2. Verify OpenAI storage
