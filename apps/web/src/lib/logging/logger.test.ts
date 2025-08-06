@@ -123,8 +123,8 @@ describe("Winston Logger Configuration", () => {
 	});
 
 	describe("Default Configuration", () => {
-		it("should provide default configuration", () => {
-			const config = getDefaultLoggerConfig();
+		it("should provide default configuration", async () => {
+			const config = await getDefaultLoggerConfig();
 
 			expect(config).toBeDefined();
 			expect(config.serviceName).toBe("solomon-codes-web");
@@ -132,8 +132,8 @@ describe("Winston Logger Configuration", () => {
 			expect(config.enableConsole).toBe(true);
 		});
 
-		it("should include service metadata in default config", () => {
-			const config = getDefaultLoggerConfig();
+		it("should include service metadata in default config", async () => {
+			const config = await getDefaultLoggerConfig();
 
 			expect(config.defaultMeta).toBeDefined();
 			expect(config.defaultMeta?.service).toBe("solomon-codes-web");

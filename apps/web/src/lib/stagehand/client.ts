@@ -39,21 +39,36 @@ export interface StagehandSession {
  */
 export class StagehandClient {
 	private readonly logger = createServiceLogger("stagehand-client");
-	private readonly config: StagehandClientConfig;
+	private config: StagehandClientConfig;
 	private readonly sessions = new Map<string, StagehandSession>();
 	private healthStatus: "healthy" | "unhealthy" | "unknown" = "unknown";
 	private lastHealthCheck?: Date;
 
 	constructor(config?: Partial<StagehandClientConfig>) {
+		// Initialize with defaults, will be properly configured in initialize()
+		this.config = {
+			apiKey: config?.apiKey || "",
+			projectId: config?.projectId || "",
+			timeout: config?.timeout || 30000,
+			retries: config?.retries || 3,
+			enableLogging: config?.enableLogging || false,
+		};
+	}
+
+	/**
+	 * Initialize the client with async configuration
+	 */
+	async initialize(config?: Partial<StagehandClientConfig>): Promise<void> {
 		const configService = getConfigurationService();
-		const apiConfig = configService.getApiConfig();
+		const apiConfig = await configService.getApiConfig();
 
 		this.config = {
 			apiKey: config?.apiKey || apiConfig.browserbase.apiKey || "",
 			projectId: config?.projectId || apiConfig.browserbase.projectId || "",
 			timeout: config?.timeout || 30000,
 			retries: config?.retries || 3,
-			enableLogging: config?.enableLogging || configService.isDevelopment(),
+			enableLogging:
+				config?.enableLogging || (await configService.isDevelopment()),
 		};
 
 		this.logger.info("Stagehand client initialized", {

@@ -117,9 +117,9 @@ function Calendar({
 			</div>
 			<div className="grid grid-cols-7 gap-1">
 				{emptyDays.map((_, index) => (
-					<div 
-						key={`empty-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${index}`} 
-						className="h-9 w-9" 
+					<div
+						key={`empty-${currentMonth.getFullYear()}-${currentMonth.getMonth()}-${index}`}
+						className="h-9 w-9"
 					/>
 				))}
 				{days.map((day) => {

@@ -100,6 +100,11 @@ self.addEventListener("fetch", (event) => {
 		return;
 	}
 
+	// Skip service worker script itself to prevent self-interception
+	if (url.pathname === "/sw.js") {
+		return;
+	}
+
 	// Skip cross-origin requests except for known CDNs
 	if (url.origin !== self.location.origin && !isAllowedCrossOrigin(url)) {
 		return;

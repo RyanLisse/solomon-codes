@@ -54,43 +54,51 @@ function createFileTransport(
  * Create Winston logger with the specified configuration (server-only)
  */
 export function createServerLogger(config?: Partial<LoggerConfig>): Logger {
-	const validatedConfig = validateLoggerConfig(config || {});
-	const transportConfig = getTransportConfig();
+	// Use synchronous fallback approach for immediate logger creation
+	const validatedConfig = {
+		level: (config?.level || process.env.LOG_LEVEL || "info") as
+			| "error"
+			| "warn"
+			| "info"
+			| "debug"
+			| "trace",
+		environment: (config?.environment ||
+			process.env.NODE_ENV ||
+			"development") as "development" | "production" | "test" | "staging",
+		serviceName:
+			config?.serviceName || process.env.SERVICE_NAME || "solomon-codes-web",
+		serviceVersion:
+			config?.serviceVersion || process.env.SERVICE_VERSION || "unknown",
+		enableConsole: config?.enableConsole ?? true,
+		enableFile: config?.enableFile ?? false,
+		enableOpenTelemetry: config?.enableOpenTelemetry ?? false,
+		filePath: config?.filePath || "./logs/app.log",
+		defaultMeta: {
+			service:
+				config?.serviceName || process.env.SERVICE_NAME || "solomon-codes-web",
+			version:
+				config?.serviceVersion || process.env.SERVICE_VERSION || "unknown",
+			environment: config?.environment || process.env.NODE_ENV || "development",
+			"service.instance.id": process.env.HOSTNAME || "unknown",
+			...config?.defaultMeta,
+		},
+	};
 
 	const transports: winston.transport[] = [];
 
-	// Add console transport
-	if (validatedConfig.enableConsole && transportConfig.console?.enabled) {
-		transports.push(createConsoleTransport(transportConfig.console.colorize));
+	// Add console transport (always enabled for now)
+	if (validatedConfig.enableConsole) {
+		transports.push(createConsoleTransport(true));
 	}
 
 	// Add file transport if enabled
-	if (
-		validatedConfig.enableFile &&
-		transportConfig.file?.enabled &&
-		validatedConfig.filePath
-	) {
+	if (validatedConfig.enableFile && validatedConfig.filePath) {
 		transports.push(
 			createFileTransport(
 				validatedConfig.filePath,
-				transportConfig.file.maxsize,
-				transportConfig.file.maxFiles,
+				5242880, // 5MB
+				5, // 5 files
 			),
-		);
-	}
-
-	// Add OpenTelemetry transport if enabled
-	if (
-		validatedConfig.enableOpenTelemetry &&
-		transportConfig.opentelemetry?.enabled
-	) {
-		// Edge Runtime safe stream access
-		const stream = getStdout();
-		transports.push(
-			new OpenTelemetryTransport({
-				level: validatedConfig.level,
-				stream: stream as any, // Type assertion for Edge Runtime compatibility
-			}) as winston.transport,
 		);
 	}
 
@@ -164,11 +172,8 @@ export function createContextServerLogger(
 	context: string,
 	defaultMeta?: LogMetadata,
 ): Logger {
-	const config = getDefaultLoggerConfig();
 	const logger = createServerLogger({
-		...config,
 		defaultMeta: {
-			...config.defaultMeta,
 			context,
 			...defaultMeta,
 		},

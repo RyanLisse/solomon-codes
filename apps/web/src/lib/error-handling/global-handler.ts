@@ -162,13 +162,13 @@ export class GlobalErrorHandler {
 	/**
 	 * Create a comprehensive error report
 	 */
-	createErrorReport(
+	async createErrorReport(
 		error: Error,
 		context: Record<string, unknown> = {},
-	): ErrorReport {
+	): Promise<ErrorReport> {
 		const correlationId = this.generateCorrelationId();
 		const configService = getConfigurationService();
-		const config = configService.getConfiguration();
+		const config = await configService.getConfiguration();
 
 		const metadata: ErrorMetadata = {
 			correlationId,
@@ -268,11 +268,11 @@ export class GlobalErrorHandler {
 	/**
 	 * Report error to monitoring systems
 	 */
-	private reportError(errorReport: ErrorReport): void {
+	private async reportError(errorReport: ErrorReport): Promise<void> {
 		try {
 			// Report to telemetry if enabled
 			const telemetryService = getTelemetryService();
-			if (telemetryService.isEnabled()) {
+			if (await telemetryService.isEnabled()) {
 				// In a real implementation, this would send to OpenTelemetry
 				this.getLogger().debug("Error reported to telemetry", {
 					correlationId: errorReport.id,
@@ -358,10 +358,10 @@ export class GlobalErrorHandler {
 	/**
 	 * Check if running in production
 	 */
-	private isProduction(): boolean {
+	private async isProduction(): Promise<boolean> {
 		try {
 			const configService = getConfigurationService();
-			return configService.isProduction();
+			return await configService.isProduction();
 		} catch {
 			return process.env.NODE_ENV === "production";
 		}

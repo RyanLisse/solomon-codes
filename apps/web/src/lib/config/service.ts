@@ -1,6 +1,6 @@
 import { createClientLogger } from "../logging/client";
 import { safeProcessExit } from "../utils/runtime";
-import { type AppConfig, getConfigSync } from "./index";
+import { type AppConfig, getConfig } from "./index";
 import { printValidationResults, validateEnvironment } from "./validation";
 
 /**
@@ -79,13 +79,30 @@ export const ENVIRONMENT_PROFILES: Record<string, EnvironmentProfile> = {
  * Configuration service for managing environment-specific settings
  */
 export class ConfigurationService {
-	private config: AppConfig;
-	private profile: EnvironmentProfile;
+	private config: AppConfig | null = null;
+	private profile: EnvironmentProfile | null = null;
 	private logger: ReturnType<typeof createClientLogger> | null = null;
+	private initPromise: Promise<void> | null = null;
 
 	constructor() {
-		this.config = getConfigSync();
-		this.profile = this.getEnvironmentProfile();
+		// Initialize asynchronously to avoid sync config loading issues
+		this.initPromise = this.initialize();
+	}
+
+	private async initialize(): Promise<void> {
+		try {
+			this.config = await getConfig();
+			this.profile = this.getEnvironmentProfile();
+		} catch (error) {
+			console.error("Failed to initialize configuration service:", error);
+			throw error;
+		}
+	}
+
+	async waitForInitialization(): Promise<void> {
+		if (this.initPromise) {
+			await this.initPromise;
+		}
 	}
 
 	private getLogger() {
@@ -98,14 +115,34 @@ export class ConfigurationService {
 	/**
 	 * Get the current configuration
 	 */
-	getConfiguration(): AppConfig {
+	async getConfiguration(): Promise<AppConfig> {
+		await this.waitForInitialization();
+		if (!this.config) {
+			throw new Error("Configuration not loaded");
+		}
+		return this.config;
+	}
+
+	/**
+	 * Get the current configuration synchronously (throws if not initialized)
+	 */
+	getConfigurationSync(): AppConfig {
+		if (!this.config) {
+			throw new Error(
+				"Configuration not loaded. Ensure ConfigurationService is initialized.",
+			);
+		}
 		return this.config;
 	}
 
 	/**
 	 * Get the current environment profile
 	 */
-	getProfile(): EnvironmentProfile {
+	async getProfile(): Promise<EnvironmentProfile> {
+		await this.waitForInitialization();
+		if (!this.profile) {
+			throw new Error("Environment profile not loaded");
+		}
 		return this.profile;
 	}
 
@@ -113,6 +150,9 @@ export class ConfigurationService {
 	 * Get environment profile based on NODE_ENV
 	 */
 	private getEnvironmentProfile(): EnvironmentProfile {
+		if (!this.config) {
+			return ENVIRONMENT_PROFILES.development; // Safe fallback
+		}
 		const env = this.config.nodeEnv;
 		return ENVIRONMENT_PROFILES[env] || ENVIRONMENT_PROFILES.development;
 	}
@@ -120,17 +160,32 @@ export class ConfigurationService {
 	/**
 	 * Check if a feature is enabled in the current environment
 	 */
-	isFeatureEnabled(feature: keyof EnvironmentProfile["features"]): boolean {
+	async isFeatureEnabled(
+		feature: keyof EnvironmentProfile["features"],
+	): Promise<boolean> {
+		await this.waitForInitialization();
+		if (!this.profile) {
+			return false;
+		}
 		return this.profile.features[feature];
 	}
 
 	/**
 	 * Get environment-specific configuration value
 	 */
-	getEnvironmentValue<K extends keyof AppConfig>(
+	async getEnvironmentValue<K extends keyof AppConfig>(
 		key: K,
 		fallback?: AppConfig[K],
-	): AppConfig[K] {
+	): Promise<AppConfig[K]> {
+		await this.waitForInitialization();
+
+		if (!this.config || !this.profile) {
+			if (fallback !== undefined) {
+				return fallback;
+			}
+			throw new Error("Configuration not initialized");
+		}
+
 		const configValue = this.config[key];
 		const profileDefault = this.profile.defaults[key] as AppConfig[K];
 
@@ -176,7 +231,11 @@ export class ConfigurationService {
 	/**
 	 * Get database configuration if available
 	 */
-	getDatabaseConfig(): { url?: string; isConfigured: boolean } {
+	async getDatabaseConfig(): Promise<{ url?: string; isConfigured: boolean }> {
+		await this.waitForInitialization();
+		if (!this.config) {
+			return { isConfigured: false };
+		}
 		return {
 			url: this.config.databaseUrl,
 			isConfigured: Boolean(this.config.databaseUrl),
@@ -186,9 +245,24 @@ export class ConfigurationService {
 	/**
 	 * Get telemetry configuration
 	 */
-	getTelemetryConfig() {
-		const isEnabled = this.isFeatureEnabled("enableTelemetry");
-		const endpoint = this.getEnvironmentValue("otelEndpoint");
+	async getTelemetryConfig() {
+		await this.waitForInitialization();
+
+		if (!this.config || !this.profile) {
+			return {
+				isEnabled: false,
+				endpoint: "http://localhost:4318/v1/traces",
+				headers: {},
+				samplingRatio: 1.0,
+				timeout: 30000,
+				serviceName: "unknown",
+				serviceVersion: "unknown",
+			};
+		}
+
+		const isEnabled = await this.isFeatureEnabled("enableTelemetry");
+		const endpoint = await this.getEnvironmentValue("otelEndpoint");
+		const timeout = await this.getEnvironmentValue("otelTimeout");
 
 		return {
 			isEnabled: isEnabled && Boolean(endpoint),
@@ -198,7 +272,7 @@ export class ConfigurationService {
 				"http://localhost:4318/v1/traces",
 			headers: this.config.otelHeaders,
 			samplingRatio: this.config.otelSamplingRatio,
-			timeout: this.getEnvironmentValue("otelTimeout"),
+			timeout,
 			serviceName: this.config.serviceName,
 			serviceVersion: this.config.appVersion,
 		};
@@ -207,22 +281,54 @@ export class ConfigurationService {
 	/**
 	 * Get logging configuration
 	 */
-	getLoggingConfig() {
+	async getLoggingConfig() {
+		await this.waitForInitialization();
+		if (!this.config || !this.profile) {
+			return {
+				level: "info" as const,
+				enableConsole: true,
+				enableFile: false,
+				enableOpenTelemetry: false,
+				filePath: undefined,
+				serviceName: "unknown",
+				enableDetailedLogging: false,
+			};
+		}
 		return {
 			level: this.config.logLevel,
 			enableConsole: true,
 			enableFile: Boolean(this.config.logFilePath),
-			enableOpenTelemetry: this.isFeatureEnabled("enableTelemetry"),
+			enableOpenTelemetry: await this.isFeatureEnabled("enableTelemetry"),
 			filePath: this.config.logFilePath,
 			serviceName: this.config.serviceName,
-			enableDetailedLogging: this.isFeatureEnabled("enableDetailedLogging"),
+			enableDetailedLogging: await this.isFeatureEnabled(
+				"enableDetailedLogging",
+			),
 		};
 	}
 
 	/**
 	 * Get API configuration
 	 */
-	getApiConfig() {
+	async getApiConfig() {
+		await this.waitForInitialization();
+		if (!this.config) {
+			return {
+				openai: {
+					apiKey: undefined,
+					isConfigured: false,
+				},
+				browserbase: {
+					apiKey: undefined,
+					projectId: undefined,
+					isConfigured: false,
+				},
+				e2b: {
+					apiKey: undefined,
+					isConfigured: false,
+				},
+			};
+		}
 		return {
 			openai: {
 				apiKey: this.config.openaiApiKey,
@@ -245,7 +351,16 @@ export class ConfigurationService {
 	/**
 	 * Get server configuration
 	 */
-	getServerConfig() {
+	async getServerConfig() {
+		await this.waitForInitialization();
+		if (!this.config) {
+			return {
+				url: "http://localhost:3001",
+				port: 3001,
+				environment: "development",
+				version: "unknown",
+			};
+		}
 		return {
 			url: this.config.serverUrl,
 			port: this.config.port,
@@ -257,28 +372,42 @@ export class ConfigurationService {
 	/**
 	 * Check if running in development mode
 	 */
-	isDevelopment(): boolean {
-		return this.config.nodeEnv === "development";
+	async isDevelopment(): Promise<boolean> {
+		await this.waitForInitialization();
+		return this.config?.nodeEnv === "development";
 	}
 
 	/**
 	 * Check if running in staging mode
 	 */
-	isStaging(): boolean {
-		return this.config.nodeEnv === "staging";
+	async isStaging(): Promise<boolean> {
+		await this.waitForInitialization();
+		return this.config?.nodeEnv === "staging";
 	}
 
 	/**
 	 * Check if running in production mode
 	 */
-	isProduction(): boolean {
-		return this.config.nodeEnv === "production";
+	async isProduction(): Promise<boolean> {
+		await this.waitForInitialization();
+		return this.config?.nodeEnv === "production";
 	}
 
 	/**
 	 * Get environment information for debugging
 	 */
-	getEnvironmentInfo() {
+	async getEnvironmentInfo() {
+		await this.waitForInitialization();
+		if (!this.config || !this.profile) {
+			return {
+				environment: "development" as const,
+				profile: "development",
+				description: "Unknown environment",
+				features: ENVIRONMENT_PROFILES.development.features,
+				version: "unknown",
+				serviceName: "unknown",
+			};
+		}
 		return {
 			environment: this.config.nodeEnv,
 			profile: this.profile.name,
@@ -306,6 +435,15 @@ export function getConfigurationService(): ConfigurationService {
 }
 
 /**
+ * Get the global configuration service instance with async initialization
+ */
+export async function getConfigurationServiceAsync(): Promise<ConfigurationService> {
+	const service = getConfigurationService();
+	await service.waitForInitialization();
+	return service;
+}
+
+/**
  * Reset the configuration service (primarily for testing)
  */
 export function resetConfigurationService(): void {
@@ -316,19 +454,21 @@ export function resetConfigurationService(): void {
  * Initialize configuration service with validation
  * Should be called at application startup
  */
-export function initializeConfiguration(): ConfigurationService {
+export async function initializeConfiguration(): Promise<ConfigurationService> {
 	const logger = createClientLogger("configuration-init");
 	const service = getConfigurationService();
+	await service.waitForInitialization();
 
+	const profile = await service.getProfile();
 	logger.info("Initializing configuration service", {
-		environment: service.getProfile().name,
-		description: service.getProfile().description,
+		environment: profile.name,
+		description: profile.description,
 	});
 
 	// Keep console output for startup visibility
 	console.log("🔧 Initializing configuration service...");
-	console.log(`📍 Environment: ${service.getProfile().name}`);
-	console.log(`📝 Description: ${service.getProfile().description}`);
+	console.log(`📍 Environment: ${profile.name}`);
+	console.log(`📝 Description: ${profile.description}`);
 
 	if (!service.validateConfiguration()) {
 		logger.error("Configuration validation failed. Exiting...");

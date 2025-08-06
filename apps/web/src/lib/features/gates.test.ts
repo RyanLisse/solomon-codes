@@ -94,9 +94,9 @@ describe("FeatureGateService", () => {
 			expect(enabledFeatures.isProduction).toBeUndefined(); // Should not be present
 		});
 
-		it("should provide status information", () => {
+		it("should provide status information", async () => {
 			const service = new FeatureGateService();
-			const status = service.getStatus();
+			const status = await service.getStatus();
 
 			expect(status.environment).toBe("development");
 			expect(status.totalGates).toBeGreaterThan(0);

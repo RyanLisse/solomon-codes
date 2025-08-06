@@ -84,9 +84,9 @@ describe("StartupValidationService", () => {
 			expect(result.environment).toBe("development");
 		});
 
-		it("should get validation summary", () => {
+		it("should get validation summary", async () => {
 			const service = new StartupValidationService();
-			const summary = service.getValidationSummary();
+			const summary = await service.getValidationSummary();
 
 			expect(summary.environment).toBe("development");
 			expect(summary.configurationValid).toBe(true);
@@ -359,7 +359,7 @@ describe("StartupValidationService", () => {
 			const service = new StartupValidationService();
 			await service.validateStartup();
 
-			const summary = service.getValidationSummary();
+			const summary = await service.getValidationSummary();
 
 			expect(summary.databaseConnectivityValid).toBe(false);
 			expect(

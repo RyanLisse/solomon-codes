@@ -13,8 +13,8 @@ export async function GET() {
 		logger.info("Version information requested");
 
 		const configService = getConfigurationService();
-		const config = configService.getConfiguration();
-		const envInfo = configService.getEnvironmentInfo();
+		const config = await configService.getConfiguration();
+		const envInfo = await configService.getEnvironmentInfo();
 
 		const versionInfo = {
 			version: config.appVersion,

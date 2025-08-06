@@ -75,22 +75,22 @@ describe("OpenTelemetry Winston Integration", () => {
 	});
 
 	describe("Configuration Integration", () => {
-		it("should integrate with existing telemetry config", () => {
-			const config = getOpenTelemetryConfig();
+		it("should integrate with existing telemetry config", async () => {
+			const config = await getOpenTelemetryConfig();
 
 			expect(config).toBeDefined();
 			expect(config.serviceName).toBe("solomon-codes-web");
 			expect(config.isEnabled).toBe(false); // Should be false in test environment
 		});
 
-		it("should respect environment variables", () => {
+		it("should respect environment variables", async () => {
 			Object.defineProperty(process.env, "NODE_ENV", {
 				value: "production",
 				writable: true,
 			});
 			process.env.OTEL_EXPORTER_OTLP_ENDPOINT = "https://test-endpoint.com";
 
-			const config = getOpenTelemetryConfig();
+			const config = await getOpenTelemetryConfig();
 
 			expect(config.isEnabled).toBe(true);
 			expect(config.endpoint).toBe("https://test-endpoint.com");

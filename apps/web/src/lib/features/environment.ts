@@ -11,44 +11,47 @@ export class EnvironmentService {
 	/**
 	 * Get the current environment
 	 */
-	getCurrentEnvironment(): "development" | "staging" | "production" | "test" {
-		return this.configService.getConfiguration().nodeEnv;
+	async getCurrentEnvironment(): Promise<
+		"development" | "staging" | "production" | "test"
+	> {
+		const config = await this.configService.getConfiguration();
+		return config.nodeEnv;
 	}
 
 	/**
 	 * Check if running in development
 	 */
-	isDevelopment(): boolean {
-		return this.getCurrentEnvironment() === "development";
+	async isDevelopment(): Promise<boolean> {
+		return (await this.getCurrentEnvironment()) === "development";
 	}
 
 	/**
 	 * Check if running in staging
 	 */
-	isStaging(): boolean {
-		return this.getCurrentEnvironment() === "staging";
+	async isStaging(): Promise<boolean> {
+		return (await this.getCurrentEnvironment()) === "staging";
 	}
 
 	/**
 	 * Check if running in production
 	 */
-	isProduction(): boolean {
-		return this.getCurrentEnvironment() === "production";
+	async isProduction(): Promise<boolean> {
+		return (await this.getCurrentEnvironment()) === "production";
 	}
 
 	/**
 	 * Check if running in a non-production environment
 	 */
-	isNonProduction(): boolean {
-		return !this.isProduction();
+	async isNonProduction(): Promise<boolean> {
+		return !(await this.isProduction());
 	}
 
 	/**
 	 * Get environment-specific configuration
 	 */
-	getEnvironmentConfig() {
-		const env = this.getCurrentEnvironment();
-		const config = this.configService.getConfiguration();
+	async getEnvironmentConfig() {
+		const env = await this.getCurrentEnvironment();
+		const config = await this.configService.getConfiguration();
 
 		return {
 			environment: env,
@@ -103,10 +106,10 @@ export class EnvironmentService {
 	/**
 	 * Get allowed origins for CORS based on environment
 	 */
-	getAllowedOrigins(): string[] {
-		const config = this.configService.getConfiguration();
+	async getAllowedOrigins(): Promise<string[]> {
+		const config = await this.configService.getConfiguration();
 
-		if (this.isDevelopment()) {
+		if (await this.isDevelopment()) {
 			return [
 				"http://localhost:3000",
 				"http://localhost:3001",
@@ -115,7 +118,7 @@ export class EnvironmentService {
 			];
 		}
 
-		if (this.isStaging()) {
+		if (await this.isStaging()) {
 			return [
 				config.serverUrl,
 				"https://staging.solomon-codes.com", // Example staging URL

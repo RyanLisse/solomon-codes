@@ -63,7 +63,7 @@ export function createOpenTelemetryTransport(
  * Create a custom Winston transport that sends logs to OpenTelemetry collector
  */
 export class OpenTelemetryTransport extends winston.transports.Stream {
-	private readonly config: ReturnType<typeof getOpenTelemetryConfig>;
+	private config: any;
 
 	constructor(options?: winston.transports.StreamTransportOptions) {
 		// Edge Runtime safe stream fallback
@@ -73,7 +73,19 @@ export class OpenTelemetryTransport extends winston.transports.Stream {
 			stream: defaultStream as any,
 			...options,
 		});
-		this.config = getOpenTelemetryConfig();
+		// Initialize with default config, will be set properly in initialize()
+		this.config = {
+			isEnabled: false,
+			serviceName: "solomon-codes-web",
+			serviceVersion: "unknown",
+		};
+	}
+
+	/**
+	 * Initialize the transport with async configuration
+	 */
+	async initialize(): Promise<void> {
+		this.config = await getOpenTelemetryConfig();
 	}
 
 	log(info: winston.LogEntry, callback: () => void) {
@@ -110,8 +122,8 @@ export class OpenTelemetryTransport extends winston.transports.Stream {
 /**
  * Create OpenTelemetry-enhanced logger configuration
  */
-export function createOpenTelemetryLoggerConfig() {
-	const config = getOpenTelemetryConfig();
+export async function createOpenTelemetryLoggerConfig() {
+	const config = await getOpenTelemetryConfig();
 
 	return {
 		defaultMeta: {
@@ -131,10 +143,10 @@ export function createOpenTelemetryLoggerConfig() {
 /**
  * Initialize OpenTelemetry instrumentation for Winston
  */
-export function initializeOpenTelemetryInstrumentation() {
+export async function initializeOpenTelemetryInstrumentation() {
 	try {
 		const telemetryService = getTelemetryService();
-		const config = telemetryService.getConfig();
+		const config = await telemetryService.getConfig();
 
 		if (!config.isEnabled) {
 			return null;
@@ -157,7 +169,7 @@ export function initializeOpenTelemetryInstrumentation() {
 /**
  * Create a logger with OpenTelemetry integration
  */
-export function createOpenTelemetryLogger(
+export async function createOpenTelemetryLogger(
 	options: {
 		level?: string;
 		enableConsole?: boolean;
@@ -166,12 +178,12 @@ export function createOpenTelemetryLogger(
 ) {
 	const { level = "info", enableConsole = true, enableOTLP = false } = options;
 
-	const config = getOpenTelemetryConfig();
+	const config = await getOpenTelemetryConfig();
 	const transports: winston.transport[] = [];
 
 	// Add console transport with OpenTelemetry context
 	if (enableConsole) {
-		transports.push(createOpenTelemetryTransport({ level }));
+		transports.push(await createOpenTelemetryTransport({ level }));
 	}
 
 	// Add OTLP transport if enabled

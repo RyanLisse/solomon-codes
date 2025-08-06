@@ -9,10 +9,11 @@ import type {
 /**
  * Get the current environment from configuration service
  */
-export function getEnvironment(): Environment {
+export async function getEnvironment(): Promise<Environment> {
 	try {
 		const configService = getConfigurationService();
-		const env = configService.getConfiguration().nodeEnv;
+		const config = await configService.getConfiguration();
+		const env = config.nodeEnv;
 		return env === "development" || env === "production" || env === "test"
 			? (env as Environment)
 			: "development";
@@ -28,10 +29,10 @@ export function getEnvironment(): Environment {
 /**
  * Get the log level from configuration service
  */
-export function getLogLevel(): LogLevel {
+export async function getLogLevel(): Promise<LogLevel> {
 	try {
 		const configService = getConfigurationService();
-		const loggingConfig = configService.getLoggingConfig();
+		const loggingConfig = await configService.getLoggingConfig();
 		return loggingConfig.level as LogLevel;
 	} catch {
 		// Fallback to environment variable
@@ -43,7 +44,7 @@ export function getLogLevel(): LogLevel {
 		}
 
 		// Default based on environment
-		const environment = getEnvironment();
+		const environment = await getEnvironment();
 		switch (environment) {
 			case "production":
 				return "info";
@@ -58,10 +59,11 @@ export function getLogLevel(): LogLevel {
 /**
  * Get service name from configuration service
  */
-export function getServiceName(): string {
+export async function getServiceName(): Promise<string> {
 	try {
 		const configService = getConfigurationService();
-		return configService.getConfiguration().serviceName;
+		const config = await configService.getConfiguration();
+		return config.serviceName;
 	} catch {
 		return process.env.SERVICE_NAME || "solomon-codes-web";
 	}
@@ -70,10 +72,11 @@ export function getServiceName(): string {
 /**
  * Get service version from configuration service
  */
-export function getServiceVersion(): string {
+export async function getServiceVersion(): Promise<string> {
 	try {
 		const configService = getConfigurationService();
-		return configService.getConfiguration().appVersion;
+		const config = await configService.getConfiguration();
+		return config.appVersion;
 	} catch {
 		return process.env.SERVICE_VERSION || "unknown";
 	}
@@ -82,11 +85,11 @@ export function getServiceVersion(): string {
 /**
  * Get default logger configuration based on configuration service
  */
-export function getDefaultLoggerConfig(): LoggerConfig {
+export async function getDefaultLoggerConfig(): Promise<LoggerConfig> {
 	try {
 		const configService = getConfigurationService();
-		const loggingConfig = configService.getLoggingConfig();
-		const serverConfig = configService.getServerConfig();
+		const loggingConfig = await configService.getLoggingConfig();
+		const serverConfig = await configService.getServerConfig();
 
 		return {
 			level: loggingConfig.level as LogLevel,
@@ -106,10 +109,10 @@ export function getDefaultLoggerConfig(): LoggerConfig {
 		};
 	} catch {
 		// Fallback to environment-based configuration
-		const environment = getEnvironment();
-		const level = getLogLevel();
-		const serviceName = getServiceName();
-		const serviceVersion = getServiceVersion();
+		const environment = await getEnvironment();
+		const level = await getLogLevel();
+		const serviceName = await getServiceName();
+		const serviceVersion = await getServiceVersion();
 
 		return {
 			level,
@@ -133,11 +136,12 @@ export function getDefaultLoggerConfig(): LoggerConfig {
 /**
  * Get transport configuration based on configuration service
  */
-export function getTransportConfig(): TransportConfig {
+export async function getTransportConfig(): Promise<TransportConfig> {
 	try {
 		const configService = getConfigurationService();
-		const loggingConfig = configService.getLoggingConfig();
-		const environment = configService.getConfiguration().nodeEnv;
+		const loggingConfig = await configService.getLoggingConfig();
+		const config = await configService.getConfiguration();
+		const environment = config.nodeEnv;
 
 		return {
 			console: {
@@ -160,8 +164,8 @@ export function getTransportConfig(): TransportConfig {
 		};
 	} catch {
 		// Fallback to environment-based configuration
-		const environment = getEnvironment();
-		const level = getLogLevel();
+		const environment = await getEnvironment();
+		const level = await getLogLevel();
 
 		return {
 			console: {
@@ -188,10 +192,10 @@ export function getTransportConfig(): TransportConfig {
 /**
  * Validate logger configuration
  */
-export function validateLoggerConfig(
+export async function validateLoggerConfig(
 	config: Partial<LoggerConfig>,
-): LoggerConfig {
-	const defaultConfig = getDefaultLoggerConfig();
+): Promise<LoggerConfig> {
+	const defaultConfig = await getDefaultLoggerConfig();
 	const mergedConfig = { ...defaultConfig, ...config };
 
 	// Validate log level
@@ -230,11 +234,11 @@ export function validateLoggerConfig(
 /**
  * Get OpenTelemetry configuration from configuration service
  */
-export function getOpenTelemetryConfig() {
+export async function getOpenTelemetryConfig() {
 	try {
 		const configService = getConfigurationService();
-		const telemetryConfig = configService.getTelemetryConfig();
-		const serverConfig = configService.getServerConfig();
+		const telemetryConfig = await configService.getTelemetryConfig();
+		const serverConfig = await configService.getServerConfig();
 
 		return {
 			isEnabled: telemetryConfig.isEnabled,

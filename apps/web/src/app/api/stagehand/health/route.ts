@@ -64,7 +64,7 @@ function createHealthStatus(): StagehandHealthStatus {
 	};
 }
 
-function checkBrowserBaseConfiguration(
+async function checkBrowserBaseConfiguration(
 	healthStatus: StagehandHealthStatus,
 	apiConfig: ApiConfig,
 	configService: ConfigurationService,
@@ -76,7 +76,7 @@ function checkBrowserBaseConfiguration(
 		healthStatus.details.configuration.status = "unhealthy";
 		healthStatus.details.configuration.message = "BrowserBase not configured";
 
-		if (configService.isProduction()) {
+		if (await configService.isProduction()) {
 			healthStatus.healthy = false;
 			healthStatus.details.errors?.push(
 				"BrowserBase configuration required in production",
@@ -132,7 +132,7 @@ async function checkStagehandConnectivity(
 	}
 }
 
-function checkStagehandDependencies(
+async function checkStagehandDependencies(
 	healthStatus: StagehandHealthStatus,
 	configService: ConfigurationService,
 ) {
@@ -143,7 +143,7 @@ function checkStagehandDependencies(
 		);
 
 		if (missingVars.length > 0) {
-			if (configService.isProduction()) {
+			if (await configService.isProduction()) {
 				healthStatus.healthy = false;
 				healthStatus.details.dependencies.status = "unhealthy";
 				healthStatus.details.dependencies.message = `Missing required variables: ${missingVars.join(", ")}`;
@@ -214,13 +214,13 @@ export async function GET() {
 		logger.info("Stagehand health check requested");
 
 		const configService = getConfigurationService();
-		const apiConfig = configService.getApiConfig();
+		const apiConfig = await configService.getApiConfig();
 		const healthStatus = createHealthStatus();
 
 		// Run all health checks
-		checkBrowserBaseConfiguration(healthStatus, apiConfig, configService);
+		await checkBrowserBaseConfiguration(healthStatus, apiConfig, configService);
 		await checkStagehandConnectivity(healthStatus, startTime);
-		checkStagehandDependencies(healthStatus, configService);
+		await checkStagehandDependencies(healthStatus, configService);
 		updateHealthMessage(healthStatus);
 
 		const statusCode = healthStatus.healthy ? 200 : 503;

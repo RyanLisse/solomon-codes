@@ -49,7 +49,7 @@ export function getStdout():
 	if (isNodeRuntime()) {
 		// Dynamic access to avoid Edge Runtime static analysis
 		const proc = (globalThis as { process?: NodeJS.Process }).process;
-		if (proc && proc.stdout) {
+		if (proc?.stdout) {
 			return proc.stdout;
 		}
 	}

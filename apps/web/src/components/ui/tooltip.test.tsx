@@ -165,7 +165,9 @@ describe("Tooltip Components", () => {
 				expect(triggerDescribedBy).toBeTruthy();
 
 				// Find the actual tooltip element by its ID
-				const tooltipElement = document.getElementById(triggerDescribedBy as string);
+				const tooltipElement = document.getElementById(
+					triggerDescribedBy as string,
+				);
 				expect(tooltipElement).toBeInTheDocument();
 				expect(tooltipElement).toHaveAttribute("role", "tooltip");
 			});

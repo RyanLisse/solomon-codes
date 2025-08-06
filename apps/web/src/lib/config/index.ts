@@ -430,14 +430,28 @@ export function getErrorSeverityFromStatus(status: number): ErrorSeverity {
  */
 async function loadAppVersion(): Promise<string> {
 	try {
+		// Check for Edge Runtime first - if detected, early return
+		if (
+			typeof globalThis !== "undefined" &&
+			(globalThis as { EdgeRuntime?: unknown }).EdgeRuntime
+		) {
+			return "unknown";
+		}
+
 		// Only attempt to read in Node.js environment
 		if (!isNodeEnvironment) {
 			return "unknown";
 		}
 
-		// Dynamic import only in Node.js environment to avoid Edge Runtime issues
-		const fs = await import("node:fs");
-		const path = await import("node:path");
+		// Double-check runtime environment before dynamic imports
+		const proc = (globalThis as { process?: NodeJS.Process }).process;
+		if (!proc?.versions?.node) {
+			return "unknown";
+		}
+
+		// Use eval to hide imports from static analysis in Edge Runtime
+		const fs = await eval('import("node:fs")');
+		const path = await eval('import("node:path")');
 
 		// Edge Runtime safe path resolution
 		const rootPath = getCwd();
@@ -488,6 +502,18 @@ function formatValidationErrors(zodError: z.ZodError): ConfigurationError[] {
 		];
 	}
 
+	function getExpectedValue(error: { code: string; [key: string]: unknown }) {
+		if (error.code === "invalid_union") {
+			return "valid enum value";
+		}
+		if (error.code === "invalid_type") {
+			return (
+				(error as unknown as { expected?: string }).expected || "valid type"
+			);
+		}
+		return "valid value";
+	}
+
 	return errors.map((error) => {
 		const path =
 			error.path && Array.isArray(error.path) && error.path.length > 0
@@ -517,13 +543,7 @@ function formatValidationErrors(zodError: z.ZodError): ConfigurationError[] {
 			`Configuration validation failed for '${path}': ${error.message}`,
 			{
 				variable: envVar,
-				expected:
-					error.code === "invalid_union"
-						? "valid enum value"
-						: error.code === "invalid_type"
-							? (error as unknown as { expected?: string }).expected ||
-								"valid type"
-							: "valid value",
+				expected: getExpectedValue(error),
 				received:
 					error.code === "invalid_type"
 						? (error as unknown as { received?: string }).received ||
@@ -599,7 +619,7 @@ let _configPromise: Promise<AppConfig> | null = null;
  */
 export async function getConfig(): Promise<AppConfig> {
 	if (!_config) {
-		if (!_configPromise) {
+		if (_configPromise === null) {
 			_configPromise = validateConfig();
 		}
 		_config = await _configPromise;

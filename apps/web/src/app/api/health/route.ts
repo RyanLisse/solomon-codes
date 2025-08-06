@@ -123,7 +123,7 @@ async function checkDatabaseHealth(): Promise<{
 	try {
 		// Try to get configuration service first
 		const configService = getConfigurationService();
-		const dbConfig = configService.getDatabaseConfig();
+		const dbConfig = await configService.getDatabaseConfig();
 
 		// Basic connection check - we'll implement actual DB ping later
 		if (!dbConfig?.isConfigured || !dbConfig.url) {
@@ -173,7 +173,7 @@ async function checkOpenTelemetryHealth(): Promise<{
 
 	try {
 		const configService = getConfigurationService();
-		const telemetryConfig = configService.getTelemetryConfig();
+		const telemetryConfig = await configService.getTelemetryConfig();
 
 		if (!telemetryConfig.isEnabled) {
 			return {
@@ -291,8 +291,8 @@ async function performHealthCheck(): Promise<HealthCheckResult> {
 
 	try {
 		const configService = getConfigurationService();
-		const config = configService.getConfiguration();
-		const loggingConfig = configService.getLoggingConfig();
+		const config = await configService.getConfiguration();
+		const loggingConfig = await configService.getLoggingConfig();
 
 		environment = config.nodeEnv || environment;
 		serviceName =

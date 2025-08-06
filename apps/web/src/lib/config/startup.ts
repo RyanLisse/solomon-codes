@@ -72,7 +72,7 @@ export class StartupValidationService {
 			printValidationResults(envResult);
 			this.metrics.endTime = Date.now();
 			this.metrics.duration = this.metrics.endTime - this.metrics.startTime;
-			return this.combineResults(results);
+			return await this.combineResults(results);
 		}
 
 		// 2. Configuration validation
@@ -83,13 +83,14 @@ export class StartupValidationService {
 				try {
 					const configService = this.getConfigService();
 					const configValid = configService.validateConfiguration();
+					const config = await configService.getConfiguration();
 					if (!configValid) {
 						return {
 							success: false,
 							errors: ["Configuration validation failed"],
 							warnings: [],
 							timestamp: new Date(),
-							environment: configService.getConfiguration().nodeEnv,
+							environment: config.nodeEnv,
 						};
 					}
 					return {
@@ -97,7 +98,7 @@ export class StartupValidationService {
 						errors: [],
 						warnings: [],
 						timestamp: new Date(),
-						environment: configService.getConfiguration().nodeEnv,
+						environment: config.nodeEnv,
 					};
 				} catch (error) {
 					// Return a test-safe configuration result if config service unavailable
@@ -122,7 +123,7 @@ export class StartupValidationService {
 			this.logger.error("Configuration validation failed");
 			this.metrics.endTime = Date.now();
 			this.metrics.duration = this.metrics.endTime - this.metrics.startTime;
-			return this.combineResults(results);
+			return await this.combineResults(results);
 		}
 
 		// 3. Database connectivity validation
@@ -168,7 +169,9 @@ export class StartupValidationService {
 						],
 						timestamp: new Date(),
 						environment:
-							this.configService?.getConfiguration().nodeEnv ??
+							(this.configService
+								? (await this.configService.getConfiguration()).nodeEnv
+								: null) ??
 							process.env.NODE_ENV ??
 							"development",
 					};
@@ -179,7 +182,9 @@ export class StartupValidationService {
 					warnings: [],
 					timestamp: new Date(),
 					environment:
-						this.configService?.getConfiguration().nodeEnv ??
+						(this.configService
+							? (await this.configService.getConfiguration()).nodeEnv
+							: null) ??
 						process.env.NODE_ENV ??
 						"development",
 				};
@@ -190,7 +195,7 @@ export class StartupValidationService {
 		this.metrics.endTime = Date.now();
 		this.metrics.duration = this.metrics.endTime - this.metrics.startTime;
 
-		const finalResult = this.combineResults(results);
+		const finalResult = await this.combineResults(results);
 
 		if (finalResult.success) {
 			this.logger.info("All startup validations passed", {
@@ -253,7 +258,9 @@ export class StartupValidationService {
 				warnings: [],
 				timestamp: new Date(),
 				environment:
-					this.configService?.getConfiguration().nodeEnv ??
+					(this.configService
+						? (await this.configService.getConfiguration()).nodeEnv
+						: null) ??
 					process.env.NODE_ENV ??
 					"development",
 			};
@@ -269,10 +276,10 @@ export class StartupValidationService {
 
 		try {
 			const configService = this.getConfigService();
-			const dbConfig = configService.getDatabaseConfig();
+			const dbConfig = await configService.getDatabaseConfig();
 
 			if (!dbConfig.isConfigured) {
-				if (configService.isProduction()) {
+				if (await configService.isProduction()) {
 					errors.push(
 						"Database configuration is required in production environment",
 					);
@@ -286,7 +293,7 @@ export class StartupValidationService {
 					// Test database connectivity with retry logic
 					const connectionTest = await testDatabaseConnection(3, 1000);
 					if (!connectionTest.success) {
-						if (configService.isProduction()) {
+						if (await configService.isProduction()) {
 							errors.push(
 								`Database connectivity failed: ${connectionTest.error}`,
 							);
@@ -314,7 +321,7 @@ export class StartupValidationService {
 				} catch (error) {
 					const errorMessage =
 						error instanceof Error ? error.message : String(error);
-					if (configService.isProduction()) {
+					if (await configService.isProduction()) {
 						errors.push(`Database validation error: ${errorMessage}`);
 					} else {
 						warnings.push(`Database validation error: ${errorMessage}`);
@@ -322,12 +329,13 @@ export class StartupValidationService {
 				}
 			}
 
+			const config = await configService.getConfiguration();
 			return {
 				success: errors.length === 0,
 				errors,
 				warnings,
 				timestamp: new Date(),
-				environment: configService.getConfiguration().nodeEnv,
+				environment: config.nodeEnv,
 			};
 		} catch (configError) {
 			// Handle config service unavailable in test environment
@@ -357,16 +365,19 @@ export class StartupValidationService {
 
 		try {
 			const configService = this.getConfigService();
-			const apiConfig = configService.getApiConfig();
+			const apiConfig = await configService.getApiConfig();
 
 			// Check OpenAI API key in production
-			if (configService.isProduction() && !apiConfig.openai.isConfigured) {
+			if (
+				(await configService.isProduction()) &&
+				!apiConfig.openai.isConfigured
+			) {
 				errors.push("OpenAI API key is required in production environment");
 			}
 
 			// Check BrowserBase configuration for browser automation
 			if (!apiConfig.browserbase.isConfigured) {
-				if (configService.isProduction()) {
+				if (await configService.isProduction()) {
 					errors.push("BrowserBase configuration is required in production");
 				} else {
 					warnings.push(
@@ -389,12 +400,13 @@ export class StartupValidationService {
 				}
 			}
 
+			const config = await configService.getConfiguration();
 			return {
 				success: errors.length === 0,
 				errors,
 				warnings,
 				timestamp: new Date(),
-				environment: configService.getConfiguration().nodeEnv,
+				environment: config.nodeEnv,
 			};
 		} catch (configError) {
 			// Handle config service unavailable in test environment
@@ -426,19 +438,22 @@ export class StartupValidationService {
 			const configService = this.getConfigService();
 
 			// Check telemetry service configuration and connectivity
-			const telemetryConfig = configService.getTelemetryConfig();
+			const telemetryConfig = await configService.getTelemetryConfig();
 			if (telemetryConfig.isEnabled) {
 				try {
 					// Validate telemetry endpoint URL
 					const url = new URL(telemetryConfig.endpoint);
-					if (configService.isProduction() && url.protocol !== "https:") {
+					if (
+						(await configService.isProduction()) &&
+						url.protocol !== "https:"
+					) {
 						warnings.push("Telemetry endpoint should use HTTPS in production");
 					}
 
 					// Test telemetry service initialization
 					const telemetryService = getTelemetryService();
-					const telemetryValid = telemetryService.isEnabled();
-					if (!telemetryValid && configService.isProduction()) {
+					const telemetryValid = await telemetryService.isEnabled();
+					if (!telemetryValid && (await configService.isProduction())) {
 						warnings.push(
 							"Telemetry service configuration is invalid in production",
 						);
@@ -449,7 +464,7 @@ export class StartupValidationService {
 						endpoint: telemetryConfig.endpoint,
 					});
 				} catch (error) {
-					if (configService.isProduction()) {
+					if (await configService.isProduction()) {
 						errors.push(
 							`Invalid telemetry endpoint: ${telemetryConfig.endpoint}`,
 						);
@@ -460,7 +475,7 @@ export class StartupValidationService {
 					}
 				}
 			} else {
-				if (configService.isProduction()) {
+				if (await configService.isProduction()) {
 					warnings.push(
 						"Telemetry is disabled in production - monitoring capabilities will be limited",
 					);
@@ -468,7 +483,7 @@ export class StartupValidationService {
 			}
 
 			// Check external service dependencies (placeholder for future services)
-			const externalServices = this.getExternalServiceDependencies();
+			const externalServices = await this.getExternalServiceDependencies();
 			for (const service of externalServices) {
 				try {
 					await this.validateExternalService(service);
@@ -479,12 +494,13 @@ export class StartupValidationService {
 				}
 			}
 
+			const config = await configService.getConfiguration();
 			return {
 				success: errors.length === 0,
 				errors,
 				warnings,
 				timestamp: new Date(),
-				environment: configService.getConfiguration().nodeEnv,
+				environment: config.nodeEnv,
 			};
 		} catch (configError) {
 			// Handle config service unavailable in test environment
@@ -508,14 +524,16 @@ export class StartupValidationService {
 	/**
 	 * Get external service dependencies to validate
 	 */
-	private getExternalServiceDependencies(): Array<{
-		name: string;
-		url?: string;
-		required: boolean;
-	}> {
+	private async getExternalServiceDependencies(): Promise<
+		Array<{
+			name: string;
+			url?: string;
+			required: boolean;
+		}>
+	> {
 		try {
 			const configService = this.getConfigService();
-			const apiConfig = configService.getApiConfig();
+			const apiConfig = await configService.getApiConfig();
 			const services = [];
 
 			// Add configured external services
@@ -523,14 +541,14 @@ export class StartupValidationService {
 				services.push({
 					name: "OpenAI API",
 					url: "https://api.openai.com",
-					required: configService.isProduction(),
+					required: await configService.isProduction(),
 				});
 			}
 
 			if (apiConfig.browserbase.isConfigured) {
 				services.push({
 					name: "BrowserBase",
-					required: configService.isProduction(),
+					required: await configService.isProduction(),
 				});
 			}
 
@@ -560,18 +578,21 @@ export class StartupValidationService {
 	/**
 	 * Combine multiple validation results
 	 */
-	private combineResults(results: ValidationResult[]): ValidationResult {
+	private async combineResults(
+		results: ValidationResult[],
+	): Promise<ValidationResult> {
 		const allErrors = results.flatMap((r) => r.errors);
 		const allWarnings = results.flatMap((r) => r.warnings);
 
 		try {
 			const configService = this.getConfigService();
+			const config = await configService.getConfiguration();
 			return {
 				success: allErrors.length === 0,
 				errors: allErrors,
 				warnings: allWarnings,
 				timestamp: new Date(),
-				environment: configService.getConfiguration().nodeEnv,
+				environment: config.nodeEnv,
 			};
 		} catch (_configError) {
 			// Fallback to environment variable in test mode
@@ -595,7 +616,7 @@ export class StartupValidationService {
 	/**
 	 * Get validation summary for monitoring
 	 */
-	getValidationSummary(): {
+	async getValidationSummary(): Promise<{
 		environment: string;
 		configurationValid: boolean;
 		databaseConnectivityValid: boolean;
@@ -609,7 +630,7 @@ export class StartupValidationService {
 			duration: number;
 			success: boolean;
 		}>;
-	} {
+	}> {
 		// Get validation step results
 		const _envStep = this.metrics.validationSteps.find(
 			(s) => s.name === "environment",
@@ -632,8 +653,9 @@ export class StartupValidationService {
 
 		try {
 			const configService = this.getConfigService();
+			const config = await configService.getConfiguration();
 			return {
-				environment: configService.getConfiguration().nodeEnv,
+				environment: config.nodeEnv,
 				configurationValid:
 					configStep?.success ?? configService.validateConfiguration(),
 				databaseConnectivityValid: dbStep?.success ?? false,

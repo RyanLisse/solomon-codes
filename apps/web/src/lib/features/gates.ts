@@ -52,20 +52,62 @@ export interface FeatureGates {
 export class FeatureGateService {
 	private configService = getConfigurationService();
 	private logger = createContextLogger("feature-gates");
-	private gates: FeatureGates;
+	private gates: FeatureGates | null = null;
 
 	constructor() {
-		this.gates = this.initializeGates();
-		this.logFeatureGateStatus();
+		// Initialize with default gates, will be properly set in initialize()
+		this.gates = this.getDefaultGates();
+	}
+
+	/**
+	 * Initialize the feature gates service
+	 */
+	async initialize(): Promise<void> {
+		this.gates = await this.initializeGates();
+		await this.logFeatureGateStatus();
+	}
+
+	/**
+	 * Get default feature gates for fallback
+	 */
+	private getDefaultGates(): FeatureGates {
+		return {
+			isDevelopment: process.env.NODE_ENV === "development",
+			isStaging:
+				process.env.NODE_ENV === "staging" || process.env.NODE_ENV === "test",
+			isProduction: process.env.NODE_ENV === "production",
+			enableDebugTools: false,
+			enableDevToolbar: false,
+			enableReactDevTools: false,
+			enableReduxDevTools: false,
+			enableMockData: false,
+			enableTestFixtures: false,
+			enableSeedData: false,
+			enableDetailedLogging: false,
+			enablePerformanceMonitoring: false,
+			enableErrorReporting: false,
+			enableTelemetry: false,
+			requireSecureEndpoints: true,
+			enableCORS: false,
+			enableCSRF: true,
+			enableExperimentalFeatures: false,
+			enableBetaFeatures: false,
+			enableStagehandIntegration: false,
+			enableVibeKitIntegration: false,
+			enableGitHubIntegration: false,
+			enableRateLimiting: true,
+			enableCaching: true,
+			enableCompression: true,
+		};
 	}
 
 	/**
 	 * Initialize feature gates based on environment and configuration
 	 */
-	private initializeGates(): FeatureGates {
-		const config = this.configService.getConfiguration();
-		const profile = this.configService.getProfile();
-		const apiConfig = this.configService.getApiConfig();
+	private async initializeGates(): Promise<FeatureGates> {
+		const config = await this.configService.getConfiguration();
+		const profile = await this.configService.getProfile();
+		const apiConfig = await this.configService.getApiConfig();
 
 		return {
 			// Environment detection
@@ -112,9 +154,10 @@ export class FeatureGateService {
 	/**
 	 * Log the current feature gate status
 	 */
-	private logFeatureGateStatus(): void {
+	private async logFeatureGateStatus(): Promise<void> {
+		const config = await this.configService.getConfiguration();
 		this.logger.info("Feature gates initialized", {
-			environment: this.configService.getConfiguration().nodeEnv,
+			environment: config.nodeEnv,
 			gates: this.gates,
 		});
 	}
@@ -123,14 +166,14 @@ export class FeatureGateService {
 	 * Check if a feature is enabled
 	 */
 	isEnabled(feature: keyof FeatureGates): boolean {
-		return this.gates[feature];
+		return this.gates?.[feature] ?? false;
 	}
 
 	/**
 	 * Get all feature gates
 	 */
 	getAllGates(): FeatureGates {
-		return { ...this.gates };
+		return { ...(this.gates || this.getDefaultGates()) };
 	}
 
 	/**
@@ -138,8 +181,9 @@ export class FeatureGateService {
 	 */
 	getEnabledFeatures(): Partial<FeatureGates> {
 		const enabled: Partial<FeatureGates> = {};
+		const gates = this.gates || this.getDefaultGates();
 
-		for (const [key, value] of Object.entries(this.gates)) {
+		for (const [key, value] of Object.entries(gates)) {
 			if (value) {
 				enabled[key as keyof FeatureGates] = value;
 			}
@@ -152,69 +196,78 @@ export class FeatureGateService {
 	 * Check if running in development mode
 	 */
 	isDevelopment(): boolean {
-		return this.gates.isDevelopment;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.isDevelopment;
 	}
 
 	/**
 	 * Check if running in staging mode
 	 */
 	isStaging(): boolean {
-		return this.gates.isStaging;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.isStaging;
 	}
 
 	/**
 	 * Check if running in production mode
 	 */
 	isProduction(): boolean {
-		return this.gates.isProduction;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.isProduction;
 	}
 
 	/**
 	 * Check if debug tools should be enabled
 	 */
 	shouldEnableDebugTools(): boolean {
-		return this.gates.enableDebugTools;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.enableDebugTools;
 	}
 
 	/**
 	 * Check if mock data should be used
 	 */
 	shouldUseMockData(): boolean {
-		return this.gates.enableMockData;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.enableMockData;
 	}
 
 	/**
 	 * Check if detailed logging should be enabled
 	 */
 	shouldEnableDetailedLogging(): boolean {
-		return this.gates.enableDetailedLogging;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.enableDetailedLogging;
 	}
 
 	/**
 	 * Check if telemetry should be enabled
 	 */
 	shouldEnableTelemetry(): boolean {
-		return this.gates.enableTelemetry;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.enableTelemetry;
 	}
 
 	/**
 	 * Check if secure endpoints are required
 	 */
 	shouldRequireSecureEndpoints(): boolean {
-		return this.gates.requireSecureEndpoints;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.requireSecureEndpoints;
 	}
 
 	/**
 	 * Check if experimental features should be enabled
 	 */
 	shouldEnableExperimentalFeatures(): boolean {
-		return this.gates.enableExperimentalFeatures;
+		const gates = this.gates || this.getDefaultGates();
+		return gates.enableExperimentalFeatures;
 	}
 
 	/**
 	 * Get feature gate status for monitoring/debugging
 	 */
-	getStatus(): {
+	async getStatus(): Promise<{
 		environment: string;
 		totalGates: number;
 		enabledGates: number;
@@ -225,20 +278,22 @@ export class FeatureGateService {
 			telemetry: boolean;
 			secureEndpoints: boolean;
 		};
-	} {
-		const allGates = Object.values(this.gates);
+	}> {
+		const gates = this.gates || this.getDefaultGates();
+		const allGates = Object.values(gates);
 		const enabledCount = allGates.filter(Boolean).length;
 
+		const config = await this.configService.getConfiguration();
 		return {
-			environment: this.configService.getConfiguration().nodeEnv,
+			environment: config.nodeEnv,
 			totalGates: allGates.length,
 			enabledGates: enabledCount,
 			disabledGates: allGates.length - enabledCount,
 			criticalFeatures: {
-				debugTools: this.gates.enableDebugTools,
-				mockData: this.gates.enableMockData,
-				telemetry: this.gates.enableTelemetry,
-				secureEndpoints: this.gates.requireSecureEndpoints,
+				debugTools: gates.enableDebugTools,
+				mockData: gates.enableMockData,
+				telemetry: gates.enableTelemetry,
+				secureEndpoints: gates.requireSecureEndpoints,
 			},
 		};
 	}

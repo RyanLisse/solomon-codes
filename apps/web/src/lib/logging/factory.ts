@@ -190,18 +190,23 @@ export class LoggerFactory {
 	): ContextAwareLogger {
 		const baseLogger = createWinstonLogger({ serviceName: component });
 
-		// Try to get configuration, but provide fallbacks if not available
-		let environment = "development";
-		let version = "unknown";
+		// Use environment variables for immediate access
+		// Configuration service will be used for runtime updates
+		let environment = process.env.NODE_ENV || "development";
+		let version = process.env.npm_package_version || "unknown";
 
+		// Try to get configuration synchronously if available
 		try {
-			const config = this.getConfigService().getConfiguration();
-			environment = config.nodeEnv;
-			version = config.appVersion;
+			const configService = this.getConfigService();
+			// Use cached config if available, otherwise fall back to env vars
+			if (configService && (configService as any)._cachedConfig) {
+				const config = (configService as any)._cachedConfig;
+				environment = config.nodeEnv || environment;
+				version = config.appVersion || version;
+			}
 		} catch {
-			// Configuration not available during build time - use fallbacks
-			environment = process.env.NODE_ENV || "development";
-			version = process.env.npm_package_version || "unknown";
+			// Configuration not available - use fallbacks
+			// This is expected during build time or early initialization
 		}
 
 		const context: LoggerContext = {

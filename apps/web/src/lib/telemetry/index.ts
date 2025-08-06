@@ -3,7 +3,7 @@
  * Coordinates with Next.js OpenTelemetry setup via @vercel/otel
  */
 
-import { getConfigurationService } from "../config/service";
+import { getConfigurationServiceAsync } from "../config/service";
 import { createContextLogger } from "../logging/factory";
 
 export interface TelemetryConfig {
@@ -18,8 +18,8 @@ export interface TelemetryConfig {
 }
 
 export interface TelemetryService {
-	getConfig(): TelemetryConfig;
-	isEnabled(): boolean;
+	getConfig(): Promise<TelemetryConfig>;
+	isEnabled(): Promise<boolean>;
 	initialize(): Promise<boolean>;
 	shutdown(): Promise<void>;
 }
@@ -42,9 +42,9 @@ class TelemetryServiceImpl implements TelemetryService {
 	/**
 	 * Get the current telemetry configuration
 	 */
-	getConfig(): TelemetryConfig {
+	async getConfig(): Promise<TelemetryConfig> {
 		if (!this.config) {
-			this.config = this.loadConfiguration();
+			this.config = await this.loadConfiguration();
 		}
 		return this.config;
 	}
@@ -52,8 +52,9 @@ class TelemetryServiceImpl implements TelemetryService {
 	/**
 	 * Check if telemetry is enabled
 	 */
-	isEnabled(): boolean {
-		return this.getConfig().isEnabled;
+	async isEnabled(): Promise<boolean> {
+		const config = await this.getConfig();
+		return config.isEnabled;
 	}
 
 	/**
@@ -66,7 +67,7 @@ class TelemetryServiceImpl implements TelemetryService {
 		}
 
 		try {
-			const config = this.getConfig();
+			const config = await this.getConfig();
 
 			if (!config.isEnabled) {
 				this.getLogger().info("Telemetry is disabled, skipping initialization");
@@ -133,11 +134,11 @@ class TelemetryServiceImpl implements TelemetryService {
 	/**
 	 * Load configuration from the configuration service
 	 */
-	private loadConfiguration(): TelemetryConfig {
+	private async loadConfiguration(): Promise<TelemetryConfig> {
 		try {
-			const configService = getConfigurationService();
-			const telemetryConfig = configService.getTelemetryConfig();
-			const serverConfig = configService.getServerConfig();
+			const configService = await getConfigurationServiceAsync();
+			const telemetryConfig = await configService.getTelemetryConfig();
+			const serverConfig = await configService.getServerConfig();
 
 			return {
 				isEnabled: telemetryConfig.isEnabled,
@@ -329,13 +330,13 @@ export function resetTelemetryService(): void {
 /**
  * Get telemetry configuration for external use
  */
-export function getTelemetryConfig(): TelemetryConfig {
-	return getTelemetryService().getConfig();
+export async function getTelemetryConfig(): Promise<TelemetryConfig> {
+	return await getTelemetryService().getConfig();
 }
 
 /**
  * Check if telemetry is enabled
  */
-export function isTelemetryEnabled(): boolean {
-	return getTelemetryService().isEnabled();
+export async function isTelemetryEnabled(): Promise<boolean> {
+	return await getTelemetryService().isEnabled();
 }

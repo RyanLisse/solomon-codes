@@ -4,14 +4,30 @@ declare global {
 }
 
 export function register() {
+	// Check if we're running in Edge Runtime - skip initialization if so
+	const isEdgeRuntime =
+		typeof globalThis !== "undefined" &&
+		!!(globalThis as { EdgeRuntime?: unknown }).EdgeRuntime;
+
+	if (isEdgeRuntime) {
+		console.log("Skipping OpenTelemetry initialization in Edge Runtime");
+		return;
+	}
+
+	// Safe process.env access with fallback
+	const nodeEnv = (globalThis as { process?: NodeJS.Process }).process?.env
+		?.NODE_ENV;
+	const otelDisabled = (globalThis as { process?: NodeJS.Process }).process?.env
+		?.OTEL_SDK_DISABLED;
+
 	// Skip initialization in test environment
-	if (process.env.NODE_ENV === "test") {
+	if (nodeEnv === "test") {
 		console.log("Skipping OpenTelemetry initialization in test environment");
 		return;
 	}
 
 	// Check if VibeKit or Inngest has already initialized OpenTelemetry
-	if (process.env.OTEL_SDK_DISABLED === "true" || global.__OTEL_INITIALIZED__) {
+	if (otelDisabled === "true" || global.__OTEL_INITIALIZED__) {
 		console.log("OpenTelemetry already initialized, skipping");
 		return;
 	}
@@ -32,8 +48,22 @@ export function register() {
 
 async function initializeVibeKitTelemetry() {
 	try {
+		// Check if we're running in Edge Runtime - skip if so
+		const isEdgeRuntime =
+			typeof globalThis !== "undefined" &&
+			!!(globalThis as { EdgeRuntime?: unknown }).EdgeRuntime;
+
+		if (isEdgeRuntime) {
+			console.log("Skipping telemetry initialization in Edge Runtime");
+			return;
+		}
+
+		// Safe process.env access with fallback
+		const nodeEnv = (globalThis as { process?: NodeJS.Process }).process?.env
+			?.NODE_ENV;
+
 		// Skip telemetry initialization in test environment to avoid config validation issues
-		if (process.env.NODE_ENV === "test") {
+		if (nodeEnv === "test") {
 			console.log("Skipping telemetry initialization in test environment");
 			return;
 		}

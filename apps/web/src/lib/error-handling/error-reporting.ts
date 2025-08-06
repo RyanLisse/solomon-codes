@@ -41,9 +41,9 @@ export class ErrorReportingService {
 	private logger: ReturnType<typeof createContextLogger> | null = null;
 	private config: ErrorReportingConfig;
 	private errorBuffer: ErrorReport[] = [];
-	private errorCounts = new Map<string, number>();
-	private errorFirstSeen = new Map<string, string>();
-	private errorLastSeen = new Map<string, string>();
+	private readonly errorCounts = new Map<string, number>();
+	private readonly errorFirstSeen = new Map<string, string>();
+	private readonly errorLastSeen = new Map<string, string>();
 	private flushTimer: NodeJS.Timeout | null = null;
 	private initialized = false;
 
@@ -68,7 +68,7 @@ export class ErrorReportingService {
 	/**
 	 * Initialize the error reporting service
 	 */
-	initialize(): void {
+	async initialize(): Promise<void> {
 		if (this.initialized) {
 			this.getLogger().debug("Error reporting service already initialized");
 			return;
@@ -76,7 +76,8 @@ export class ErrorReportingService {
 
 		try {
 			const configService = getConfigurationService();
-			const environment = configService.getServerConfig().environment;
+			const serverConfig = await configService.getServerConfig();
+			const environment = serverConfig.environment;
 
 			// Adjust sampling rate based on environment
 			if (environment === "development") {
@@ -211,7 +212,7 @@ export class ErrorReportingService {
 		// In a real implementation, this would send to an external service like Sentry
 		const telemetryService = getTelemetryService();
 
-		if (telemetryService.isEnabled()) {
+		if (await telemetryService.isEnabled()) {
 			// Send to OpenTelemetry
 			for (const error of errors) {
 				this.sendToTelemetry(error);

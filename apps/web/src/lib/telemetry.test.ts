@@ -66,15 +66,15 @@ describe("Telemetry Configuration Integration", () => {
 		expect(enabled).toBe(false);
 	});
 
-	it("should include hostname when available", () => {
+	it("should include hostname when available", async () => {
 		process.env.HOSTNAME = "test-host";
 		resetTelemetryService(); // Reset to pick up new environment variable
 
-		const config = getTelemetryConfig();
+		const config = await getTelemetryConfig();
 		expect(config.resourceAttributes["service.instance.id"]).toBe("test-host");
 	});
 
-	it("should handle configuration service errors gracefully", () => {
+	it("should handle configuration service errors gracefully", async () => {
 		// Mock configuration service to throw an error
 		const mockedConfigService = vi.mocked(
 			configService.getConfigurationService,
@@ -83,7 +83,7 @@ describe("Telemetry Configuration Integration", () => {
 			throw new Error("Configuration service error");
 		});
 
-		const config = getTelemetryConfig();
+		const config = await getTelemetryConfig();
 
 		// Should return fallback configuration
 		expect(config.isEnabled).toBe(false);

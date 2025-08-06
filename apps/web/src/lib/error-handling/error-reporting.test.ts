@@ -380,7 +380,7 @@ describe("ErrorReportingService", () => {
 				isEnabled: () => {
 					throw new Error("Telemetry error");
 				},
-				getConfig: vi.fn(() => ({
+				getConfig: vi.fn(async () => ({
 					isEnabled: true,
 					endpoint: "http://localhost:4317",
 					serviceName: "test-service",
