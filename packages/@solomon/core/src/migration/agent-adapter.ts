@@ -7,6 +7,14 @@ import { StateGraph } from '@langchain/langgraph';
 import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
 import type { UnifiedState } from '../state/unified-state';
 import type { WorkerInstance } from '../types/swarm-types';
+import { 
+  ManagerAgent,
+  PlannerAgent,
+  ProgrammerAgent,
+  ReviewerAgent,
+  AgentFactory,
+  MigrationUtils 
+} from './agents';
 
 /**
  * Legacy agent interface (Solomon Codes)
@@ -234,6 +242,70 @@ export class AgentMigrationManager {
   clear(): void {
     this.adapters.clear();
     this.migrationStatus.clear();
+  }
+
+  /**
+   * Create a native LangGraph agent directly
+   */
+  createNativeAgent(type: 'manager' | 'planner' | 'programmer' | 'reviewer'): ModernAgent {
+    const nativeAgent = AgentFactory.createAgent(type);
+    
+    // Wrap native agent in ModernAgent interface
+    const modernAgent: ModernAgent = {
+      id: `native-${type}-${Date.now()}`,
+      type: this.mapNativeType(type),
+      status: 'idle',
+      capabilities: this.getNativeCapabilities(type),
+      
+      execute: async (task: any) => {
+        return nativeAgent.execute(task);
+      },
+      
+      terminate: async () => {
+        if ('terminate' in nativeAgent) {
+          await (nativeAgent as any).terminate();
+        }
+      },
+      
+      invoke: async (input: any) => {
+        return nativeAgent.execute(input);
+      },
+      
+      graph: (nativeAgent as any).graph,
+    };
+    
+    return modernAgent;
+  }
+
+  /**
+   * Map native agent type to modern worker type
+   */
+  private mapNativeType(type: string): string {
+    const typeMap: Record<string, string> = {
+      'manager': 'queen',
+      'planner': 'strategic',
+      'programmer': 'implementation',
+      'reviewer': 'quality',
+    };
+    return typeMap[type] || 'worker';
+  }
+
+  /**
+   * Get native agent capabilities
+   */
+  private getNativeCapabilities(type: string): string[] {
+    switch (type) {
+      case 'manager':
+        return ['coordination', 'delegation', 'decision-making', 'team-management'];
+      case 'planner':
+        return ['strategic_planning', 'risk_assessment', 'resource_allocation'];
+      case 'programmer':
+        return ['coding', 'testing', 'debugging', 'refactoring'];
+      case 'reviewer':
+        return ['code_review', 'security_analysis', 'performance_analysis', 'quality_assurance'];
+      default:
+        return ['general'];
+    }
   }
 }
 

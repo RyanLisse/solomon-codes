@@ -125,21 +125,20 @@ export class SwarmCoordinator {
    * Spawn agents for a specific task
    */
   async spawnAgentsForTask(task: Task): Promise<WorkerInstance[]> {
+    // Queen analyzes the task first
+    const analysis = await this.queenAgent.analyzeTask(task);
+    const { agentCount, agentTypes } = analysis;
+    
     // Use a simple locking mechanism to ensure thread-safe spawning
     return new Promise<WorkerInstance[]>(async (resolve) => {
       const executeSpawn = async () => {
-        // Queen analyzes the task
-        const analysis = await this.queenAgent.analyzeTask(task);
-        const { agentCount, agentTypes } = analysis;
-
         // Check agent limits with current state
         const currentAgentCount = this.activeWorkers.size;
         const availableSlots = this.maxAgents - currentAgentCount;
         
         // If no slots available, return empty array
         if (availableSlots <= 0) {
-          resolve([]);
-          return;
+          return [];
         }
         
         const agentsToSpawn = Math.min(agentCount, availableSlots);
@@ -154,6 +153,10 @@ export class SwarmCoordinator {
           let worker: WorkerInstance;
           
           if (this.useAgentPool && this.agentPool) {
+            // Check if we're at max limit before acquiring from pool
+            if (this.activeWorkers.size >= this.maxAgents) {
+              break; // Stop spawning if at limit
+            }
             // Use agent pool for better performance
             worker = await this.agentPool.acquire(agentType, capabilities);
           } else {
@@ -170,21 +173,31 @@ export class SwarmCoordinator {
           spawnedAgents.push(worker);
         }
 
-        resolve(spawnedAgents);
+        return spawnedAgents;
       };
 
       // Queue the spawn request
       if (this.spawnLock) {
-        this.spawnQueue.push(executeSpawn);
+        this.spawnQueue.push(() => executeSpawn().then(resolve));
       } else {
         this.spawnLock = true;
-        await executeSpawn();
+        const result = await executeSpawn();
+        resolve(result);
         this.spawnLock = false;
         
         // Process queued spawns
-        while (this.spawnQueue.length > 0) {
+        while (this.spawnQueue.length > 0 && this.activeWorkers.size < this.maxAgents) {
           const nextSpawn = this.spawnQueue.shift();
           if (nextSpawn) {
+            await nextSpawn();
+          }
+        }
+        
+        // Resolve any remaining queued spawns with empty arrays if we're at capacity
+        while (this.spawnQueue.length > 0 && this.activeWorkers.size >= this.maxAgents) {
+          const nextSpawn = this.spawnQueue.shift();
+          if (nextSpawn) {
+            // Execute to resolve with empty array
             await nextSpawn();
           }
         }
