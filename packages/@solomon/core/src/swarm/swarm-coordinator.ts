@@ -15,6 +15,7 @@ import type {
   WorkerInstance,
   ConsensusResult,
 } from '../types/swarm-types';
+import { AgentPool, type PooledAgent } from './agent-pool';
 
 export interface SwarmCoordinatorConfig {
   stateGraph?: StateGraph<HiveMindState>;
@@ -23,6 +24,12 @@ export interface SwarmCoordinatorConfig {
   consensusEngine: ConsensusEngineCapabilities;
   topologyManager: TopologyManagerCapabilities;
   maxAgents?: number;
+  useAgentPool?: boolean;
+  poolConfig?: {
+    minSize?: number;
+    maxSize?: number;
+    idleTimeout?: number;
+  };
 }
 
 export interface Task {
@@ -50,6 +57,12 @@ export class SwarmCoordinator {
   private maxAgents: number;
   private activeWorkers: Map<string, WorkerInstance> = new Map();
   private initialized = false;
+  private spawnLock = false;
+  private spawnQueue: Array<() => Promise<void>> = [];
+  private agentPool?: AgentPool;
+  private useAgentPool: boolean;
+  private consensusCache: Map<string, { result: ConsensusResult; timestamp: number }> = new Map();
+  private readonly CONSENSUS_CACHE_TTL = 30000; // 30 seconds
 
   constructor(config: SwarmCoordinatorConfig) {
     this.queenAgent = config.queenAgent;
@@ -58,6 +71,16 @@ export class SwarmCoordinator {
     this.topologyManager = config.topologyManager;
     this.stateGraph = config.stateGraph;
     this.maxAgents = config.maxAgents || 8;
+    this.useAgentPool = config.useAgentPool || false;
+
+    // Initialize agent pool if enabled
+    if (this.useAgentPool) {
+      this.agentPool = new AgentPool({
+        minSize: config.poolConfig?.minSize || 2,
+        maxSize: config.poolConfig?.maxSize || this.maxAgents,
+        idleTimeout: config.poolConfig?.idleTimeout || 60000,
+      });
+    }
 
     // Initialize with default topology
     this.topologyManager.setTopology('hierarchical');
@@ -102,39 +125,71 @@ export class SwarmCoordinator {
    * Spawn agents for a specific task
    */
   async spawnAgentsForTask(task: Task): Promise<WorkerInstance[]> {
-    // Queen analyzes the task
-    const analysis = await this.queenAgent.analyzeTask(task);
-    const { agentCount, agentTypes } = analysis;
+    // Use a simple locking mechanism to ensure thread-safe spawning
+    return new Promise<WorkerInstance[]>(async (resolve) => {
+      const executeSpawn = async () => {
+        // Queen analyzes the task
+        const analysis = await this.queenAgent.analyzeTask(task);
+        const { agentCount, agentTypes } = analysis;
 
-    // Check agent limits
-    const currentAgentCount = this.activeWorkers.size;
-    const availableSlots = this.maxAgents - currentAgentCount;
-    
-    // If no slots available, return empty array
-    if (availableSlots <= 0) {
-      return [];
-    }
-    
-    const agentsToSpawn = Math.min(agentCount, availableSlots);
+        // Check agent limits with current state
+        const currentAgentCount = this.activeWorkers.size;
+        const availableSlots = this.maxAgents - currentAgentCount;
+        
+        // If no slots available, return empty array
+        if (availableSlots <= 0) {
+          resolve([]);
+          return;
+        }
+        
+        const agentsToSpawn = Math.min(agentCount, availableSlots);
 
-    const spawnedAgents: WorkerInstance[] = [];
+        const spawnedAgents: WorkerInstance[] = [];
 
-    // Spawn workers based on analysis
-    for (let i = 0; i < agentsToSpawn; i++) {
-      const agentType = agentTypes[i % agentTypes.length];
-      const agentId = `worker-${uuid()}`;
-      
-      const worker = await this.workerAgent.spawn({
-        id: agentId,
-        type: agentType,
-        capabilities: this.getCapabilitiesForType(agentType),
-      });
+        // Spawn workers based on analysis
+        for (let i = 0; i < agentsToSpawn; i++) {
+          const agentType = agentTypes[i % agentTypes.length];
+          const capabilities = this.getCapabilitiesForType(agentType);
+          
+          let worker: WorkerInstance;
+          
+          if (this.useAgentPool && this.agentPool) {
+            // Use agent pool for better performance
+            worker = await this.agentPool.acquire(agentType, capabilities);
+          } else {
+            // Traditional spawning
+            const agentId = `worker-${uuid()}`;
+            worker = await this.workerAgent.spawn({
+              id: agentId,
+              type: agentType,
+              capabilities,
+            });
+          }
 
-      this.activeWorkers.set(agentId, worker);
-      spawnedAgents.push(worker);
-    }
+          this.activeWorkers.set(worker.id, worker);
+          spawnedAgents.push(worker);
+        }
 
-    return spawnedAgents;
+        resolve(spawnedAgents);
+      };
+
+      // Queue the spawn request
+      if (this.spawnLock) {
+        this.spawnQueue.push(executeSpawn);
+      } else {
+        this.spawnLock = true;
+        await executeSpawn();
+        this.spawnLock = false;
+        
+        // Process queued spawns
+        while (this.spawnQueue.length > 0) {
+          const nextSpawn = this.spawnQueue.shift();
+          if (nextSpawn) {
+            await nextSpawn();
+          }
+        }
+      }
+    });
   }
 
   /**
@@ -145,7 +200,7 @@ export class SwarmCoordinator {
   }
 
   /**
-   * Build consensus for a decision
+   * Build consensus for a decision with caching
    */
   async buildConsensus(decision: Decision): Promise<ConsensusResult> {
     // Ensure decision has an ID
@@ -153,11 +208,31 @@ export class SwarmCoordinator {
       decision.id = `decision-${uuid()}`;
     }
 
+    // Check cache for recent consensus on similar decisions
+    const cacheKey = `${decision.type}-${decision.proposal}-${decision.severity}`;
+    const cached = this.consensusCache.get(cacheKey);
+    
+    if (cached && (Date.now() - cached.timestamp) < this.CONSENSUS_CACHE_TTL) {
+      // Return cached result if still valid
+      return cached.result;
+    }
+
     // Collect votes from agents
     const votes = await this.consensusEngine.collectVotes(decision);
     
     // Calculate consensus
     const result = this.consensusEngine.calculateConsensus(votes);
+    
+    // Cache the result
+    this.consensusCache.set(cacheKey, {
+      result,
+      timestamp: Date.now(),
+    });
+    
+    // Clean old cache entries periodically
+    if (this.consensusCache.size > 100) {
+      this.cleanConsensusCache();
+    }
     
     // Record decision with queen
     this.queenAgent.recordDecision({
@@ -167,6 +242,18 @@ export class SwarmCoordinator {
     });
 
     return result;
+  }
+
+  /**
+   * Clean old entries from consensus cache
+   */
+  private cleanConsensusCache(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.consensusCache) {
+      if (now - entry.timestamp > this.CONSENSUS_CACHE_TTL) {
+        this.consensusCache.delete(key);
+      }
+    }
   }
 
   /**
@@ -232,11 +319,44 @@ export class SwarmCoordinator {
    * Shutdown the coordinator
    */
   async shutdown(): Promise<void> {
+    // Clear agent pool if used
+    if (this.agentPool) {
+      await this.agentPool.clear();
+    }
+    
     // Terminate all workers
     for (const [id, worker] of this.activeWorkers) {
-      await worker.terminate();
+      // Release pooled agents back to pool
+      if (this.useAgentPool && this.agentPool && 'poolId' in worker) {
+        this.agentPool.release(worker.id);
+      } else {
+        await worker.terminate();
+      }
     }
+    
     this.activeWorkers.clear();
+    this.consensusCache.clear();
     this.initialized = false;
+  }
+
+  /**
+   * Get performance metrics
+   */
+  getMetrics() {
+    const baseMetrics = {
+      activeWorkers: this.activeWorkers.size,
+      maxAgents: this.maxAgents,
+      consensusCacheSize: this.consensusCache.size,
+      topology: this.topologyManager.getCurrentTopology(),
+    };
+
+    if (this.agentPool) {
+      return {
+        ...baseMetrics,
+        pool: this.agentPool.getMetrics(),
+      };
+    }
+
+    return baseMetrics;
   }
 }

@@ -8,7 +8,9 @@
 		"build": "tsc",
 		"test": "vitest",
 		"test:watch": "vitest watch",
+		"test:coverage": "vitest --coverage",
 		"lint": "eslint src --ext .ts",
+		"typecheck": "tsc --noEmit",
 		"type-check": "tsc --noEmit"
 	},
 	"dependencies": {

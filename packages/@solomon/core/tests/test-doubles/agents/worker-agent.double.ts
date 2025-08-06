@@ -54,8 +54,23 @@ export const createWorkerAgentDouble = (overrides?: Partial<WorkerAgentCapabilit
 
   // Add test helper methods
   (double as any).__testHelpers = {
-    givenSpawnReturns: (instance: WorkerInstance) => {
-      double.spawn.mockResolvedValue(instance);
+    givenSpawnReturns: (instance: WorkerInstance | (() => WorkerInstance)) => {
+      if (typeof instance === 'function') {
+        double.spawn.mockImplementation(async () => {
+          const workerInstance = instance();
+          // Ensure terminate method exists
+          if (!workerInstance.terminate) {
+            workerInstance.terminate = vi.fn().mockResolvedValue(undefined);
+          }
+          return workerInstance;
+        });
+      } else {
+        // Ensure terminate method exists
+        if (!instance.terminate) {
+          instance.terminate = vi.fn().mockResolvedValue(undefined);
+        }
+        double.spawn.mockResolvedValue(instance);
+      }
     },
     givenExecuteReturns: (result: any) => {
       double.execute.mockResolvedValue(result);
