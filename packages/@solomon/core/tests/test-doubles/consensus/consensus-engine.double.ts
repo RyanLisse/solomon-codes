@@ -3,102 +3,135 @@
  * TDD London School - Mock implementation for Byzantine fault-tolerant consensus
  */
 
-import { vi, expect } from 'vitest';
-import { mockDeep } from 'vitest-mock-extended';
+import { expect, vi } from "vitest";
+import { mockDeep } from "vitest-mock-extended";
 
 export interface ConsensusVote {
-  agentId: string;
-  vote: 'approve' | 'reject' | 'abstain';
-  confidence: number;
-  timestamp?: string;
+	agentId: string;
+	vote: "approve" | "reject" | "abstain";
+	confidence: number;
+	timestamp?: string;
 }
 
 export interface ConsensusResult {
-  result: 'approved' | 'rejected' | 'pending';
-  confidence: number;
-  voteSummary: {
-    approve: number;
-    reject: number;
-    abstain: number;
-  };
-  quorumReached: boolean;
+	result: "approved" | "rejected" | "pending";
+	confidence: number;
+	voteSummary: {
+		approve: number;
+		reject: number;
+		abstain: number;
+	};
+	quorumReached: boolean;
+}
+
+// Define proper types for decisions
+export interface ConsensusDecision {
+	id: string;
+	type: string;
+	description: string;
+	context?: unknown;
+	[key: string]: unknown;
 }
 
 export interface ConsensusEngineCapabilities {
-  collectVotes: (decision: any) => Promise<ConsensusVote[]>;
-  calculateConsensus: (votes: ConsensusVote[]) => ConsensusResult;
-  setQuorumThreshold: (threshold: number) => void;
-  detectMaliciousAgents: (votes: ConsensusVote[]) => string[];
-  recordConsensus: (decision: any, result: ConsensusResult) => void;
+	collectVotes: (decision: ConsensusDecision) => Promise<ConsensusVote[]>;
+	calculateConsensus: (votes: ConsensusVote[]) => ConsensusResult;
+	setQuorumThreshold: (threshold: number) => void;
+	detectMaliciousAgents: (votes: ConsensusVote[]) => string[];
+	recordConsensus: (decision: ConsensusDecision, result: ConsensusResult) => void;
 }
 
-export const createConsensusEngineDouble = (overrides?: Partial<ConsensusEngineCapabilities>) => {
-  let quorumThreshold = 0.66; // 2/3 majority by default
-  
-  const double = mockDeep<ConsensusEngineCapabilities>({
-    collectVotes: vi.fn().mockResolvedValue([
-      { agentId: 'agent-1', vote: 'approve', confidence: 0.9 },
-      { agentId: 'agent-2', vote: 'approve', confidence: 0.85 },
-      { agentId: 'agent-3', vote: 'reject', confidence: 0.7 },
-    ]),
-    calculateConsensus: vi.fn().mockImplementation((votes: ConsensusVote[]) => {
-      const voteSummary = votes.reduce(
-        (acc, vote) => {
-          acc[vote.vote]++;
-          return acc;
-        },
-        { approve: 0, reject: 0, abstain: 0 }
-      );
-      
-      const totalVotes = votes.length;
-      const approvalRatio = voteSummary.approve / totalVotes;
-      const avgConfidence = votes.reduce((sum, v) => sum + v.confidence, 0) / totalVotes;
-      
-      return {
-        result: approvalRatio >= quorumThreshold ? 'approved' : 'rejected',
-        confidence: avgConfidence,
-        voteSummary,
-        quorumReached: totalVotes >= 3, // Minimum 3 votes for quorum
-      };
-    }),
-    setQuorumThreshold: vi.fn().mockImplementation((threshold: number) => {
-      quorumThreshold = threshold;
-    }),
-    detectMaliciousAgents: vi.fn().mockReturnValue([]),
-    recordConsensus: vi.fn(),
-    ...overrides,
-  });
+export const createConsensusEngineDouble = (
+	overrides?: Partial<ConsensusEngineCapabilities>,
+) => {
+	let quorumThreshold = 0.66; // 2/3 majority by default
 
-  // Add test helper methods
-  (double as any).__testHelpers = {
-    givenVotesReturn: (votes: ConsensusVote[]) => {
-      double.collectVotes.mockResolvedValue(votes);
-    },
-    givenConsensusResult: (result: ConsensusResult) => {
-      double.calculateConsensus.mockReturnValue(result);
-    },
-    givenConsensusReturns: (result: Partial<ConsensusResult>) => {
-      double.calculateConsensus.mockReturnValue({
-        result: result.result || 'approved',
-        confidence: result.confidence || 0.85,
-        voteSummary: result.voteSummary || { approve: result.votes || 3, reject: 1, abstain: 0 },
-        quorumReached: result.quorumReached !== undefined ? result.quorumReached : true,
-      } as ConsensusResult);
-    },
-    givenMaliciousAgents: (agentIds: string[]) => {
-      double.detectMaliciousAgents.mockReturnValue(agentIds);
-    },
-    assertVotesCollectedFor: (decision: any) => {
-      expect(double.collectVotes).toHaveBeenCalledWith(decision);
-    },
-    assertConsensusCalculated: () => {
-      expect(double.calculateConsensus).toHaveBeenCalled();
-    },
-    assertQuorumThresholdSet: (threshold: number) => {
-      expect(double.setQuorumThreshold).toHaveBeenCalledWith(threshold);
-    },
-    getCurrentQuorumThreshold: () => quorumThreshold,
-  };
+	const double = mockDeep<ConsensusEngineCapabilities>({
+		collectVotes: vi.fn().mockResolvedValue([
+			{ agentId: "agent-1", vote: "approve", confidence: 0.9 },
+			{ agentId: "agent-2", vote: "approve", confidence: 0.85 },
+			{ agentId: "agent-3", vote: "reject", confidence: 0.7 },
+		]),
+		calculateConsensus: vi.fn().mockImplementation((votes: ConsensusVote[]) => {
+			const voteSummary = votes.reduce(
+				(acc, vote) => {
+					acc[vote.vote]++;
+					return acc;
+				},
+				{ approve: 0, reject: 0, abstain: 0 },
+			);
 
-  return double;
+			const totalVotes = votes.length;
+			const approvalRatio = voteSummary.approve / totalVotes;
+			const avgConfidence =
+				votes.reduce((sum, v) => sum + v.confidence, 0) / totalVotes;
+
+			return {
+				result: approvalRatio >= quorumThreshold ? "approved" : "rejected",
+				confidence: avgConfidence,
+				voteSummary,
+				quorumReached: totalVotes >= 3, // Minimum 3 votes for quorum
+			};
+		}),
+		setQuorumThreshold: vi.fn().mockImplementation((threshold: number) => {
+			quorumThreshold = threshold;
+		}),
+		detectMaliciousAgents: vi.fn().mockReturnValue([]),
+		recordConsensus: vi.fn(),
+		...overrides,
+	});
+
+	// Define interface for double with test helpers
+	interface ConsensusEngineDoubleWithHelpers extends ConsensusEngineCapabilities {
+		__testHelpers: {
+			givenVotesReturn: (votes: ConsensusVote[]) => void;
+			givenConsensusResult: (result: ConsensusResult) => void;
+			givenConsensusReturns: (result: Partial<ConsensusResult>) => void;
+			givenMaliciousAgents: (agentIds: string[]) => void;
+			assertVotesCollectedFor: (decision: ConsensusDecision) => void;
+			assertConsensusCalculated: () => void;
+			assertQuorumThresholdSet: (threshold: number) => void;
+			getCurrentQuorumThreshold: () => number;
+		};
+	}
+
+	// Add test helper methods with proper typing
+	const enhancedDouble = double as ConsensusEngineDoubleWithHelpers;
+	
+	enhancedDouble.__testHelpers = {
+		givenVotesReturn: (votes: ConsensusVote[]) => {
+			double.collectVotes.mockResolvedValue(votes);
+		},
+		givenConsensusResult: (result: ConsensusResult) => {
+			double.calculateConsensus.mockReturnValue(result);
+		},
+		givenConsensusReturns: (result: Partial<ConsensusResult>) => {
+			double.calculateConsensus.mockReturnValue({
+				result: result.result || "approved",
+				confidence: result.confidence || 0.85,
+				voteSummary: result.voteSummary || {
+					approve: 3,
+					reject: 1,
+					abstain: 0,
+				},
+				quorumReached:
+					result.quorumReached !== undefined ? result.quorumReached : true,
+			} as ConsensusResult);
+		},
+		givenMaliciousAgents: (agentIds: string[]) => {
+			double.detectMaliciousAgents.mockReturnValue(agentIds);
+		},
+		assertVotesCollectedFor: (decision: ConsensusDecision) => {
+			expect(double.collectVotes).toHaveBeenCalledWith(decision);
+		},
+		assertConsensusCalculated: () => {
+			expect(double.calculateConsensus).toHaveBeenCalled();
+		},
+		assertQuorumThresholdSet: (threshold: number) => {
+			expect(double.setQuorumThreshold).toHaveBeenCalledWith(threshold);
+		},
+		getCurrentQuorumThreshold: () => quorumThreshold,
+	};
+
+	return enhancedDouble;
 };

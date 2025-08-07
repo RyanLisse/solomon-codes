@@ -48,7 +48,13 @@ export async function GET(request: NextRequest) {
 	);
 
 	// Setup event listeners
-	const tunnelStartedHandler = (result: any) => {
+	interface TunnelResult {
+		service: string;
+		url?: string;
+		error?: string;
+	}
+
+	const tunnelStartedHandler = (result: TunnelResult) => {
 		socket.send(
 			JSON.stringify({
 				type: "tunnel:connected",
@@ -65,7 +71,7 @@ export async function GET(request: NextRequest) {
 		);
 	};
 
-	const tunnelFailedHandler = (result: any) => {
+	const tunnelFailedHandler = (result: TunnelResult) => {
 		socket.send(
 			JSON.stringify({
 				type: "tunnel:error",
