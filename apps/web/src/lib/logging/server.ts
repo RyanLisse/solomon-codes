@@ -4,16 +4,7 @@
  */
 
 import winston from "winston";
-import { getStdout } from "../utils/runtime";
-import {
-	getDefaultLoggerConfig,
-	getTransportConfig,
-	validateLoggerConfig,
-} from "./config";
-import {
-	createOpenTelemetryFormat,
-	OpenTelemetryTransport,
-} from "./transports/opentelemetry";
+import { createOpenTelemetryFormat } from "./transports/opentelemetry";
 import type { Logger, LoggerConfig, LogMetadata } from "./types";
 import { createCorrelationMetadata } from "./utils/correlation";
 import {

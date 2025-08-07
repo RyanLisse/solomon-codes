@@ -1,4 +1,5 @@
 import {
+	Brain,
 	ChevronDown,
 	Cloud,
 	FileText,
@@ -28,6 +29,11 @@ const navigationItems = [
 		url: "/",
 		icon: Home,
 		isActive: true,
+	},
+	{
+		title: "Swarm Control",
+		url: "/swarm",
+		icon: Brain,
 	},
 	{
 		title: "Automations",
