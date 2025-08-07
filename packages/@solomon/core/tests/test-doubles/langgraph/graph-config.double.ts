@@ -7,17 +7,37 @@ import { expect, vi } from "vitest";
 import { mockDeep } from "vitest-mock-extended";
 import type { HiveMindState } from "../../../src/state/unified-state";
 
+// Define proper action and schema types
+export type GraphNodeAction = (
+	input: Record<string, unknown>,
+) => Promise<Record<string, unknown>> | Record<string, unknown>;
+
+export type GraphEdgeCondition = (state: Record<string, unknown>) => boolean;
+
+export interface SchemaDefinition {
+	type: string;
+	properties?: Record<string, unknown>;
+	required?: string[];
+}
+
+export interface CompiledGraph {
+	nodes: string[];
+	edges: Array<{ from: string; to: string }>;
+	entryPoint: string | null;
+	exitPoints: string[];
+}
+
 export interface GraphNode {
 	name: string;
-	action: Function;
-	inputSchema?: any;
-	outputSchema?: any;
+	action: GraphNodeAction;
+	inputSchema?: SchemaDefinition;
+	outputSchema?: SchemaDefinition;
 }
 
 export interface GraphEdge {
 	from: string;
 	to: string;
-	condition?: Function;
+	condition?: GraphEdgeCondition;
 }
 
 export interface GraphConfigCapabilities {
@@ -44,22 +64,25 @@ export interface GraphConfigCapabilities {
 	hasCircularDependencies(): boolean;
 
 	// State schema management
-	defineStateSchema(schema: any): void;
-	getStateSchema(): any;
-	validateState(state: Partial<HiveMindState>): { valid: boolean; errors: string[] };
+	defineStateSchema(schema: SchemaDefinition): void;
+	getStateSchema(): SchemaDefinition | null;
+	validateState(state: Partial<HiveMindState>): {
+		valid: boolean;
+		errors: string[];
+	};
 
 	// Graph compilation
-	compile(): any;
+	compile(): CompiledGraph;
 	reset(): void;
 	clone(): GraphConfigCapabilities;
 }
 
 export interface MockGraphConfigHelpers {
 	// Setup behaviors
-	givenNodeExists(name: string, action?: Function): void;
+	givenNodeExists(name: string, action?: GraphNodeAction): void;
 	givenEdgeExists(from: string, to: string): void;
 	givenValidationReturns(valid: boolean, errors?: string[]): void;
-	givenCompilationReturns(result: any): void;
+	givenCompilationReturns(result: CompiledGraph): void;
 	givenCompilationFails(error: Error): void;
 
 	// Verification helpers
@@ -84,9 +107,9 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 	const edges: GraphEdge[] = [];
 	let entryPoint: string | null = null;
 	let exitPoints: string[] = [];
-	let stateSchema: any = null;
+	let stateSchema: SchemaDefinition | null = null;
 	let mockValidationResult = { valid: true, errors: [] };
-	let mockCompilationResult: any = null;
+	let mockCompilationResult: CompiledGraph | null = null;
 	let mockCompilationError: Error | null = null;
 	const validationHistory: Array<{ valid: boolean; errors: string[] }> = [];
 
@@ -99,9 +122,12 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 		nodes.delete(name);
 		// Also remove any edges involving this node
 		const edgeIndicesToRemove = edges
-			.map((edge, index) => (edge.from === name || edge.to === name ? index : -1))
+			.map((edge, index) =>
+				edge.from === name || edge.to === name ? index : -1,
+			)
 			.filter((index) => index !== -1);
-		edgeIndicesToRemove.reverse().forEach((index) => edges.splice(index, 1));
+		const reversedIndices = edgeIndicesToRemove.toReversed();
+		reversedIndices.forEach((index) => edges.splice(index, 1));
 	});
 
 	mock.getNode.mockImplementation((name: string) => {
@@ -118,7 +144,9 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 	});
 
 	mock.removeEdge.mockImplementation((from: string, to: string) => {
-		const index = edges.findIndex((edge) => edge.from === from && edge.to === to);
+		const index = edges.findIndex(
+			(edge) => edge.from === from && edge.to === to,
+		);
 		if (index !== -1) {
 			edges.splice(index, 1);
 		}
@@ -152,13 +180,16 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 	});
 
 	mock.isNodeReachable.mockImplementation((nodeName: string) => {
-		return nodes.has(nodeName) && (entryPoint === nodeName || edges.some((edge) => edge.to === nodeName));
+		return (
+			nodes.has(nodeName) &&
+			(entryPoint === nodeName || edges.some((edge) => edge.to === nodeName))
+		);
 	});
 
 	mock.hasCircularDependencies.mockReturnValue(false);
 
 	// Configure state schema
-	mock.defineStateSchema.mockImplementation((schema: any) => {
+	mock.defineStateSchema.mockImplementation((schema: SchemaDefinition) => {
 		stateSchema = schema;
 	});
 
@@ -173,12 +204,14 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 		if (mockCompilationError) {
 			throw mockCompilationError;
 		}
-		return mockCompilationResult || {
-			nodes: Array.from(nodes.keys()),
-			edges: edges.map((e) => ({ from: e.from, to: e.to })),
-			entryPoint,
-			exitPoints,
-		};
+		return (
+			mockCompilationResult || {
+				nodes: Array.from(nodes.keys()),
+				edges: edges.map((e) => ({ from: e.from, to: e.to })),
+				entryPoint,
+				exitPoints,
+			}
+		);
 	});
 
 	mock.reset.mockImplementation(() => {
@@ -192,7 +225,7 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 	mock.clone.mockImplementation(() => {
 		const clone = createGraphConfigDouble();
 		// Copy all configuration to the clone
-		for (const [name, node] of nodes) {
+		for (const [_name, node] of nodes) {
 			clone.defineNode({ ...node });
 		}
 		edges.forEach((edge) => clone.defineEdge({ ...edge }));
@@ -203,10 +236,10 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 	});
 
 	const testHelpers: MockGraphConfigHelpers = {
-		givenNodeExists: (name: string, action?: Function) => {
+		givenNodeExists: (name: string, action?: GraphNodeAction) => {
 			const node: GraphNode = {
 				name,
-				action: action || vi.fn(),
+				action: action || (vi.fn() as GraphNodeAction),
 			};
 			nodes.set(name, node);
 		},
@@ -219,7 +252,7 @@ export function createGraphConfigDouble(): GraphConfigCapabilities & {
 			mockValidationResult = { valid, errors };
 		},
 
-		givenCompilationReturns: (result: any) => {
+		givenCompilationReturns: (result: CompiledGraph) => {
 			mockCompilationResult = result;
 			mockCompilationError = null;
 		},

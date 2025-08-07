@@ -190,8 +190,8 @@ test.describe("Service Worker Comprehensive Test Suite", () => {
 
 					return {
 						success: true,
-						initialCount: initialCaches.length,
-						finalCount: finalCaches.length,
+						initialCount: initialCaches?.length ?? 0,
+						finalCount: finalCaches?.length ?? 0,
 						deletedCache: !finalCaches.includes("test-cache-1"),
 					};
 				} catch (error) {
@@ -204,7 +204,13 @@ test.describe("Service Worker Comprehensive Test Suite", () => {
 
 			expect(cacheResult.success).toBe(true);
 			expect(cacheResult.deletedCache).toBe(true);
-			expect(cacheResult.finalCount).toBeLessThan(cacheResult.initialCount);
+			if (
+				cacheResult.success &&
+				typeof cacheResult.finalCount === "number" &&
+				typeof cacheResult.initialCount === "number"
+			) {
+				expect(cacheResult.finalCount).toBeLessThan(cacheResult.initialCount);
+			}
 		});
 	});
 
@@ -362,7 +368,8 @@ test.describe("Service Worker Comprehensive Test Suite", () => {
 					// Wait for installation to complete (or fail)
 					if (registration.installing) {
 						await new Promise<void>((resolve, _reject) => {
-							const worker = registration.installing!;
+							const worker = registration.installing;
+							if (!worker) return resolve();
 							worker.addEventListener("statechange", () => {
 								if (
 									worker.state === "activated" ||
@@ -607,8 +614,11 @@ test.describe("Service Worker Comprehensive Test Suite", () => {
 			await page.goto("/");
 
 			const memoryTestResult = await page.evaluate(async () => {
-				const initialMemory = (performance as any).memory
-					? (performance as any).memory.usedJSHeapSize
+				const initialMemory = (
+					performance as unknown as { memory?: { usedJSHeapSize: number } }
+				).memory
+					? (performance as unknown as { memory: { usedJSHeapSize: number } })
+							.memory.usedJSHeapSize
 					: 0;
 
 				try {
@@ -619,9 +629,16 @@ test.describe("Service Worker Comprehensive Test Suite", () => {
 						await registration.unregister();
 					}
 
-					const finalMemory = (performance as any).memory
-						? (performance as any).memory.usedJSHeapSize
-						: 0;
+					interface PerformanceWithMemory extends Performance {
+						memory?: {
+							usedJSHeapSize: number;
+							totalJSHeapSize: number;
+							jsHeapSizeLimit: number;
+						};
+					}
+
+					const perfWithMemory = performance as PerformanceWithMemory;
+					const finalMemory = perfWithMemory.memory?.usedJSHeapSize ?? 0;
 					const memoryDiff = finalMemory - initialMemory;
 
 					return {

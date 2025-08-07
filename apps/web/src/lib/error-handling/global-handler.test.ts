@@ -107,9 +107,9 @@ describe("GlobalErrorHandler", () => {
 	});
 
 	describe("Error Categorization", () => {
-		it("should categorize configuration errors", () => {
+		it("should categorize configuration errors", async () => {
 			const error = new Error("Configuration validation failed");
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 
 			expect(report.categorization).toEqual({
 				type: "system",
@@ -120,9 +120,9 @@ describe("GlobalErrorHandler", () => {
 			});
 		});
 
-		it("should categorize database errors", () => {
+		it("should categorize database errors", async () => {
 			const error = new Error("Database connection timeout");
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 
 			expect(report.categorization).toEqual({
 				type: "external",
@@ -133,9 +133,9 @@ describe("GlobalErrorHandler", () => {
 			});
 		});
 
-		it("should categorize network errors", () => {
+		it("should categorize network errors", async () => {
 			const error = new Error("Network fetch failed");
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 
 			expect(report.categorization).toEqual({
 				type: "external",
@@ -146,9 +146,9 @@ describe("GlobalErrorHandler", () => {
 			});
 		});
 
-		it("should categorize validation errors", () => {
+		it("should categorize validation errors", async () => {
 			const error = new Error("Invalid email format");
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 
 			expect(report.categorization).toEqual({
 				type: "user",
@@ -159,9 +159,9 @@ describe("GlobalErrorHandler", () => {
 			});
 		});
 
-		it("should categorize authentication errors", () => {
+		it("should categorize authentication errors", async () => {
 			const error = new Error("Authentication required");
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 
 			expect(report.categorization).toEqual({
 				type: "user",
@@ -172,9 +172,9 @@ describe("GlobalErrorHandler", () => {
 			});
 		});
 
-		it("should have default categorization for unknown errors", () => {
+		it("should have default categorization for unknown errors", async () => {
 			const error = new Error("Something weird happened");
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 
 			expect(report.categorization).toEqual({
 				type: "unknown",
@@ -187,12 +187,12 @@ describe("GlobalErrorHandler", () => {
 	});
 
 	describe("Error Report Creation", () => {
-		it("should create comprehensive error reports", () => {
+		it("should create comprehensive error reports", async () => {
 			const error = new Error("Test error");
 			error.stack = "Error: Test error\n    at test.js:1:1";
 
 			const context = { component: "test-component", userId: "user123" };
-			const report = handler.createErrorReport(error, context);
+			const report = await handler.createErrorReport(error, context);
 
 			expect(report).toMatchObject({
 				id: expect.stringMatching(/^err_\d+_[a-z0-9]+$/),
@@ -209,31 +209,31 @@ describe("GlobalErrorHandler", () => {
 			});
 		});
 
-		it("should handle errors without stack traces", () => {
+		it("should handle errors without stack traces", async () => {
 			const error = new Error("Test error");
 			delete error.stack;
 
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 
 			expect(report.stackTrace).toBe("No stack trace available");
 		});
 
-		it("should generate unique correlation IDs", () => {
+		it("should generate unique correlation IDs", async () => {
 			const error1 = new Error("Error 1");
 			const error2 = new Error("Error 2");
 
-			const report1 = handler.createErrorReport(error1);
-			const report2 = handler.createErrorReport(error2);
+			const report1 = await handler.createErrorReport(error1);
+			const report2 = await handler.createErrorReport(error2);
 
 			expect(report1.id).not.toBe(report2.id);
 			expect(report1.metadata.correlationId).toBe(report1.id);
 			expect(report2.metadata.correlationId).toBe(report2.id);
 		});
 
-		it("should include timestamp in metadata", () => {
+		it("should include timestamp in metadata", async () => {
 			const before = new Date().toISOString();
 			const error = new Error("Test error");
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 			const after = new Date().toISOString();
 
 			expect(
@@ -284,7 +284,7 @@ describe("GlobalErrorHandler", () => {
 
 		it("should initiate graceful shutdown for critical rejections in production", () => {
 			// Mock production environment
-			vi.doMock("../config/service", () => ({
+			const createProductionConfig = () => ({
 				getConfigurationService: () => ({
 					getConfiguration: () => ({
 						nodeEnv: "production",
@@ -292,7 +292,8 @@ describe("GlobalErrorHandler", () => {
 					}),
 					isProduction: () => true,
 				}),
-			}));
+			});
+			vi.doMock("../config/service", createProductionConfig);
 
 			const prodHandler = new GlobalErrorHandler();
 			prodHandler.initialize();
@@ -459,9 +460,10 @@ describe("GlobalErrorHandler", () => {
 				isEnabled: vi.fn().mockReturnValue(true),
 			};
 
-			vi.doMock("../telemetry", () => ({
+			const createTelemetryMock = () => ({
 				getTelemetryService: () => mockTelemetryService,
-			}));
+			});
+			vi.doMock("../telemetry", createTelemetryMock);
 
 			const error = new Error("Test error");
 			const report = handler.createErrorReport(error);
@@ -473,11 +475,12 @@ describe("GlobalErrorHandler", () => {
 
 		it("should handle reporting errors gracefully", () => {
 			// Mock telemetry to throw an error
-			vi.doMock("../telemetry", () => ({
+			const createFailingTelemetryMock = () => ({
 				getTelemetryService: () => {
 					throw new Error("Telemetry service error");
 				},
-			}));
+			});
+			vi.doMock("../telemetry", createFailingTelemetryMock);
 
 			handler.initialize();
 			const rejectionHandler = mockProcessOn.mock.calls.find(
@@ -568,11 +571,12 @@ describe("GlobalErrorHandler", () => {
 				.mockImplementation(() => {});
 
 			// Mock the handler to throw during initialization
-			vi.doMock("../config/service", () => ({
+			const createFailingConfigMock = () => ({
 				getConfigurationService: () => {
 					throw new Error("Config service error");
 				},
-			}));
+			});
+			vi.doMock("../config/service", createFailingConfigMock);
 
 			// This should not throw
 			expect(() => initializeGlobalErrorHandling()).not.toThrow();
@@ -585,18 +589,18 @@ describe("GlobalErrorHandler", () => {
 	});
 
 	describe("Edge Cases and Error Conditions", () => {
-		it("should handle errors with null stack traces", () => {
+		it("should handle errors with null stack traces", async () => {
 			const error = new Error("Test error");
 			Object.defineProperty(error, "stack", {
 				value: null,
 				writable: true,
 			});
 
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 			expect(report.stackTrace).toBe("No stack trace available");
 		});
 
-		it("should handle errors with undefined properties", () => {
+		it("should handle errors with undefined properties", async () => {
 			const error = new Error("Test error");
 			// TypeScript doesn't allow deleting required properties, so we'll modify it instead
 			Object.defineProperty(error, "name", {
@@ -604,7 +608,7 @@ describe("GlobalErrorHandler", () => {
 				writable: true,
 			});
 
-			const report = handler.createErrorReport(error);
+			const report = await handler.createErrorReport(error);
 			expect(report.categorization.type).toBe("unknown");
 		});
 
@@ -642,11 +646,12 @@ describe("GlobalErrorHandler", () => {
 		});
 
 		it("should handle configuration service errors gracefully", () => {
-			vi.doMock("../config/service", () => ({
+			const createUnavailableConfigMock = () => ({
 				getConfigurationService: () => {
 					throw new Error("Config unavailable");
 				},
-			}));
+			});
+			vi.doMock("../config/service", createUnavailableConfigMock);
 
 			const prodHandler = new GlobalErrorHandler();
 
@@ -657,9 +662,10 @@ describe("GlobalErrorHandler", () => {
 		});
 
 		it("should handle missing telemetry service", () => {
-			vi.doMock("../telemetry", () => ({
+			const createNullTelemetryMock = () => ({
 				getTelemetryService: () => null,
-			}));
+			});
+			vi.doMock("../telemetry", createNullTelemetryMock);
 
 			handler.initialize();
 			const rejectionHandler = mockProcessOn.mock.calls.find(
@@ -714,13 +720,16 @@ describe("GlobalErrorHandler", () => {
 			)?.[1];
 
 			// Process errors concurrently
-			const promises = Array.from({ length: 50 }, (_, i) =>
+			const createErrorPromise = (i: number) =>
 				Promise.resolve().then(() => {
 					rejectionHandler(
 						new Error(`Concurrent error ${i}`),
 						Promise.resolve(),
 					);
-				}),
+				});
+
+			const promises = Array.from({ length: 50 }, (_, i) =>
+				createErrorPromise(i),
 			);
 
 			await Promise.all(promises);

@@ -50,8 +50,8 @@ export interface FeatureGates {
  * Feature gate service for managing environment-based functionality
  */
 export class FeatureGateService {
-	private configService = getConfigurationService();
-	private logger = createContextLogger("feature-gates");
+	private readonly configService = getConfigurationService();
+	private readonly logger = createContextLogger("feature-gates");
 	private gates: FeatureGates | null = null;
 
 	constructor() {
@@ -73,8 +73,7 @@ export class FeatureGateService {
 	private getDefaultGates(): FeatureGates {
 		return {
 			isDevelopment: process.env.NODE_ENV === "development",
-			isStaging:
-				process.env.NODE_ENV === "staging" || process.env.NODE_ENV === "test",
+			isStaging: process.env.NODE_ENV === "test",
 			isProduction: process.env.NODE_ENV === "production",
 			enableDebugTools: false,
 			enableDevToolbar: false,

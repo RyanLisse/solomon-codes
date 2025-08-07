@@ -245,7 +245,7 @@ export async function getOpenTelemetryConfig() {
 			endpoint: telemetryConfig.endpoint,
 			serviceName: telemetryConfig.serviceName,
 			serviceVersion: telemetryConfig.serviceVersion,
-			headers: telemetryConfig.headers,
+			headers: telemetryConfig.headers as Record<string, string>,
 			timeout: telemetryConfig.timeout,
 			samplingRatio: telemetryConfig.samplingRatio,
 			resourceAttributes: {
@@ -263,13 +263,13 @@ export async function getOpenTelemetryConfig() {
 		return {
 			isEnabled: false, // Disable telemetry if configuration service fails
 			endpoint: "http://localhost:4318/v1/traces", // Safe fallback for development
-			serviceName: getServiceName(),
-			serviceVersion: getServiceVersion(),
+			serviceName: await getServiceName(),
+			serviceVersion: await getServiceVersion(),
 			headers: {},
 			timeout: 5000,
 			samplingRatio: 1.0,
 			resourceAttributes: {
-				environment: getEnvironment(),
+				environment: await getEnvironment(),
 				"service.instance.id": process.env.HOSTNAME || "unknown",
 			},
 		};

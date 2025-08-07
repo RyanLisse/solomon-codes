@@ -8,7 +8,7 @@ import { mockDeep } from "vitest-mock-extended";
 
 export interface WorkerAgentCapabilities {
 	spawn: (config: WorkerConfig) => Promise<WorkerInstance>;
-	execute: (task: any) => Promise<any>;
+	execute: (task: unknown) => Promise<unknown>;
 	reportStatus: () => { status: string; progress: number };
 	terminate: () => Promise<void>;
 }
@@ -27,13 +27,22 @@ export interface WorkerInstance {
 	id: string;
 	type: string;
 	status: "idle" | "working" | "completed" | "failed";
-	execute: (task: any) => Promise<any>;
+	execute: (task: unknown) => Promise<unknown>;
 	terminate: () => Promise<void>;
+}
+
+export interface WorkerAgentTestHelpers {
+	givenSpawnReturns: (instance: WorkerInstance) => void;
+	givenExecuteReturns: (result: unknown) => void;
+	givenStatusIs: (status: string, progress: number) => void;
+	assertSpawnedWithType: (type: string) => void;
+	assertExecutedTask: (task: unknown) => void;
+	getSpawnedInstances: () => WorkerInstance[];
 }
 
 export const createWorkerAgentDouble = (
 	overrides?: Partial<WorkerAgentCapabilities>,
-) => {
+): WorkerAgentCapabilities & { __testHelpers: WorkerAgentTestHelpers } => {
 	const workerInstances = new Map<string, WorkerInstance>();
 
 	const double = mockDeep<WorkerAgentCapabilities>({
@@ -55,11 +64,15 @@ export const createWorkerAgentDouble = (
 	});
 
 	// Add test helper methods
-	(double as any).__testHelpers = {
+	(
+		double as WorkerAgentCapabilities & {
+			__testHelpers: WorkerAgentTestHelpers;
+		}
+	).__testHelpers = {
 		givenSpawnReturns: (instance: WorkerInstance) => {
 			double.spawn.mockResolvedValue(instance);
 		},
-		givenExecuteReturns: (result: any) => {
+		givenExecuteReturns: (result: unknown) => {
 			double.execute.mockResolvedValue(result);
 		},
 		givenStatusIs: (status: string, progress: number) => {
@@ -70,7 +83,7 @@ export const createWorkerAgentDouble = (
 				expect.objectContaining({ type }),
 			);
 		},
-		assertExecutedTask: (task: any) => {
+		assertExecutedTask: (task: unknown) => {
 			expect(double.execute).toHaveBeenCalledWith(task);
 		},
 		getSpawnedInstances: () => Array.from(workerInstances.values()),

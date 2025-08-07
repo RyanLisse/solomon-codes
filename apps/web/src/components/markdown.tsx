@@ -1,76 +1,53 @@
 import { CheckIcon, CopyIcon } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
 import { useTheme } from "next-themes";
-import type React from "react";
-import { memo, useState } from "react";
-import ReactMarkdown, { type Components } from "react-markdown";
+import type { ReactNode } from "react";
+import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
 	oneDark,
 	oneLight,
-} from "react-syntax-highlighter/dist/cjs/styles/prism";
-import rehypeRaw from "rehype-raw";
+} from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkGfm from "remark-gfm";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableFooter,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from "@/components/ui/table";
+import { Card, CardContent } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { cn } from "@/lib/utils";
 
-type CodeComponentProps = React.ComponentPropsWithoutRef<"code"> & {
-	inline?: boolean;
+interface CodeBlockProps {
 	className?: string;
-	children?: React.ReactNode;
-	style?: React.CSSProperties;
-};
+	children?: ReactNode;
+	[key: string]: any;
+}
 
-export const CodeComponent: React.FC<CodeComponentProps> = ({
-	inline,
-	className,
-	children,
-	...props
-}) => {
-	const match = /language-(\w+)/.exec(className || "");
+interface MarkdownProps {
+	content?: string;
+	children?: string;
+	className?: string;
+}
+
+function CodeBlock({ className, children, ...props }: CodeBlockProps) {
 	const { theme } = useTheme();
-	const [copied, setCopied] = useState(false);
+	const [isCopied, copyToClipboard] = useCopyToClipboard({ timeout: 2000 });
+	const match = /language-(\w+)/.exec(className || "");
+	const codeContent = String(children).replace(/\n$/, "");
 
-	if (inline) {
-		return (
-			<code
-				className="rounded-md bg-background px-1 py-0.5 text-sm dark:bg-zinc-800"
-				style={{ wordBreak: "break-all" }}
-				{...props}
-			>
-				{children}
-			</code>
-		);
-	}
+	const handleCopy = () => {
+		copyToClipboard(codeContent);
+	};
 
-	// Code block with language
 	if (match) {
 		return (
-			<div className="my-2 overflow-hidden rounded-lg border bg-background">
-				<div className="flex items-center justify-between border-b bg-sidebar px-2 py-1">
-					<span className="text-muted-foreground text-xs">{match[1]}</span>
+			<div className="group relative">
+				<div className="absolute top-2 right-2 z-10">
 					<Button
+						size="sm"
 						variant="ghost"
-						size="icon"
-						className="size-7"
-						onClick={() => {
-							navigator.clipboard.writeText(String(children));
-							setCopied(true);
-							setTimeout(() => setCopied(false), 2000);
-						}}
+						onClick={handleCopy}
+						className="h-8 w-8 border border-border/50 bg-background/80 p-0 backdrop-blur-sm hover:bg-background"
 					>
-						{copied ? (
+						{isCopied ? (
 							<CheckIcon className="h-4 w-4 text-green-500" />
 						) : (
 							<CopyIcon className="h-4 w-4" />
@@ -80,27 +57,23 @@ export const CodeComponent: React.FC<CodeComponentProps> = ({
 				<ScrollArea className="max-w-full">
 					<div className="px-4 py-2" style={{ maxWidth: "100%" }}>
 						<div>
+							{/* @ts-expect-error React 18 compatibility - known issue with react-syntax-highlighter types */}
 							<SyntaxHighlighter
 								language={match[1]}
 								style={theme === "dark" ? oneDark : oneLight}
 								customStyle={{
 									fontSize: "12.5px",
 									backgroundColor: "transparent",
-									padding: "0",
-									margin: "0",
-									background: "none",
-									overflow: "visible",
+									margin: 0,
+									padding: "1rem",
+									maxWidth: "100%",
+									overflow: "hidden",
 								}}
-								wrapLongLines={false}
-								PreTag="div"
-								codeTagProps={{
-									style: {
-										whiteSpace: "pre",
-										display: "block",
-									},
-								}}
+								wrapLines
+								wrapLongLines
+								{...props}
 							>
-								{String(children).replace(/\n$/, "")}
+								{codeContent}
 							</SyntaxHighlighter>
 						</div>
 					</div>
@@ -109,247 +82,107 @@ export const CodeComponent: React.FC<CodeComponentProps> = ({
 		);
 	}
 
-	// Code block without language
 	return (
 		<code
-			className="!bg-sidebar relative rounded border border-muted-foreground/20 px-[0.3rem] py-[0.2rem] font-mono text-xs"
-			style={{ wordBreak: "break-word" }}
+			className={cn(
+				"relative rounded bg-muted px-[0.3rem] py-[0.2rem] font-mono font-semibold text-sm",
+				className,
+			)}
+			{...props}
 		>
 			{children}
 		</code>
 	);
-};
-
-const components: Partial<Components> = {
-	code: CodeComponent,
-	pre: ({ children }) => <>{children}</>,
-	ol: ({ children, ...props }) => (
-		<ol className="ml-4 list-outside list-decimal" {...props}>
-			{children}
-		</ol>
-	),
-	li: ({ children, ...props }) => (
-		<li className="py-1" {...props}>
-			{children}
-		</li>
-	),
-	ul: ({ children, ...props }) => (
-		<ul className="ml-4 list-outside list-disc" {...props}>
-			{children}
-		</ul>
-	),
-	strong: ({ children, ...props }) => (
-		<span className="font-semibold" {...props}>
-			{children}
-		</span>
-	),
-	p: ({ children, ...props }) => (
-		<p
-			className="mb-2"
-			style={{ wordBreak: "break-word", overflowWrap: "break-word" }}
-			{...props}
-		>
-			{children}
-		</p>
-	),
-	a: ({ children, href, ...props }) => {
-		// Check if the URL is external (starts with http/https) or internal
-		const isExternal = href?.startsWith("http") || href?.startsWith("https");
-
-		if (isExternal) {
-			return (
-				<a
-					className="text-blue-500 hover:underline"
-					style={{
-						wordBreak: "break-word",
-						overflowWrap: "break-word",
-					}}
-					href={href}
-					target="_blank"
-					rel="noreferrer"
-					{...props}
-				>
-					{children}
-				</a>
-			);
-		}
-
-		return (
-			<Link
-				passHref
-				className="text-blue-500 hover:underline"
-				style={{
-					wordBreak: "break-word",
-					overflowWrap: "break-word",
-				}}
-				href={href || "#"}
-				target="_blank"
-				rel="noreferrer"
-				{...props}
-			>
-				{children}
-			</Link>
-		);
-	},
-	h1: ({ children, ...props }) => (
-		<h1
-			className="mt-6 mb-2 font-semibold text-3xl"
-			style={{ wordBreak: "break-word" }}
-			{...props}
-		>
-			{children}
-		</h1>
-	),
-	h2: ({ children, ...props }) => (
-		<h2
-			className="mt-6 mb-2 font-semibold text-2xl"
-			style={{ wordBreak: "break-word" }}
-			{...props}
-		>
-			{children}
-		</h2>
-	),
-	h3: ({ children, ...props }) => (
-		<h3
-			className="mt-6 mb-2 font-semibold text-xl"
-			style={{ wordBreak: "break-word" }}
-			{...props}
-		>
-			{children}
-		</h3>
-	),
-	h4: ({ children, ...props }) => (
-		<h4
-			className="mt-6 mb-2 font-semibold text-lg"
-			style={{ wordBreak: "break-word" }}
-			{...props}
-		>
-			{children}
-		</h4>
-	),
-	h5: ({ children, ...props }) => (
-		<h5
-			className="mt-6 mb-2 font-semibold text-base"
-			style={{ wordBreak: "break-word" }}
-			{...props}
-		>
-			{children}
-		</h5>
-	),
-	h6: ({ children, ...props }) => (
-		<h6
-			className="mt-6 mb-2 font-semibold text-sm"
-			style={{ wordBreak: "break-word" }}
-			{...props}
-		>
-			{children}
-		</h6>
-	),
-	img: ({ alt, src, title, ...props }) => {
-		// Extract width and height from props if they exist, but ensure they're numbers
-		const { width, height, ...imageProps } = props;
-		return (
-			<Image
-				className="my-2 h-auto max-w-full rounded"
-				alt={alt || ""}
-				src={typeof src === "string" ? src : ""}
-				title={title}
-				width={typeof width === "number" ? width : 800}
-				height={typeof height === "number" ? height : 600}
-				style={{ width: "auto", height: "auto" }}
-				{...imageProps}
-			/>
-		);
-	},
-	blockquote: ({ children, ...props }) => (
-		<blockquote
-			className="my-4 border-gray-300 border-l-4 pl-4 italic dark:border-gray-700"
-			style={{ wordBreak: "break-word" }}
-			{...props}
-		>
-			{children}
-		</blockquote>
-	),
-	table: ({ children, ...props }) => (
-		<ScrollArea className="my-4 w-140 rounded-lg border">
-			<Table className="w-full" {...props}>
-				{children}
-			</Table>
-			<ScrollBar orientation="horizontal" />
-		</ScrollArea>
-	),
-	thead: ({ children, ...props }) => (
-		<TableHeader {...props}>{children}</TableHeader>
-	),
-	tbody: ({ children, ...props }) => (
-		<TableBody {...props}>{children}</TableBody>
-	),
-	tfoot: ({ children, ...props }) => (
-		<TableFooter {...props}>{children}</TableFooter>
-	),
-	tr: ({ children, ...props }) => <TableRow {...props}>{children}</TableRow>,
-	th: ({ children, ...props }) => <TableHead {...props}>{children}</TableHead>,
-	td: ({ children, ...props }) => <TableCell {...props}>{children}</TableCell>,
-	hr: () => <Separator className="my-8 h-1" />,
-};
-
-const remarkPlugins = [remarkGfm];
-const rehypePlugins = [rehypeRaw];
-
-// Function to process citations and convert them to proper format
-const processCitations = (
-	content: string,
-	repoUrl?: string,
-	branch?: string,
-): string => {
-	// Match citations in format 【F:filename†L1-L1】
-	const citationRegex = /【F:([^†]+)†L(\d+)-L(\d+)】/g;
-
-	return content.replace(
-		citationRegex,
-		(_match, filename, startLine, endLine) => {
-			const displayText =
-				startLine === endLine
-					? `${filename}:${startLine}`
-					: `${filename}:${startLine}-${endLine}`;
-
-			const repoBaseUrl = repoUrl ? `${repoUrl}/blob/${branch || "main"}` : "#";
-			const linkUrl =
-				startLine === endLine
-					? `${repoBaseUrl}/${filename}#L${startLine}`
-					: `${repoBaseUrl}/${filename}#L${startLine}-L${endLine}`;
-
-			return `[${displayText}](${linkUrl}) `;
-		},
-	);
-};
-
-interface MarkdownProps {
-	children: string;
-	repoUrl?: string;
-	branch?: string;
 }
 
-const NonMemoizedMarkdown = ({ children, repoUrl, branch }: MarkdownProps) => {
-	const processedContent = processCitations(children, repoUrl, branch);
+export function Markdown({ content, children, className }: MarkdownProps) {
+	const markdownContent = content || children || "";
 
 	return (
-		<div style={{ width: "100%", maxWidth: "100%" }}>
-			<ReactMarkdown
-				remarkPlugins={remarkPlugins}
-				rehypePlugins={rehypePlugins}
-				components={components}
-			>
-				{processedContent}
-			</ReactMarkdown>
-		</div>
+		<Card className={cn("w-full", className)}>
+			<CardContent className="p-6">
+				<ReactMarkdown
+					remarkPlugins={[remarkGfm]}
+					components={{
+						code: CodeBlock,
+						h1: ({ children }) => (
+							<h1 className="mb-4 font-bold text-2xl text-foreground">
+								{children}
+							</h1>
+						),
+						h2: ({ children }) => (
+							<h2 className="mb-3 font-semibold text-foreground text-xl">
+								{children}
+							</h2>
+						),
+						h3: ({ children }) => (
+							<h3 className="mb-2 font-medium text-foreground text-lg">
+								{children}
+							</h3>
+						),
+						p: ({ children }) => (
+							<p className="mb-4 text-muted-foreground text-sm leading-relaxed">
+								{children}
+							</p>
+						),
+						ul: ({ children }) => (
+							<ul className="mb-4 ml-4 list-disc space-y-1">{children}</ul>
+						),
+						ol: ({ children }) => (
+							<ol className="mb-4 ml-4 list-decimal space-y-1">{children}</ol>
+						),
+						li: ({ children }) => (
+							<li className="text-muted-foreground text-sm">{children}</li>
+						),
+						blockquote: ({ children }) => (
+							<blockquote className="my-4 border-border border-l-4 pl-4 text-muted-foreground italic">
+								{children}
+							</blockquote>
+						),
+						a: ({ href, children }) => (
+							<a
+								href={href}
+								className="text-primary underline hover:no-underline"
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								{children}
+							</a>
+						),
+						table: ({ children }) => (
+							<div className="my-6 w-full overflow-y-auto">
+								<table className="w-full border-collapse border border-border">
+									{children}
+								</table>
+							</div>
+						),
+						thead: ({ children }) => (
+							<thead className="bg-muted">{children}</thead>
+						),
+						tbody: ({ children }) => <tbody>{children}</tbody>,
+						tr: ({ children }) => (
+							<tr className="border-border border-b">{children}</tr>
+						),
+						th: ({ children }) => (
+							<th className="border-border border-r px-4 py-2 text-left font-medium text-foreground">
+								{children}
+							</th>
+						),
+						td: ({ children }) => (
+							<td className="border-border border-r px-4 py-2 text-muted-foreground text-sm">
+								{children}
+							</td>
+						),
+						strong: ({ children }) => (
+							<Badge variant="secondary" className="font-medium">
+								{children}
+							</Badge>
+						),
+					}}
+				>
+					{markdownContent}
+				</ReactMarkdown>
+			</CardContent>
+		</Card>
 	);
-};
-
-export const Markdown = memo(
-	NonMemoizedMarkdown,
-	(prevProps, nextProps) =>
-		prevProps.children === nextProps.children &&
-		prevProps.repoUrl === nextProps.repoUrl &&
-		prevProps.branch === nextProps.branch,
-);
+}

@@ -90,7 +90,7 @@ const DATE_PRESETS = [
 export function TaskFilters({
 	filters,
 	onFiltersChange,
-	_projectId,
+	projectId: _projectId,
 }: TaskFiltersProps) {
 	const [searchTerm, setSearchTerm] = useState("");
 	const [newLabel, setNewLabel] = useState("");
@@ -103,6 +103,7 @@ export function TaskFilters({
 	});
 
 	// Projects store not needed in current implementation
+	// projectId parameter is available for future filtering by project
 
 	const clearAllFilters = () => {
 		onFiltersChange({});

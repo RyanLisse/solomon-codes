@@ -3,18 +3,21 @@
  * TDD London School mockist approach for LangGraph StateGraph
  */
 
-import { expect, vi } from "vitest";
-import { mockDeep } from "vitest-mock-extended";
 import type { StateGraph } from "@langchain/langgraph";
+import { expect } from "vitest";
+import { mockDeep } from "vitest-mock-extended";
 import type { HiveMindState } from "../../../src/state/unified-state";
+
+type NodeAction = (state: HiveMindState) => Promise<Partial<HiveMindState>>;
+type ConditionFunction = (state: HiveMindState) => string;
 
 export interface StateGraphCapabilities {
 	// Core graph operations
-	addNode(name: string, action: Function): StateGraph<HiveMindState>;
+	addNode(name: string, action: NodeAction): StateGraph<HiveMindState>;
 	addEdge(fromNode: string, toNode: string): StateGraph<HiveMindState>;
 	addConditionalEdges(
 		source: string,
-		condition: Function,
+		condition: ConditionFunction,
 		edges: Record<string, string>,
 	): StateGraph<HiveMindState>;
 	setEntryPoint(node: string): StateGraph<HiveMindState>;
@@ -26,7 +29,7 @@ export interface StateGraphCapabilities {
 	astream(input: Partial<HiveMindState>): AsyncIterator<HiveMindState>;
 
 	// Graph introspection
-	getGraph(): any;
+	getGraph(): Record<string, unknown>;
 	getState(): Partial<HiveMindState>;
 	updateState(newState: Partial<HiveMindState>): void;
 }
@@ -34,7 +37,7 @@ export interface StateGraphCapabilities {
 export interface GraphExecutionResult {
 	finalState: HiveMindState;
 	executionPath: string[];
-	nodeOutputs: Record<string, any>;
+	nodeOutputs: Record<string, unknown>;
 	executionTime: number;
 	success: boolean;
 	errors?: Error[];
@@ -66,7 +69,7 @@ export function createStateGraphDouble(): StateGraphCapabilities & {
 	const mock = mockDeep<StateGraphCapabilities>();
 	let lastInvocation: Partial<HiveMindState> | null = null;
 	let invocationCount = 0;
-	let executionHistory: Partial<HiveMindState>[] = [];
+	const executionHistory: Partial<HiveMindState>[] = [];
 	let mockInvokeResult: Partial<HiveMindState> | null = null;
 	let mockInvokeError: Error | null = null;
 	let mockStreamResults: Partial<HiveMindState>[] = [];
@@ -76,7 +79,7 @@ export function createStateGraphDouble(): StateGraphCapabilities & {
 	let entryPoint: string | null = null;
 
 	// Configure default behaviors
-	mock.addNode.mockImplementation((name: string, _action: Function) => {
+	mock.addNode.mockImplementation((name: string, _action: NodeAction) => {
 		addedNodes.push(name);
 		return mock;
 	});
@@ -87,7 +90,11 @@ export function createStateGraphDouble(): StateGraphCapabilities & {
 	});
 
 	mock.addConditionalEdges.mockImplementation(
-		(_source: string, _condition: Function, _edges: Record<string, string>) => {
+		(
+			_source: string,
+			_condition: ConditionFunction,
+			_edges: Record<string, string>,
+		) => {
 			return mock;
 		},
 	);
@@ -133,7 +140,9 @@ export function createStateGraphDouble(): StateGraphCapabilities & {
 		lastInvocation = input;
 		invocationCount++;
 
-		for (const state of mockStreamResults.length > 0 ? mockStreamResults : [input]) {
+		for (const state of mockStreamResults.length > 0
+			? mockStreamResults
+			: [input]) {
 			yield state as HiveMindState;
 		}
 	});
@@ -184,7 +193,9 @@ export function createStateGraphDouble(): StateGraphCapabilities & {
 		},
 
 		assertEdgeAdded: (fromNode: string, toNode: string) => {
-			const edge = addedEdges.find((e) => e.from === fromNode && e.to === toNode);
+			const edge = addedEdges.find(
+				(e) => e.from === fromNode && e.to === toNode,
+			);
 			expect(edge).toBeDefined();
 		},
 

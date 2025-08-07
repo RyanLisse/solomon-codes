@@ -5,9 +5,13 @@
 
 import type { BaseMessage } from "@langchain/core/messages";
 import type { Runnable } from "@langchain/core/runnables";
-import { StateGraph, type StateGraphArgs } from "@langchain/langgraph";
+import { StateGraph } from "@langchain/langgraph";
 import type { z } from "zod";
-import { addError, type BaseState } from "../state/unified-state";
+import {
+	addError,
+	type BaseState,
+	BaseStateAnnotation,
+} from "../state/unified-state";
 
 // Graph metadata for tracking
 export interface GraphMetadata {
@@ -37,12 +41,18 @@ export class BaseGraphBuilder<TState extends BaseState> {
 	protected edges: Map<string, EdgeFunction<TState>> = new Map();
 
 	constructor(stateSchema: z.ZodType<TState>, metadata: GraphMetadata) {
-		// Create state graph with schema validation
-		const graphArgs: StateGraphArgs<TState> = {
-			channels: stateSchema as any,
-		};
-
-		this.graph = new StateGraph<TState>(graphArgs);
+		// Create state graph with LangGraph Annotation
+		// For BaseState, use the proper annotation, otherwise fallback to basic StateGraph
+		if (
+			metadata.name === "queen-agent" ||
+			metadata.name === "worker-agent" ||
+			metadata.name === "base-agent"
+		) {
+			this.graph = new StateGraph(BaseStateAnnotation as any);
+		} else {
+			// Fallback for other state types - this will need proper annotations later
+			this.graph = new StateGraph(BaseStateAnnotation as any);
+		}
 		this.metadata = metadata;
 
 		// Add default error handling node

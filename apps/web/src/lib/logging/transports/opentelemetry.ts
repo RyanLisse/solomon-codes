@@ -5,6 +5,20 @@ import { getStdout, safeProcessExit } from "../../utils/runtime";
 import { getOpenTelemetryConfig } from "../config";
 
 /**
+ * OpenTelemetry configuration interface
+ */
+interface OpenTelemetryConfig {
+	isEnabled: boolean;
+	endpoint?: string;
+	serviceName: string;
+	serviceVersion: string;
+	headers?: Record<string, string>;
+	timeout?: number;
+	samplingRatio?: number;
+	resourceAttributes?: Record<string, string>;
+}
+
+/**
  * Extract trace context from the current OpenTelemetry span
  */
 export function getTraceContext(): { traceId?: string; spanId?: string } {
@@ -63,14 +77,14 @@ export function createOpenTelemetryTransport(
  * Create a custom Winston transport that sends logs to OpenTelemetry collector
  */
 export class OpenTelemetryTransport extends winston.transports.Stream {
-	private config: any;
+	private config: OpenTelemetryConfig;
 
 	constructor(options?: winston.transports.StreamTransportOptions) {
 		// Edge Runtime safe stream fallback
 		const defaultStream = getStdout();
 
 		super({
-			stream: defaultStream as any,
+			stream: defaultStream as any, // Type assertion for Winston compatibility
 			...options,
 		});
 		// Initialize with default config, will be set properly in initialize()
@@ -191,7 +205,7 @@ export async function createOpenTelemetryLogger(
 		// Edge Runtime safe stream access
 		const stream = getStdout();
 		transports.push(
-			new OpenTelemetryTransport({ level, stream: stream as any }), // Type assertion for Edge Runtime compatibility
+			new OpenTelemetryTransport({ level, stream: stream as any }), // Type assertion for Winston compatibility
 		);
 	}
 

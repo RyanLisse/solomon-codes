@@ -1,0 +1,11 @@
+🚀 Starting CI pipeline...
+[0;34m📋 Installing dependencies...[0m
+[1;33m⚠️  No lockfile found, running bun install (not recommended for CI)[0m
+[0.85ms] ".env.local"
+bun install v1.2.19 (aad3abea)
+
+$ husky
+
+Checked 3102 installs across 2764 packages (no changes) [2.86s]
+[0;32m✅ Dependencies installed[0m
+[0;34m📋 Running linter and format checks...[0m

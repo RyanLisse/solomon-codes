@@ -5,32 +5,40 @@
  */
 
 import { vi } from "vitest";
+import type { HiveMindState } from "../../../src/state/unified-state";
+import {
+	createGraphConfigDouble,
+	type GraphEdge,
+	type GraphNode,
+} from "./graph-config.double";
+import {
+	createGraphExecutionDouble,
+	type ExecutionContext,
+	type ExecutionResult,
+	type ExecutionStep,
+} from "./graph-execution.double";
 import { createStateGraphDouble } from "./state-graph.double";
-import { createGraphConfigDouble } from "./graph-config.double";
-import { createGraphExecutionDouble } from "./graph-execution.double";
-
-export {
-	createStateGraphDouble,
-	type StateGraphCapabilities,
-	type GraphExecutionResult,
-} from "./state-graph.double";
 
 export {
 	createGraphConfigDouble,
 	type GraphConfigCapabilities,
-	type GraphNode,
 	type GraphEdge,
+	type GraphNode,
 } from "./graph-config.double";
-
 export {
 	createGraphExecutionDouble,
-	type GraphExecutionCapabilities,
 	type ExecutionContext,
-	type ExecutionStep,
-	type ExecutionResult,
-	type ExecutionOptions,
 	type ExecutionMetrics,
+	type ExecutionOptions,
+	type ExecutionResult,
+	type ExecutionStep,
+	type GraphExecutionCapabilities,
 } from "./graph-execution.double";
+export {
+	createStateGraphDouble,
+	type GraphExecutionResult,
+	type StateGraphCapabilities,
+} from "./state-graph.double";
 
 // Utility function to create all LangGraph test doubles with consistent configuration
 export function createLangGraphTestDoubles() {
@@ -43,7 +51,7 @@ export function createLangGraphTestDoubles() {
 
 // LangGraph-specific test data factories
 export const LangGraphTestDataFactory = {
-	createHiveMindState: (overrides?: Partial<any>) => ({
+	createHiveMindState: (overrides?: Partial<HiveMindState>) => ({
 		swarmMetrics: {
 			totalAgents: 1,
 			activeAgents: 1,
@@ -56,7 +64,7 @@ export const LangGraphTestDataFactory = {
 		...overrides,
 	}),
 
-	createGraphNode: (name: string, overrides?: Partial<any>) => ({
+	createGraphNode: (name: string, overrides?: Partial<GraphNode>) => ({
 		name,
 		action: vi.fn().mockResolvedValue({ processed: true }),
 		inputSchema: null,
@@ -64,14 +72,21 @@ export const LangGraphTestDataFactory = {
 		...overrides,
 	}),
 
-	createGraphEdge: (from: string, to: string, overrides?: Partial<any>) => ({
+	createGraphEdge: (
+		from: string,
+		to: string,
+		overrides?: Partial<GraphEdge>,
+	) => ({
 		from,
 		to,
 		condition: null,
 		...overrides,
 	}),
 
-	createExecutionStep: (nodeId: string, overrides?: Partial<any>) => ({
+	createExecutionStep: (
+		nodeId: string,
+		overrides?: Partial<ExecutionStep>,
+	) => ({
 		nodeId,
 		input: { data: "test" },
 		output: { data: "test", processed: true },
@@ -80,7 +95,7 @@ export const LangGraphTestDataFactory = {
 		...overrides,
 	}),
 
-	createExecutionResult: (overrides?: Partial<any>) => ({
+	createExecutionResult: (overrides?: Partial<ExecutionResult>) => ({
 		success: true,
 		finalState: {
 			swarmMetrics: {
@@ -90,7 +105,7 @@ export const LangGraphTestDataFactory = {
 				averageResponseTime: 100,
 			},
 		},
-		executionPath: ['start', 'process', 'end'],
+		executionPath: ["start", "process", "end"],
 		steps: [],
 		totalExecutionTime: 65,
 		errors: [],
@@ -98,10 +113,13 @@ export const LangGraphTestDataFactory = {
 		...overrides,
 	}),
 
-	createExecutionContext: (executionId: string, overrides?: Partial<any>) => ({
+	createExecutionContext: (
+		executionId: string,
+		overrides?: Partial<ExecutionContext>,
+	) => ({
 		executionId,
 		startTime: Date.now(),
-		currentNode: 'start',
+		currentNode: "start",
 		visitedNodes: [],
 		state: {},
 		metadata: {},

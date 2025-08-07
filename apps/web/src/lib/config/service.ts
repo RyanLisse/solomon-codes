@@ -82,7 +82,7 @@ export class ConfigurationService {
 	private config: AppConfig | null = null;
 	private profile: EnvironmentProfile | null = null;
 	private logger: ReturnType<typeof createClientLogger> | null = null;
-	private initPromise: Promise<void> | null = null;
+	private readonly initPromise: Promise<void>;
 
 	constructor() {
 		// Initialize asynchronously to avoid sync config loading issues
@@ -100,9 +100,7 @@ export class ConfigurationService {
 	}
 
 	async waitForInitialization(): Promise<void> {
-		if (this.initPromise) {
-			await this.initPromise;
-		}
+		await this.initPromise;
 	}
 
 	private getLogger() {
@@ -206,7 +204,7 @@ export class ConfigurationService {
 
 		if (!validationResult.success) {
 			this.getLogger().error("Configuration validation failed", {
-				environment: this.config.nodeEnv,
+				environment: this.config?.nodeEnv,
 				errors: validationResult.errors,
 				warnings: validationResult.warnings,
 			});
@@ -218,7 +216,7 @@ export class ConfigurationService {
 			this.getLogger().warn(
 				"Configuration validation completed with warnings",
 				{
-					environment: this.config.nodeEnv,
+					environment: this.config?.nodeEnv,
 					warnings: validationResult.warnings,
 				},
 			);

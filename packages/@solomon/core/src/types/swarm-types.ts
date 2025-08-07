@@ -5,19 +5,43 @@
 
 export type SwarmTopology = "hierarchical" | "mesh" | "ring" | "star";
 
+// Base types for tasks and decisions
+export interface SwarmTask {
+	id: string;
+	type: string;
+	description: string;
+	priority: number;
+	metadata?: Record<string, unknown>;
+}
+
+export interface SwarmDecision {
+	id: string;
+	type: string;
+	decision: string;
+	confidence: number;
+	timestamp: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface SwarmContext {
+	taskId: string;
+	agentIds: string[];
+	metadata?: Record<string, unknown>;
+}
+
 // Queen Agent Types
 export interface QueenAgentCapabilities {
 	analyzeTask: (
-		task: any,
+		task: SwarmTask,
 	) => Promise<{ agentCount: number; agentTypes: string[] }>;
 	makeDecision: (
-		context: any,
+		context: SwarmContext,
 	) => Promise<{ decision: string; confidence: number }>;
 	coordinateAgents: (agents: string[]) => Promise<void>;
-	recordDecision: (decision: any) => void;
+	recordDecision: (decision: SwarmDecision) => void;
 	recordFailure: (agentId: string, error: Error) => void;
 	register: (config: { id: string; role: string }) => void;
-	getState: () => any;
+	getState: () => Record<string, unknown>;
 }
 
 // Worker Agent Types
@@ -35,13 +59,13 @@ export interface WorkerInstance {
 	id: string;
 	type: string;
 	status: "idle" | "working" | "completed" | "failed";
-	execute: (task: any) => Promise<any>;
+	execute: (task: SwarmTask) => Promise<Record<string, unknown>>;
 	terminate: () => Promise<void>;
 }
 
 export interface WorkerAgentCapabilities {
 	spawn: (config: WorkerConfig) => Promise<WorkerInstance>;
-	execute: (task: any) => Promise<any>;
+	execute: (task: SwarmTask) => Promise<Record<string, unknown>>;
 	reportStatus: () => { status: string; progress: number };
 	terminate: () => Promise<void>;
 }
@@ -66,11 +90,11 @@ export interface ConsensusResult {
 }
 
 export interface ConsensusEngineCapabilities {
-	collectVotes: (decision: any) => Promise<ConsensusVote[]>;
+	collectVotes: (decision: SwarmDecision) => Promise<ConsensusVote[]>;
 	calculateConsensus: (votes: ConsensusVote[]) => ConsensusResult;
 	setQuorumThreshold: (threshold: number) => void;
 	detectMaliciousAgents: (votes: ConsensusVote[]) => string[];
-	recordConsensus: (decision: any, result: ConsensusResult) => void;
+	recordConsensus: (decision: SwarmDecision, result: ConsensusResult) => void;
 }
 
 // Topology Manager Types
@@ -91,7 +115,7 @@ export interface TopologyMetrics {
 export interface TopologyManagerCapabilities {
 	setTopology: (topology: SwarmTopology) => void;
 	switchTopology: (newTopology: SwarmTopology) => Promise<void>;
-	recommendTopology: (context: any) => SwarmTopology;
+	recommendTopology: (context: SwarmContext) => SwarmTopology;
 	getTopologyMetrics: () => TopologyMetrics;
 	optimizeConnections: () => Promise<void>;
 	handleNodeFailure: (nodeId: string) => Promise<void>;

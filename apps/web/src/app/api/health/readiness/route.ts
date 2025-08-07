@@ -172,7 +172,7 @@ export async function GET() {
 		logger.debug("Readiness probe requested");
 
 		const startupService = getStartupValidationService();
-		const validationSummary = startupService.getValidationSummary();
+		const validationSummary = await startupService.getValidationSummary();
 		const readiness = createReadinessStatus();
 
 		// Run all readiness checks

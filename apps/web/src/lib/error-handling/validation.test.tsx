@@ -619,14 +619,14 @@ describe("Error Handling System Validation", () => {
 			});
 		});
 
-		it("should generate correlation IDs for error tracking", () => {
+		it("should generate correlation IDs for error tracking", async () => {
 			const globalHandler = getGlobalErrorHandler();
 
 			const error1 = new Error("Test error 1");
 			const error2 = new Error("Test error 2");
 
-			const report1 = globalHandler.createErrorReport(error1);
-			const report2 = globalHandler.createErrorReport(error2);
+			const report1 = await globalHandler.createErrorReport(error1);
+			const report2 = await globalHandler.createErrorReport(error2);
 
 			expect(report1.id).toMatch(/^err_\d+_[a-z0-9]+$/);
 			expect(report2.id).toMatch(/^err_\d+_[a-z0-9]+$/);

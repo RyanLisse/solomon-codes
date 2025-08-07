@@ -25,7 +25,10 @@ export interface TopologyMetrics {
 export interface TopologyManagerCapabilities {
 	setTopology: (topology: SwarmTopology) => void;
 	switchTopology: (newTopology: SwarmTopology) => Promise<void>;
-	recommendTopology: (context: any) => SwarmTopology;
+	recommendTopology: (context: {
+		agentCount: number;
+		[key: string]: unknown;
+	}) => SwarmTopology;
 	getTopologyMetrics: () => TopologyMetrics;
 	optimizeConnections: () => Promise<void>;
 	handleNodeFailure: (nodeId: string) => Promise<void>;
@@ -33,9 +36,23 @@ export interface TopologyManagerCapabilities {
 	getCurrentTopology: () => SwarmTopology;
 }
 
+export interface TopologyManagerTestHelpers {
+	givenCurrentTopology: (topology: SwarmTopology) => void;
+	givenRecommendationReturns: (topology: SwarmTopology) => void;
+	givenSwitchTopologyFails: (error: Error) => void;
+	assertTopologySwitched: (topology: SwarmTopology) => void;
+	assertRecommendationRequested: (context: {
+		agentCount: number;
+		[key: string]: unknown;
+	}) => void;
+	getTopologyHistory: () => SwarmTopology[];
+}
+
 export const createTopologyManagerDouble = (
 	overrides?: Partial<TopologyManagerCapabilities>,
-) => {
+): TopologyManagerCapabilities & {
+	__testHelpers: TopologyManagerTestHelpers;
+} => {
 	let currentTopology: SwarmTopology = "hierarchical";
 	const activeNodes = new Set<string>(["queen-001"]);
 
@@ -48,13 +65,17 @@ export const createTopologyManagerDouble = (
 			.mockImplementation(async (newTopology: SwarmTopology) => {
 				currentTopology = newTopology;
 			}),
-		recommendTopology: vi.fn().mockImplementation((context: any) => {
-			// Simple recommendation logic for testing
-			if (context.agentCount > 10) return "mesh";
-			if (context.parallelizable) return "star";
-			if (context.complexity === "high") return "mesh";
-			return "hierarchical";
-		}),
+		recommendTopology: vi
+			.fn()
+			.mockImplementation(
+				(context: { agentCount: number; [key: string]: unknown }) => {
+					// Simple recommendation logic for testing
+					if (context.agentCount > 10) return "mesh";
+					if (context.parallelizable) return "star";
+					if (context.complexity === "high") return "mesh";
+					return "hierarchical";
+				},
+			),
 		getTopologyMetrics: vi.fn().mockReturnValue({
 			averageLatency: 50,
 			throughput: 1000,
@@ -71,7 +92,11 @@ export const createTopologyManagerDouble = (
 	});
 
 	// Add test helper methods
-	(double as any).__testHelpers = {
+	(
+		double as TopologyManagerCapabilities & {
+			__testHelpers: TopologyManagerTestHelpers;
+		}
+	).__testHelpers = {
 		givenCurrentTopology: (topology: SwarmTopology) => {
 			currentTopology = topology;
 			double.getCurrentTopology.mockReturnValue(topology);

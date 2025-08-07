@@ -7,7 +7,7 @@ const isNodeEnvironment = isNodeRuntime();
 // Edge Runtime safe - no Node.js module imports
 // Version loading will be handled server-side only
 
-import type { z } from "zod";
+import type { ZodIssue, z } from "zod";
 import { type AppConfig, configSchema, ENV_VAR_MAP } from "./schema";
 
 /**
@@ -502,7 +502,7 @@ function formatValidationErrors(zodError: z.ZodError): ConfigurationError[] {
 		];
 	}
 
-	function getExpectedValue(error: { code: string; [key: string]: unknown }) {
+	function getExpectedValue(error: ZodIssue) {
 		if (error.code === "invalid_union") {
 			return "valid enum value";
 		}

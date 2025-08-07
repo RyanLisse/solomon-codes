@@ -8,21 +8,34 @@ import { mockDeep } from "vitest-mock-extended";
 
 export interface QueenAgentCapabilities {
 	analyzeTask: (
-		task: any,
+		task: unknown,
 	) => Promise<{ agentCount: number; agentTypes: string[] }>;
 	makeDecision: (
-		context: any,
+		context: unknown,
 	) => Promise<{ decision: string; confidence: number }>;
 	coordinateAgents: (agents: string[]) => Promise<void>;
-	recordDecision: (decision: any) => void;
+	recordDecision: (decision: unknown) => void;
 	recordFailure: (agentId: string, error: Error) => void;
 	register: (config: { id: string; role: string }) => void;
-	getState: () => any;
+	getState: () => unknown;
+}
+
+export interface QueenAgentTestHelpers {
+	givenTaskAnalysisReturns: (result: {
+		agentCount: number;
+		agentTypes: string[];
+	}) => void;
+	givenDecisionReturns: (result: {
+		decision: string;
+		confidence: number;
+	}) => void;
+	assertRegisteredWithRole: (role: string) => void;
+	assertAnalyzedTask: (task: unknown) => void;
 }
 
 export const createQueenAgentDouble = (
 	overrides?: Partial<QueenAgentCapabilities>,
-) => {
+): QueenAgentCapabilities & { __testHelpers: QueenAgentTestHelpers } => {
 	const double = mockDeep<QueenAgentCapabilities>({
 		analyzeTask: vi.fn().mockResolvedValue({
 			agentCount: 2,
@@ -46,7 +59,9 @@ export const createQueenAgentDouble = (
 	});
 
 	// Add test helper methods
-	(double as any).__testHelpers = {
+	(
+		double as QueenAgentCapabilities & { __testHelpers: QueenAgentTestHelpers }
+	).__testHelpers = {
 		givenTaskAnalysisReturns: (result: {
 			agentCount: number;
 			agentTypes: string[];
@@ -64,7 +79,7 @@ export const createQueenAgentDouble = (
 				expect.objectContaining({ role }),
 			);
 		},
-		assertAnalyzedTask: (task: any) => {
+		assertAnalyzedTask: (task: unknown) => {
 			expect(double.analyzeTask).toHaveBeenCalledWith(task);
 		},
 	};

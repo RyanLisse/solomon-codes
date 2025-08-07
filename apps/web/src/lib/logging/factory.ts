@@ -199,9 +199,11 @@ export class LoggerFactory {
 		try {
 			const configService = this.getConfigService();
 			// Use cached config if available, otherwise fall back to env vars
-			if (configService && (configService as any)._cachedConfig) {
-				const config = (configService as any)._cachedConfig;
-				environment = config.nodeEnv || environment;
+			if (configService && "getConfigurationSync" in configService) {
+				const config = configService.getConfigurationSync();
+				environment =
+					(config.nodeEnv as "development" | "production" | "test") ||
+					environment;
 				version = config.appVersion || version;
 			}
 		} catch {

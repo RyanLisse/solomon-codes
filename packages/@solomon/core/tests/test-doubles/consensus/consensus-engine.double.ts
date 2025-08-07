@@ -24,12 +24,20 @@ export interface ConsensusResult {
 	quorumReached: boolean;
 }
 
+// Define a proper decision type for better type safety
+export interface Decision {
+	id: string;
+	type: string;
+	data: Record<string, unknown>;
+	timestamp?: string;
+}
+
 export interface ConsensusEngineCapabilities {
-	collectVotes: (decision: any) => Promise<ConsensusVote[]>;
+	collectVotes: (decision: Decision) => Promise<ConsensusVote[]>;
 	calculateConsensus: (votes: ConsensusVote[]) => ConsensusResult;
 	setQuorumThreshold: (threshold: number) => void;
 	detectMaliciousAgents: (votes: ConsensusVote[]) => string[];
-	recordConsensus: (decision: any, result: ConsensusResult) => void;
+	recordConsensus: (decision: Decision, result: ConsensusResult) => void;
 }
 
 export const createConsensusEngineDouble = (
@@ -72,8 +80,21 @@ export const createConsensusEngineDouble = (
 		...overrides,
 	});
 
+	// Define test helpers interface for better type safety
+	interface TestHelpers {
+		givenVotesReturn: (votes: ConsensusVote[]) => void;
+		givenConsensusResult: (result: ConsensusResult) => void;
+		givenMaliciousAgents: (agentIds: string[]) => void;
+		assertVotesCollectedFor: (decision: Decision) => void;
+		assertConsensusCalculated: () => void;
+		assertQuorumThresholdSet: (threshold: number) => void;
+		getCurrentQuorumThreshold: () => number;
+	}
+
 	// Add test helper methods
-	(double as any).__testHelpers = {
+	(
+		double as ConsensusEngineCapabilities & { __testHelpers: TestHelpers }
+	).__testHelpers = {
 		givenVotesReturn: (votes: ConsensusVote[]) => {
 			double.collectVotes.mockResolvedValue(votes);
 		},
@@ -83,7 +104,7 @@ export const createConsensusEngineDouble = (
 		givenMaliciousAgents: (agentIds: string[]) => {
 			double.detectMaliciousAgents.mockReturnValue(agentIds);
 		},
-		assertVotesCollectedFor: (decision: any) => {
+		assertVotesCollectedFor: (decision: Decision) => {
 			expect(double.collectVotes).toHaveBeenCalledWith(decision);
 		},
 		assertConsensusCalculated: () => {

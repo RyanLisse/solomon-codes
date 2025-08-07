@@ -80,16 +80,16 @@ export class EnvironmentService {
 	/**
 	 * Check if a feature should be enabled based on environment
 	 */
-	shouldEnableFeature(feature: string): boolean {
+	async shouldEnableFeature(feature: string): Promise<boolean> {
 		// Development: Enable most features
-		if (this.isDevelopment()) {
+		if (await this.isDevelopment()) {
 			return !["rateLimiting", "compression", "errorReporting"].includes(
 				feature,
 			);
 		}
 
 		// Staging: Enable most features except production-only ones
-		if (this.isStaging()) {
+		if (await this.isStaging()) {
 			return !["compression"].includes(feature);
 		}
 
@@ -135,10 +135,10 @@ export class EnvironmentService {
 	/**
 	 * Get security headers based on environment
 	 */
-	getSecurityHeaders(): Record<string, string> {
+	async getSecurityHeaders(): Promise<Record<string, string>> {
 		const headers: Record<string, string> = {};
 
-		if (this.isProduction()) {
+		if (await this.isProduction()) {
 			headers["Strict-Transport-Security"] =
 				"max-age=31536000; includeSubDomains";
 			headers["X-Content-Type-Options"] = "nosniff";
@@ -147,7 +147,7 @@ export class EnvironmentService {
 			headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
 		}
 
-		if (this.isNonProduction()) {
+		if (await this.isNonProduction()) {
 			// More permissive headers for development/staging
 			headers["X-Frame-Options"] = "SAMEORIGIN";
 		}
@@ -158,8 +158,8 @@ export class EnvironmentService {
 	/**
 	 * Get rate limiting configuration based on environment
 	 */
-	getRateLimitConfig() {
-		if (this.isDevelopment()) {
+	async getRateLimitConfig() {
+		if (await this.isDevelopment()) {
 			return {
 				enabled: false,
 				windowMs: 15 * 60 * 1000, // 15 minutes
@@ -167,7 +167,7 @@ export class EnvironmentService {
 			};
 		}
 
-		if (this.isStaging()) {
+		if (await this.isStaging()) {
 			return {
 				enabled: true,
 				windowMs: 15 * 60 * 1000, // 15 minutes
@@ -186,8 +186,8 @@ export class EnvironmentService {
 	/**
 	 * Get cache configuration based on environment
 	 */
-	getCacheConfig() {
-		if (this.isDevelopment()) {
+	async getCacheConfig() {
+		if (await this.isDevelopment()) {
 			return {
 				enabled: false,
 				ttl: 0,
@@ -195,7 +195,7 @@ export class EnvironmentService {
 			};
 		}
 
-		if (this.isStaging()) {
+		if (await this.isStaging()) {
 			return {
 				enabled: true,
 				ttl: 5 * 60, // 5 minutes
@@ -251,8 +251,8 @@ export const getCurrentEnvironment = () =>
 /**
  * Environment-aware console logging (only in development)
  */
-export const devLog = (...args: unknown[]) => {
-	if (isDevelopment()) {
+export const devLog = async (...args: unknown[]) => {
+	if (await isDevelopment()) {
 		console.log("[DEV]", ...args);
 	}
 };
@@ -260,8 +260,8 @@ export const devLog = (...args: unknown[]) => {
 /**
  * Environment-aware console warning (only in non-production)
  */
-export const devWarn = (...args: unknown[]) => {
-	if (isNonProduction()) {
+export const devWarn = async (...args: unknown[]) => {
+	if (await isNonProduction()) {
 		console.warn("[DEV]", ...args);
 	}
 };
@@ -269,8 +269,8 @@ export const devWarn = (...args: unknown[]) => {
 /**
  * Environment-aware console error (always enabled but with context)
  */
-export const envError = (...args: unknown[]) => {
-	const env = getCurrentEnvironment();
+export const envError = async (...args: unknown[]) => {
+	const env = await getCurrentEnvironment();
 	console.error(`[${env.toUpperCase()}]`, ...args);
 };
 

@@ -459,10 +459,10 @@ export class PerformanceMonitoringService {
 	/**
 	 * Send metric to telemetry
 	 */
-	private sendToTelemetry(metric: PerformanceMetric): void {
+	private async sendToTelemetry(metric: PerformanceMetric): Promise<void> {
 		try {
 			const telemetryService = getTelemetryService();
-			if (telemetryService.isEnabled()) {
+			if (await telemetryService.isEnabled()) {
 				// In a real implementation, this would send to OpenTelemetry
 				this.getLogger().debug("Metric sent to telemetry", {
 					name: metric.name,

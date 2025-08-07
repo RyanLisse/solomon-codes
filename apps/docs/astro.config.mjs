@@ -13,13 +13,9 @@ export default defineConfig({
 		starlight({
 			title: "Solomon Codes Documentation",
 			customCss: [],
-			social: [
-				{
-					icon: "github",
-					label: "GitHub",
-					href: "https://github.com/withastro/starlight",
-				},
-			],
+			social: {
+				github: "https://github.com/withastro/starlight",
+			},
 			sidebar: [
 				{
 					label: "Guides",
@@ -33,6 +29,12 @@ export default defineConfig({
 		}),
 	],
 	vite: {
+		optimizeDeps: {
+			exclude: ["@astrojs/starlight"],
+		},
+		ssr: {
+			noExternal: ["@astrojs/starlight"],
+		},
 		build: {
 			rollupOptions: {
 				onwarn(warning, warn) {

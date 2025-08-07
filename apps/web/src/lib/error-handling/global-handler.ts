@@ -63,18 +63,24 @@ export class GlobalErrorHandler {
 		process.on(
 			"unhandledRejection",
 			(reason: unknown, promise: Promise<unknown>) => {
-				this.handleUnhandledRejection(reason, promise);
+				this.handleUnhandledRejection(reason, promise).catch((err) => {
+					console.error("Error handling unhandled rejection:", err);
+				});
 			},
 		);
 
 		// Handle uncaught exceptions
 		process.on("uncaughtException", (error: Error) => {
-			this.handleUncaughtException(error);
+			this.handleUncaughtException(error).catch((err) => {
+				console.error("Error handling uncaught exception:", err);
+			});
 		});
 
 		// Handle warnings
 		process.on("warning", (warning: Error) => {
-			this.handleWarning(warning);
+			this.handleWarning(warning).catch((err) => {
+				console.error("Error handling warning:", err);
+			});
 		});
 
 		this.initialized = true;
@@ -84,14 +90,14 @@ export class GlobalErrorHandler {
 	/**
 	 * Handle unhandled promise rejections
 	 */
-	private handleUnhandledRejection(
+	private async handleUnhandledRejection(
 		reason: unknown,
-		promise: Promise<unknown>,
-	): void {
+		_promise: Promise<unknown>,
+	): Promise<void> {
 		const error = reason instanceof Error ? reason : new Error(String(reason));
-		const errorReport = this.createErrorReport(error, {
+		const errorReport = await this.createErrorReport(error, {
 			type: "unhandled-rejection",
-			promise: promise.toString(),
+			promise: "[Promise object]",
 		});
 
 		this.getLogger().error("Unhandled promise rejection", {
@@ -101,12 +107,12 @@ export class GlobalErrorHandler {
 			categorization: errorReport.categorization,
 		});
 
-		this.reportError(errorReport);
-		this.updateErrorMetrics();
+		await this.reportError(errorReport);
+		await this.updateErrorMetrics();
 
 		// In production, we might want to exit gracefully
 		if (
-			this.isProduction() &&
+			(await this.isProduction()) &&
 			errorReport.categorization.severity === "critical"
 		) {
 			this.getLogger().error(
@@ -119,8 +125,8 @@ export class GlobalErrorHandler {
 	/**
 	 * Handle uncaught exceptions
 	 */
-	private handleUncaughtException(error: Error): void {
-		const errorReport = this.createErrorReport(error, {
+	private async handleUncaughtException(error: Error): Promise<void> {
+		const errorReport = await this.createErrorReport(error, {
 			type: "uncaught-exception",
 		});
 
@@ -131,8 +137,8 @@ export class GlobalErrorHandler {
 			categorization: errorReport.categorization,
 		});
 
-		this.reportError(errorReport);
-		this.updateErrorMetrics();
+		await this.reportError(errorReport);
+		await this.updateErrorMetrics();
 
 		// Uncaught exceptions are always critical
 		this.getLogger().error(
@@ -144,8 +150,8 @@ export class GlobalErrorHandler {
 	/**
 	 * Handle warnings
 	 */
-	private handleWarning(warning: Error): void {
-		const errorReport = this.createErrorReport(warning, {
+	private async handleWarning(warning: Error): Promise<void> {
+		const errorReport = await this.createErrorReport(warning, {
 			type: "warning",
 		});
 
@@ -317,16 +323,17 @@ export class GlobalErrorHandler {
 	/**
 	 * Update error rate metrics
 	 */
-	private updateErrorMetrics(): void {
+	private async updateErrorMetrics(): Promise<void> {
 		this.errorCount++;
 		this.lastErrorTime = Date.now();
 
 		// Check for error rate spikes
 		const errorRate = this.calculateErrorRate();
-		if (errorRate > this.getErrorRateThreshold()) {
+		const threshold = await this.getErrorRateThreshold();
+		if (errorRate > threshold) {
 			this.getLogger().warn("High error rate detected", {
 				errorRate,
-				threshold: this.getErrorRateThreshold(),
+				threshold,
 				errorCount: this.errorCount,
 			});
 		}
@@ -351,8 +358,8 @@ export class GlobalErrorHandler {
 	/**
 	 * Get error rate threshold based on environment
 	 */
-	private getErrorRateThreshold(): number {
-		return this.isProduction() ? 5 : 10; // Lower threshold in production
+	private async getErrorRateThreshold(): Promise<number> {
+		return (await this.isProduction()) ? 5 : 10; // Lower threshold in production
 	}
 
 	/**
@@ -371,7 +378,7 @@ export class GlobalErrorHandler {
 	 * Generate correlation ID for error tracking
 	 */
 	private generateCorrelationId(): string {
-		return `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		return `err_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 	}
 
 	/**

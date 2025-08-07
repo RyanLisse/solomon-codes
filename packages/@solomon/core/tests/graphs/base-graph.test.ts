@@ -4,8 +4,12 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BaseGraphBuilder, CommonNodes, type GraphMetadata } from "../../src/graphs/base-graph";
-import { BaseStateSchema, type BaseState } from "../../src/state/unified-state";
+import {
+	BaseGraphBuilder,
+	CommonNodes,
+	type GraphMetadata,
+} from "../../src/graphs/base-graph";
+import { type BaseState, BaseStateSchema } from "../../src/state/unified-state";
 
 describe("BaseGraphBuilder", () => {
 	let graphBuilder: BaseGraphBuilder<BaseState>;
@@ -51,10 +55,10 @@ describe("BaseGraphBuilder", () => {
 
 			// Act
 			const result = graphBuilder.addNode("test_node", testNodeFn);
-			
+
 			// Assert - fluent interface
 			expect(result).toBe(graphBuilder);
-			
+
 			// Verify node was added
 			const config = graphBuilder.exportConfig();
 			expect(config.nodes).toContain("test_node");
@@ -67,9 +71,35 @@ describe("BaseGraphBuilder", () => {
 
 			// Act
 			graphBuilder.addNode("failing_node", failingNodeFn);
-			
-			// The error handling is tested by verifying the node is properly wrapped
-			// In integration tests, we would verify the error handling behavior
+			const wrappedNode = graphBuilder["nodes"].get("failing_node");
+
+			// Assert - Test that the node is wrapped and handles errors correctly
+			expect(wrappedNode).toBeDefined();
+
+			// Test error handling by calling the wrapped function directly
+			if (wrappedNode) {
+				const testState = {
+					messages: [],
+					activeAgents: [],
+					swarmTopology: "hierarchical" as const,
+					taskQueue: [],
+					memory: {},
+					context: {},
+					executionMode: "coding" as const,
+					iterations: 0,
+					maxIterations: 10,
+					errors: [],
+					humanInteractionRequired: false,
+				};
+
+				const result = await wrappedNode(testState);
+
+				// Should return error state with routing to error handler
+				expect(result).toHaveProperty("_nextNode", "handle_error");
+				expect(result.errors).toHaveLength(1);
+				expect(result.errors?.[0]?.error).toBe(errorMessage);
+			}
+
 			const config = graphBuilder.exportConfig();
 			expect(config.nodes).toContain("failing_node");
 		});
@@ -88,7 +118,7 @@ describe("BaseGraphBuilder", () => {
 
 			// Assert
 			expect(result).toBe(graphBuilder);
-			
+
 			const config = graphBuilder.exportConfig();
 			expect(config.nodes).toContain("node1");
 			expect(config.nodes).toContain("node2");
@@ -123,7 +153,11 @@ describe("BaseGraphBuilder", () => {
 				.addNode("failure_node", vi.fn().mockResolvedValue({}));
 
 			// Act
-			const result = graphBuilder.addConditionalEdge("router", routingFn, edgeMap);
+			const result = graphBuilder.addConditionalEdge(
+				"router",
+				routingFn,
+				edgeMap,
+			);
 
 			// Assert
 			expect(result).toBe(graphBuilder);
@@ -180,7 +214,11 @@ describe("BaseGraphBuilder", () => {
 			graphBuilder
 				.addNode("start", CommonNodes.createPlanningNode<BaseState>())
 				.addNode("validate", CommonNodes.createValidationNode<BaseState>())
-				.addConditionalEdge("start", CommonNodes.createRoutingNode<BaseState>(routingMap), routingMap)
+				.addConditionalEdge(
+					"start",
+					CommonNodes.createRoutingNode<BaseState>(routingMap),
+					routingMap,
+				)
 				.addEdge("validate", "handle_error") // Make error handler reachable
 				.setEntryPoint("start")
 				.setFinishPoint("handle_error");
